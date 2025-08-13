@@ -1,0 +1,22 @@
+[2024-01-15 10:00:00] INFO: Application started
+[2024-01-15 10:00:01] INFO: Database connection established
+[2024-01-15 10:00:02] INFO: API routes initialized
+[2024-01-15 10:00:03] INFO: UI components loaded
+[2024-01-15 10:00:04] INFO: Culture mapping system ready
+
+[2024-01-15 10:05:00] DEBUG: Team creation request received
+[2024-01-15 10:05:01] DEBUG: Validating team data
+[2024-01-15 10:05:02] INFO: Team "Sample Team" created successfully
+
+[2024-01-15 10:10:00] DEBUG: Assessment submission received
+[2024-01-15 10:10:01] DEBUG: Calculating OCEAN scores
+[2024-01-15 10:10:02] INFO: Assessment completed - Participant: user-123
+
+[2024-01-15 10:15:00] DEBUG: Report generation request
+[2024-01-15 10:15:01] INFO: Team culture report generated successfully
+
+[2024-01-15 10:20:00] WARN: Email service not configured - invitations will be logged only
+[2024-01-15 10:20:01] INFO: Team invitation sent to user@example.com
+
+[2024-01-15 10:25:00] DEBUG: Culture analysis completed
+[2024-01-15 10:25:01] INFO: Recommendations generated for team-123
