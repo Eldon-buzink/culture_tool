@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/app/lib/db';
-import { calculateOCEANScores } from '@/app/lib/traits';
+import { db } from '@/lib/db';
+import { calculateOCEANScores } from '@/lib/traits';
 
 export async function POST(request: NextRequest) {
   try {
