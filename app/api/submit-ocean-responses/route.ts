@@ -1,53 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
-import { calculateOCEANScores } from '@/lib/traits';
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { uuid, responses } = body;
-
-    if (!uuid || !responses || typeof responses !== 'object') {
-      return NextResponse.json(
-        { error: 'UUID and responses are required' },
-        { status: 400 }
-      );
-    }
-
-    // Convert responses to the format expected by the traits library
-    const questions = Object.keys(responses).map(id => ({
-      id,
-      text: '', // Not needed for scoring
-      category: getCategoryFromId(id), // This would need to be determined based on your question mapping
-      reverseScored: false, // This would need to be determined based on your question mapping
-    }));
+    const { uuid, responses } = await request.json();
 
     // Calculate OCEAN scores
-    const scores = calculateOCEANScores(responses, questions);
+    const oceanScores = calculateOCEANScores(responses);
+    
+    // Calculate Culture Map scores
+    const cultureScores = calculateCultureScores(responses);
+    
+    // Calculate Team Values scores
+    const valuesScores = calculateValuesScores(responses);
 
-    // Save the assessment submission
-    const submission = await db.assessmentSubmission.create({
-      data: {
-        assessmentId: uuid,
-        participantId: 'anonymous', // This would come from authentication
-        answers: responses,
-        scores,
-        completedAt: new Date(),
-        insights: generateInsights(scores),
-        recommendations: generateRecommendations(scores),
-      },
-    });
+    // Store results (in a real app, this would go to a database)
+    const results = {
+      uuid,
+      oceanScores,
+      cultureScores,
+      valuesScores,
+      responses,
+      completedAt: new Date().toISOString(),
+    };
+
+    // For now, we'll just return the results
+    // In a real app, you'd store this in a database
+    console.log('Assessment results:', results);
 
     return NextResponse.json({
       success: true,
-      submission: {
-        id: submission.id,
-        scores,
-        completedAt: submission.completedAt,
-      },
+      results,
     });
   } catch (error) {
-    console.error('Error submitting OCEAN responses:', error);
+    console.error('Error submitting responses:', error);
     return NextResponse.json(
       { error: 'Failed to submit responses' },
       { status: 500 }
@@ -55,123 +40,115 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Helper function to determine category from question ID
-// In a real implementation, this would be based on your question mapping
-function getCategoryFromId(id: string): string {
-  const categoryMap: Record<string, string> = {
-    '1': 'extraversion',
-    '2': 'agreeableness',
-    '3': 'conscientiousness',
-    '4': 'neuroticism',
-    '5': 'openness',
-    '6': 'extraversion',
-    '7': 'agreeableness',
-    '8': 'conscientiousness',
-    '9': 'neuroticism',
-    '10': 'openness',
-    '11': 'extraversion',
-    '12': 'agreeableness',
-    '13': 'conscientiousness',
-    '14': 'neuroticism',
-    '15': 'openness',
-    '16': 'extraversion',
-    '17': 'agreeableness',
-    '18': 'conscientiousness',
-    '19': 'neuroticism',
-    '20': 'openness',
+function calculateOCEANScores(responses: Record<string, number>) {
+  const oceanQuestions = {
+    openness: ['ocean_5', 'ocean_10', 'ocean_15', 'ocean_20'],
+    conscientiousness: ['ocean_3', 'ocean_8', 'ocean_13', 'ocean_18'],
+    extraversion: ['ocean_1', 'ocean_6', 'ocean_11', 'ocean_16'],
+    agreeableness: ['ocean_2', 'ocean_7', 'ocean_12', 'ocean_17'],
+    neuroticism: ['ocean_4', 'ocean_9', 'ocean_14', 'ocean_19'],
   };
-  
-  return categoryMap[id] || 'openness';
+
+  const reverseScored = {
+    'ocean_6': true, 'ocean_7': true, 'ocean_8': true, 'ocean_9': true, 'ocean_10': true,
+    'ocean_15': true, 'ocean_16': true, 'ocean_17': true, 'ocean_18': true, 'ocean_19': true, 'ocean_20': true,
+  };
+
+  const scores: Record<string, number> = {};
+
+  Object.entries(oceanQuestions).forEach(([trait, questionIds]) => {
+    const traitResponses = questionIds
+      .map(id => responses[id])
+      .filter(response => response !== undefined);
+
+    if (traitResponses.length === 0) {
+      scores[trait] = 0;
+      return;
+    }
+
+    const adjustedResponses = traitResponses.map((response, index) => {
+      const questionId = questionIds[index];
+      return reverseScored[questionId] ? (8 - response) : response;
+    });
+
+    const average = adjustedResponses.reduce((sum, response) => sum + response, 0) / adjustedResponses.length;
+    scores[trait] = Math.round((average / 7) * 100);
+  });
+
+  return scores;
 }
 
-function generateInsights(scores: Record<string, number>): string[] {
-  const insights = [];
+function calculateCultureScores(responses: Record<string, number>) {
+  const cultureQuestions = {
+    power_distance: ['culture_1', 'culture_2'],
+    individualism: ['culture_3', 'culture_4'],
+    masculinity: ['culture_5', 'culture_6'],
+    uncertainty_avoidance: ['culture_7', 'culture_8'],
+    long_term_orientation: ['culture_9', 'culture_10'],
+    indulgence: ['culture_11', 'culture_12'],
+  };
 
-  if (scores.openness > 70) {
-    insights.push('High openness indicates creativity and adaptability');
-  } else if (scores.openness < 40) {
-    insights.push('Lower openness suggests preference for structure and routine');
-  }
+  const reverseScored = {
+    'culture_2': true, 'culture_4': true, 'culture_6': true, 'culture_8': true, 'culture_10': true, 'culture_12': true,
+  };
 
-  if (scores.conscientiousness > 70) {
-    insights.push('High conscientiousness shows strong organization and reliability');
-  } else if (scores.conscientiousness < 40) {
-    insights.push('Lower conscientiousness suggests flexibility and spontaneity');
-  }
+  const scores: Record<string, number> = {};
 
-  if (scores.extraversion > 70) {
-    insights.push('High extraversion indicates strong social engagement');
-  } else if (scores.extraversion < 40) {
-    insights.push('Lower extraversion suggests preference for focused individual work');
-  }
+  Object.entries(cultureQuestions).forEach(([dimension, questionIds]) => {
+    const dimensionResponses = questionIds
+      .map(id => responses[id])
+      .filter(response => response !== undefined);
 
-  if (scores.agreeableness > 70) {
-    insights.push('High agreeableness indicates strong collaboration potential');
-  } else if (scores.agreeableness < 40) {
-    insights.push('Lower agreeableness suggests directness and assertiveness');
-  }
+    if (dimensionResponses.length === 0) {
+      scores[dimension] = 0;
+      return;
+    }
 
-  if (scores.neuroticism < 30) {
-    insights.push('Low neuroticism indicates emotional stability and resilience');
-  } else if (scores.neuroticism > 70) {
-    insights.push('Higher neuroticism suggests sensitivity to stress and emotions');
-  }
+    const adjustedResponses = dimensionResponses.map((response, index) => {
+      const questionId = questionIds[index];
+      return reverseScored[questionId] ? (8 - response) : response;
+    });
 
-  return insights;
+    const average = adjustedResponses.reduce((sum, response) => sum + response, 0) / adjustedResponses.length;
+    scores[dimension] = Math.round((average / 7) * 100);
+  });
+
+  return scores;
 }
 
-function generateRecommendations(scores: Record<string, number>): Array<{
-  id: string;
-  title: string;
-  description: string;
-  priority: 'high' | 'medium' | 'low';
-}> {
-  const recommendations = [];
+function calculateValuesScores(responses: Record<string, number>) {
+  const valuesQuestions = {
+    innovation: ['values_1', 'values_2'],
+    collaboration: ['values_3', 'values_4'],
+    autonomy: ['values_5', 'values_6'],
+    quality: ['values_7', 'values_8'],
+    customer_focus: ['values_9', 'values_10'],
+  };
 
-  if (scores.openness < 50) {
-    recommendations.push({
-      id: '1',
-      title: 'Embrace New Experiences',
-      description: 'Consider trying new approaches and creative problem-solving methods',
-      priority: 'medium',
+  const reverseScored = {
+    'values_2': true, 'values_4': true, 'values_6': true, 'values_8': true, 'values_10': true,
+  };
+
+  const scores: Record<string, number> = {};
+
+  Object.entries(valuesQuestions).forEach(([value, questionIds]) => {
+    const valueResponses = questionIds
+      .map(id => responses[id])
+      .filter(response => response !== undefined);
+
+    if (valueResponses.length === 0) {
+      scores[value] = 0;
+      return;
+    }
+
+    const adjustedResponses = valueResponses.map((response, index) => {
+      const questionId = questionIds[index];
+      return reverseScored[questionId] ? (8 - response) : response;
     });
-  }
 
-  if (scores.conscientiousness < 60) {
-    recommendations.push({
-      id: '2',
-      title: 'Improve Organization',
-      description: 'Implement structured workflows and clear deadlines',
-      priority: 'high',
-    });
-  }
+    const average = adjustedResponses.reduce((sum, response) => sum + response, 0) / adjustedResponses.length;
+    scores[value] = Math.round((average / 7) * 100);
+  });
 
-  if (scores.extraversion < 50) {
-    recommendations.push({
-      id: '3',
-      title: 'Enhance Communication',
-      description: 'Consider more structured communication channels and regular check-ins',
-      priority: 'medium',
-    });
-  }
-
-  if (scores.agreeableness < 50) {
-    recommendations.push({
-      id: '4',
-      title: 'Build Team Collaboration',
-      description: 'Focus on building trust and cooperation in team settings',
-      priority: 'high',
-    });
-  }
-
-  if (scores.neuroticism > 60) {
-    recommendations.push({
-      id: '5',
-      title: 'Stress Management',
-      description: 'Consider stress management techniques and work-life balance',
-      priority: 'high',
-    });
-  }
-
-  return recommendations;
+  return scores;
 }
