@@ -1,455 +1,352 @@
 'use client';
-
-import React, { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
-import { Input } from '@/components/ui/input';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Button } from '@/components/ui/button';
+import React, { useState, useEffect } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
+import { Button } from '@/components/ui/button';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Progress } from '@/components/ui/progress';
-import { Badge } from '@/components/ui/badge';
-import { Loader2, ChevronLeft, ChevronRight, Clock, Brain, Globe, Target, CheckCircle } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+import { Brain, Users, Target, ArrowRight, ArrowLeft } from 'lucide-react';
 
-type Question = {
+interface Question {
   id: string;
   text: string;
-  section: string;
+  section: 'ocean' | 'culture' | 'values';
   subsection: string;
-  reverse_scored: boolean;
-  trait_axis: string;
-};
+}
 
-type SectionExplanation = {
+interface SectionExplanation {
   title: string;
   description: string;
-  outcome: string;
+  icon: React.ReactNode;
+  color: string;
+}
+
+const sectionExplanations: Record<string, SectionExplanation> = {
+  ocean: {
+    title: 'OCEAN Personality Assessment',
+    description: 'This section measures your personality traits across five dimensions: Openness, Conscientiousness, Extraversion, Agreeableness, and Neuroticism. Understanding these traits helps identify your work style, communication preferences, and how you interact with others.',
+    icon: <Brain className="w-6 h-6" />,
+    color: 'bg-blue-500'
+  },
+  culture: {
+    title: 'Cultural Dimensions',
+    description: 'This section explores your cultural preferences and work environment expectations. We assess dimensions like power distance, individualism, and uncertainty avoidance to understand how you prefer to work within organizational structures.',
+    icon: <Users className="w-6 h-6" />,
+    color: 'bg-green-500'
+  },
+  values: {
+    title: 'Work Values Assessment',
+    description: 'This section identifies your core work values and what motivates you professionally. Understanding your values helps align your career choices with what truly matters to you.',
+    icon: <Target className="w-6 h-6" />,
+    color: 'bg-purple-500'
+  }
 };
 
-type SectionExplanations = {
-  ocean: SectionExplanation;
-  culture: SectionExplanation;
-  values: SectionExplanation;
-};
+const sections = ['ocean', 'culture', 'values'];
 
 export default function AssessmentPage() {
-  const { uuid } = useParams();
-  const [loading, setLoading] = useState(true);
+  const params = useParams();
+  const router = useRouter();
+  const [currentSection, setCurrentSection] = useState(0);
+  const [currentQuestion, setCurrentQuestion] = useState(0);
+  const [responses, setResponses] = useState<Record<string, number>>({});
   const [questions, setQuestions] = useState<Question[]>([]);
-  const [sectionExplanations, setSectionExplanations] = useState<SectionExplanations | null>(null);
-  const [answers, setAnswers] = useState<Record<string, number>>({});
+  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-  const [currentSection, setCurrentSection] = useState<'ocean' | 'culture' | 'values'>('ocean');
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [showSectionIntro, setShowSectionIntro] = useState(true);
-
-  const sections = ['ocean', 'culture', 'values'] as const;
-  const sectionIcons = {
-    ocean: Brain,
-    culture: Globe,
-    values: Target,
-  };
+  const [assessmentId, setAssessmentId] = useState<string | null>(null);
+  const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    async function fetchQuestions() {
-      setLoading(true);
-      const res = await fetch(`/api/get-ocean-questions`);
-      const data = await res.json();
-      setQuestions(data.questions);
-      setSectionExplanations(data.sectionExplanations);
-      setLoading(false);
-    }
-
-    fetchQuestions();
+    initializeAssessment();
   }, []);
 
-  // Handle redirect after submission
-  useEffect(() => {
-    if (submitted) {
-      const timer = setTimeout(() => {
-        window.location.href = `/assessment/${uuid}/results`;
-      }, 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [submitted, uuid]);
+  const initializeAssessment = async () => {
+    try {
+      // Create or get user
+      const userResponse = await fetch('/api/users/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: 'Anonymous User',
+          email: `user-${Date.now()}@example.com`
+        })
+      });
+      
+      if (!userResponse.ok) throw new Error('Failed to create user');
+      const userData = await userResponse.json();
+      setUser(userData.user);
 
-  const handleChange = (questionId: string, value: number) => {
-    setAnswers((prev) => ({ ...prev, [questionId]: value }));
+      // Create assessment
+      const assessmentResponse = await fetch('/api/assessments/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: userData.user.id,
+          teamId: params.uuid !== 'individual' ? params.uuid : null
+        })
+      });
+
+      if (!assessmentResponse.ok) throw new Error('Failed to create assessment');
+      const assessmentData = await assessmentResponse.json();
+      setAssessmentId(assessmentData.assessmentId);
+
+      // Fetch questions
+      const questionsResponse = await fetch('/api/get-ocean-questions');
+      if (!questionsResponse.ok) throw new Error('Failed to fetch questions');
+      const questionsData = await questionsResponse.json();
+      setQuestions(questionsData.questions);
+    } catch (error) {
+      console.error('Error initializing assessment:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResponse = (questionId: string, value: number) => {
+    setResponses(prev => ({
+      ...prev,
+      [questionId]: value
+    }));
   };
 
   const getCurrentSectionQuestions = () => {
-    return questions.filter(q => q.section === currentSection);
+    const section = sections[currentSection];
+    return questions.filter(q => q.section === section);
   };
 
-  const getCurrentQuestion = () => {
+  const getProgress = () => {
+    const totalQuestions = questions.length;
+    const answeredQuestions = Object.keys(responses).length;
+    return (answeredQuestions / totalQuestions) * 100;
+  };
+
+  const getSectionProgress = () => {
     const sectionQuestions = getCurrentSectionQuestions();
-    return sectionQuestions[currentQuestionIndex];
+    const answeredInSection = sectionQuestions.filter(q => responses[q.id] !== undefined).length;
+    return (answeredInSection / sectionQuestions.length) * 100;
   };
 
-  const getSectionProgress = (section: string) => {
-    const sectionQuestions = questions.filter(q => q.section === section);
-    const answeredQuestions = sectionQuestions.filter(q => answers[q.id] !== undefined);
-    return (answeredQuestions.length / sectionQuestions.length) * 100;
-  };
-
-  const getOverallProgress = () => {
-    const answeredQuestions = questions.filter(q => answers[q.id] !== undefined);
-    return (answeredQuestions.length / questions.length) * 100;
-  };
-
-  const handleNext = () => {
+  const canProceed = () => {
     const sectionQuestions = getCurrentSectionQuestions();
-    if (currentQuestionIndex < sectionQuestions.length - 1) {
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
-    } else {
-      // Move to next section
-      const currentSectionIndex = sections.indexOf(currentSection);
-      if (currentSectionIndex < sections.length - 1) {
-        const nextSection = sections[currentSectionIndex + 1];
-        setCurrentSection(nextSection);
-        setCurrentQuestionIndex(0);
-        setShowSectionIntro(true);
-      }
+    return sectionQuestions.every(q => responses[q.id] !== undefined);
+  };
+
+  const canGoBack = () => {
+    return currentSection > 0 || currentQuestion > 0;
+  };
+
+  const nextSection = () => {
+    if (currentSection < sections.length - 1) {
+      setCurrentSection(prev => prev + 1);
+      setCurrentQuestion(0);
     }
   };
 
-  const handlePrevious = () => {
-    if (currentQuestionIndex > 0) {
-      setCurrentQuestionIndex(currentQuestionIndex - 1);
-    } else {
-      // Move to previous section
-      const currentSectionIndex = sections.indexOf(currentSection);
-      if (currentSectionIndex > 0) {
-        const prevSection = sections[currentSectionIndex - 1];
-        const prevSectionQuestions = questions.filter(q => q.section === prevSection);
-        setCurrentSection(prevSection);
-        setCurrentQuestionIndex(prevSectionQuestions.length - 1);
-        setShowSectionIntro(false);
-      }
+  const prevSection = () => {
+    if (currentSection > 0) {
+      setCurrentSection(prev => prev - 1);
+      setCurrentQuestion(0);
     }
   };
 
-  const handleStartSection = () => {
-    setShowSectionIntro(false);
-  };
+  const submitAssessment = async () => {
+    if (!assessmentId) return;
 
-  const handleSubmit = async () => {
     setSubmitting(true);
-    await fetch('/api/submit-ocean-responses', {
-      method: 'POST',
-      body: JSON.stringify({
-        uuid,
-        responses: answers,
-      }),
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-    setSubmitting(false);
-    setSubmitted(true);
-  };
+    try {
+      const response = await fetch('/api/submit-ocean-responses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          assessmentId,
+          responses
+        })
+      });
 
-  const currentQuestion = getCurrentQuestion();
-  const sectionQuestions = getCurrentSectionQuestions();
-  const isLastQuestion = currentQuestionIndex === sectionQuestions.length - 1;
-  const isLastSection = currentSection === 'values';
-  const canProceed = currentQuestion ? answers[currentQuestion.id] !== undefined : false;
-  const overallProgress = getOverallProgress();
+      if (!response.ok) throw new Error('Failed to submit assessment');
+      
+      const result = await response.json();
+      
+      // Redirect to results page
+      router.push(`/assessment/${assessmentId}/results`);
+    } catch (error) {
+      console.error('Error submitting assessment:', error);
+      alert('Failed to submit assessment. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
-          <p className="text-gray-600">Loading your comprehensive assessment...</p>
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading assessment...</p>
         </div>
       </div>
     );
   }
 
-  if (submitted) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center">
-        <div className="max-w-md mx-auto text-center p-8">
-          <div className="bg-white rounded-2xl shadow-lg p-8">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <CheckCircle className="h-8 w-8 text-green-600" />
-            </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Assessment Complete! 🎉</h2>
-            <p className="text-gray-600 mb-6">
-              Thanks for completing the comprehensive assessment. You're one step closer to understanding your complete work profile! 🧠
-            </p>
-            <div className="bg-blue-50 rounded-lg p-4">
-              <p className="text-sm text-blue-800">
-                <strong>Next:</strong> Redirecting you to your personalized results...
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Show section introduction
-  if (showSectionIntro && sectionExplanations) {
-    const IconComponent = sectionIcons[currentSection];
-    const explanation = sectionExplanations[currentSection];
-    
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8">
-        <div className="max-w-4xl mx-auto px-4">
-          {/* Header */}
-          <div className="text-center mb-8">
-            <div className="flex items-center justify-center gap-2 mb-4">
-              <IconComponent className="h-6 w-6 text-blue-600" />
-              <h1 className="text-3xl font-bold text-gray-900">Comprehensive Assessment</h1>
-            </div>
-            <p className="text-gray-600 max-w-2xl mx-auto">
-              Let's explore your complete work profile through three key dimensions
-            </p>
-          </div>
-
-          {/* Section Progress */}
-          <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-sm font-medium text-gray-900">Overall Progress</span>
-              <span className="text-sm font-medium text-gray-900">
-                {Math.round(overallProgress)}% Complete
-              </span>
-            </div>
-            <Progress value={overallProgress} className="h-3" />
-            
-            {/* Section indicators */}
-            <div className="flex justify-center mt-4 gap-4">
-              {sections.map((section, index) => {
-                const Icon = sectionIcons[section];
-                const progress = getSectionProgress(section);
-                const isActive = section === currentSection;
-                const isCompleted = progress === 100;
-                
-                return (
-                  <div key={section} className="flex flex-col items-center">
-                    <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-2 ${
-                      isCompleted ? 'bg-green-100 text-green-600' :
-                      isActive ? 'bg-blue-100 text-blue-600' :
-                      'bg-gray-100 text-gray-400'
-                    }`}>
-                      <Icon className="h-6 w-6" />
-                    </div>
-                    <span className="text-xs text-gray-600 capitalize">{section}</span>
-                    <div className="w-16 h-1 bg-gray-200 rounded-full mt-1">
-                      <div 
-                        className={`h-1 rounded-full ${
-                          isCompleted ? 'bg-green-500' : 'bg-blue-500'
-                        }`}
-                        style={{ width: `${progress}%` }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Section Introduction */}
-          <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-            <div className="p-8">
-              <div className="text-center mb-6">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
-                  <IconComponent className="h-8 w-8 text-blue-600" />
-                </div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">{explanation.title}</h2>
-                <p className="text-gray-600 max-w-2xl mx-auto">{explanation.description}</p>
-              </div>
-
-              <div className="bg-blue-50 rounded-lg p-6 mb-6">
-                <h3 className="font-semibold text-blue-900 mb-2">What you'll discover:</h3>
-                <p className="text-blue-800">{explanation.outcome}</p>
-              </div>
-
-              <div className="text-center">
-                <Button 
-                  onClick={handleStartSection}
-                  className="bg-blue-600 hover:bg-blue-700 px-8 py-3"
-                >
-                  Start {explanation.title}
-                  <ChevronRight className="h-4 w-4 ml-2" />
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const currentSectionKey = sections[currentSection];
+  const sectionExplanation = sectionExplanations[currentSectionKey];
+  const sectionQuestions = getCurrentSectionQuestions();
+  const currentQuestionData = sectionQuestions[currentQuestion];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8">
-      <div className="max-w-4xl mx-auto px-4">
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="container mx-auto px-4 max-w-4xl">
         {/* Header */}
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <Brain className="h-6 w-6 text-blue-600" />
-            <h1 className="text-3xl font-bold text-gray-900">Comprehensive Assessment</h1>
-          </div>
-          <p className="text-gray-600 max-w-2xl mx-auto">
-            Answer honestly — there are no wrong answers here. Just strong opinions and quiet overthinkers 😅
-          </p>
-        </div>
-
-        {/* Progress Section */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-4">
-              <Badge variant="secondary" className="flex items-center gap-1">
-                <Clock className="h-3 w-3" />
-                ~15 min
-              </Badge>
-              <span className="text-sm text-gray-600">
-                {currentSection.charAt(0).toUpperCase() + currentSection.slice(1)}: Question {currentQuestionIndex + 1} of {sectionQuestions.length}
-              </span>
-            </div>
-            <span className="text-sm font-medium text-gray-900">
-              {Math.round(overallProgress)}% Complete
-            </span>
-          </div>
-          <Progress value={overallProgress} className="h-3" />
-          
-          {/* Section indicators */}
-          <div className="flex justify-center mt-4 gap-4">
-            {sections.map((section, index) => {
-              const Icon = sectionIcons[section];
-              const progress = getSectionProgress(section);
-              const isActive = section === currentSection;
-              const isCompleted = progress === 100;
-              
-              return (
-                <div key={section} className="flex flex-col items-center">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-1 ${
-                    isCompleted ? 'bg-green-100 text-green-600' :
-                    isActive ? 'bg-blue-100 text-blue-600' :
-                    'bg-gray-100 text-gray-400'
-                  }`}>
-                    <Icon className="h-5 w-5" />
-                  </div>
-                  <span className="text-xs text-gray-600 capitalize">{section}</span>
-                  <div className="w-12 h-1 bg-gray-200 rounded-full mt-1">
-                    <div 
-                      className={`h-1 rounded-full ${
-                        isCompleted ? 'bg-green-500' : 'bg-blue-500'
-                      }`}
-                      style={{ width: `${progress}%` }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Personality Assessment</h1>
+          <div className="flex items-center gap-4 text-sm text-gray-600">
+            <span>Section {currentSection + 1} of {sections.length}</span>
+            <span>•</span>
+            <span>Question {currentQuestion + 1} of {sectionQuestions.length}</span>
           </div>
         </div>
 
-        {/* Question Card */}
-        <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-          <div className="p-8">
-            {currentQuestion && (
-              <div className="space-y-6">
-                {/* Question Header */}
-                <div className="text-center">
-                  <Badge variant="outline" className="mb-3">
-                    {currentSection.charAt(0).toUpperCase() + currentSection.slice(1)}
-                  </Badge>
-                  <h2 className="text-xl font-semibold text-gray-900 leading-relaxed">
-                    {currentQuestion.text}
-                  </h2>
+        {/* Overall Progress */}
+        <div className="mb-6">
+          <div className="flex justify-between text-sm text-gray-600 mb-2">
+            <span>Overall Progress</span>
+            <span>{Math.round(getProgress())}%</span>
+          </div>
+          <Progress value={getProgress()} className="h-2" />
+        </div>
+
+        {/* Section Introduction */}
+        {currentQuestion === 0 && (
+          <Card className="mb-8">
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className={`p-2 rounded-lg ${sectionExplanation.color} text-white`}>
+                  {sectionExplanation.icon}
                 </div>
-
-                {/* Scale Labels */}
-                <div className="flex justify-between text-xs text-gray-500 mb-4">
-                  <span>Strongly Disagree</span>
-                  <span>Strongly Agree</span>
-                </div>
-
-                {/* Radio Buttons */}
-                <RadioGroup
-                  value={answers[currentQuestion.id]?.toString() || ''}
-                  onValueChange={(val) => handleChange(currentQuestion.id, parseInt(val))}
-                  className="flex justify-between gap-2"
-                >
-                  {[1, 2, 3, 4, 5, 6, 7].map((val) => (
-                    <div key={val} className="flex flex-col items-center">
-                      <RadioGroupItem 
-                        value={val.toString()} 
-                        className="h-6 w-6 border-2 border-gray-300 hover:border-blue-500 transition-colors"
-                      />
-                      <span className="mt-2 text-sm font-medium text-gray-700">{val}</span>
-                    </div>
-                  ))}
-                </RadioGroup>
-
-                {/* Navigation */}
-                <div className="flex justify-between items-center pt-6 border-t">
-                  <Button
-                    variant="outline"
-                    onClick={handlePrevious}
-                    disabled={currentQuestionIndex === 0 && currentSection === 'ocean'}
-                    className="flex items-center gap-2"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                    Previous
-                  </Button>
-
-                  {isLastQuestion && isLastSection ? (
-                    <Button
-                      onClick={handleSubmit}
-                      disabled={!canProceed || submitting}
-                      className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
-                    >
-                      {submitting ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          Submitting...
-                        </>
-                      ) : (
-                        <>
-                          Complete Assessment
-                          <ChevronRight className="h-4 w-4" />
-                        </>
-                      )}
-                    </Button>
-                  ) : (
-                    <Button
-                      onClick={handleNext}
-                      disabled={!canProceed}
-                      className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
-                    >
-                      Next
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  )}
+                <div>
+                  <CardTitle className="text-xl">{sectionExplanation.title}</CardTitle>
+                  <p className="text-gray-600 mt-2">{sectionExplanation.description}</p>
                 </div>
               </div>
+            </CardHeader>
+            <CardContent>
+              <div className="flex justify-between items-center">
+                <div className="text-sm text-gray-600">
+                  {sectionQuestions.length} questions in this section
+                </div>
+                                 <Button onClick={() => setCurrentQuestion(1)} disabled={!canProceed()}>
+                   Start Section
+                   <ArrowRight className="ml-2 h-4 w-4" />
+                 </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Question */}
+        {currentQuestion > 0 && currentQuestion <= sectionQuestions.length && (
+          <Card className="mb-8">
+            <CardHeader>
+              <div className="flex justify-between items-start">
+                <div>
+                  <CardTitle className="text-lg mb-2">
+                    Question {currentQuestion} of {sectionQuestions.length}
+                  </CardTitle>
+                  <p className="text-gray-700 text-lg">{currentQuestionData.text}</p>
+                </div>
+                <div className="text-sm text-gray-500">
+                  {Math.round(getSectionProgress())}% complete
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+                               <RadioGroup
+                   value={responses[currentQuestionData.id]?.toString() || ''}
+                   onValueChange={(value: string) => handleResponse(currentQuestionData.id, parseInt(value))}
+                   className="space-y-4"
+                 >
+                {[1, 2, 3, 4, 5, 6, 7].map((value) => (
+                  <div key={value} className="flex items-center space-x-3">
+                    <RadioGroupItem value={value.toString()} id={`q${currentQuestionData.id}-${value}`} />
+                    <label htmlFor={`q${currentQuestionData.id}-${value}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                      {value} - {value === 1 ? 'Strongly Disagree' : value === 4 ? 'Neutral' : value === 7 ? 'Strongly Agree' : ''}
+                    </label>
+                  </div>
+                ))}
+              </RadioGroup>
+
+              <div className="flex justify-between mt-8">
+                <Button
+                  variant="outline"
+                  onClick={() => setCurrentQuestion(prev => Math.max(0, prev - 1))}
+                  disabled={currentQuestion === 1}
+                >
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Previous
+                </Button>
+
+                {currentQuestion < sectionQuestions.length ? (
+                  <Button
+                    onClick={() => setCurrentQuestion(prev => prev + 1)}
+                    disabled={!responses[currentQuestionData.id]}
+                  >
+                    Next
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={nextSection}
+                    disabled={!canProceed()}
+                  >
+                    Next Section
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Section Navigation */}
+        {currentQuestion === 0 && (
+          <div className="flex justify-between">
+                         <Button
+               onClick={prevSection}
+               disabled={!canGoBack()}
+               className="border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+             >
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Previous Section
+            </Button>
+
+            {currentSection === sections.length - 1 ? (
+              <Button
+                onClick={submitAssessment}
+                disabled={!canProceed() || submitting}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                {submitting ? 'Submitting...' : 'Submit Assessment'}
+              </Button>
+            ) : (
+              <Button
+                onClick={nextSection}
+                disabled={!canProceed()}
+              >
+                Next Section
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
             )}
           </div>
-        </div>
+        )}
 
-        {/* Question Navigation Dots */}
-        <div className="flex justify-center mt-6">
-          <div className="flex gap-2">
-            {sectionQuestions.map((_, index) => (
-              <button
-                key={index}
-                onClick={() => setCurrentQuestionIndex(index)}
-                className={`w-3 h-3 rounded-full transition-colors ${
-                  index === currentQuestionIndex
-                    ? 'bg-blue-600'
-                    : answers[sectionQuestions[index]?.id]
-                    ? 'bg-green-500'
-                    : 'bg-gray-300'
-                }`}
-                aria-label={`Go to question ${index + 1}`}
-              />
-            ))}
+        {/* Section Progress */}
+        <div className="mt-8">
+          <div className="flex justify-between text-sm text-gray-600 mb-2">
+            <span>Section Progress</span>
+            <span>{Math.round(getSectionProgress())}%</span>
           </div>
+          <Progress value={getSectionProgress()} className="h-2" />
         </div>
       </div>
     </div>

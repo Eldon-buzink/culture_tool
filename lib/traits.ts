@@ -1,6 +1,6 @@
 // OCEAN Personality Traits Scoring Logic
 
-export interface OCEANScores {
+export interface OCEANScores extends Record<string, number> {
   openness: number;
   conscientiousness: number;
   extraversion: number;

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { calculateOCEANScores } from '@/lib/traits';
+import { calculateOCEANScores, OCEANScores, Question } from '@/lib/traits';
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Convert responses to the format expected by the traits library
-    const questions = Object.keys(responses).map(id => ({
+    const questions: Question[] = Object.keys(responses).map(id => ({
       id,
       text: '', // Not needed for scoring
       category: getCategoryFromId(id), // This would need to be determined based on your question mapping
@@ -57,8 +57,8 @@ export async function POST(request: NextRequest) {
 
 // Helper function to determine category from question ID
 // In a real implementation, this would be based on your question mapping
-function getCategoryFromId(id: string): string {
-  const categoryMap: Record<string, string> = {
+function getCategoryFromId(id: string): keyof OCEANScores {
+  const categoryMap: Record<string, keyof OCEANScores> = {
     '1': 'extraversion',
     '2': 'agreeableness',
     '3': 'conscientiousness',
@@ -133,7 +133,7 @@ function generateRecommendations(scores: Record<string, number>): Array<{
       id: '1',
       title: 'Embrace New Experiences',
       description: 'Consider trying new approaches and creative problem-solving methods',
-      priority: 'medium',
+      priority: 'medium' as const,
     });
   }
 
@@ -142,7 +142,7 @@ function generateRecommendations(scores: Record<string, number>): Array<{
       id: '2',
       title: 'Improve Organization',
       description: 'Implement structured workflows and clear deadlines',
-      priority: 'high',
+      priority: 'high' as const,
     });
   }
 
@@ -151,7 +151,7 @@ function generateRecommendations(scores: Record<string, number>): Array<{
       id: '3',
       title: 'Enhance Communication',
       description: 'Consider more structured communication channels and regular check-ins',
-      priority: 'medium',
+      priority: 'medium' as const,
     });
   }
 
@@ -160,7 +160,7 @@ function generateRecommendations(scores: Record<string, number>): Array<{
       id: '4',
       title: 'Build Team Collaboration',
       description: 'Focus on building trust and cooperation in team settings',
-      priority: 'high',
+      priority: 'high' as const,
     });
   }
 
@@ -169,7 +169,7 @@ function generateRecommendations(scores: Record<string, number>): Array<{
       id: '5',
       title: 'Stress Management',
       description: 'Consider stress management techniques and work-life balance',
-      priority: 'high',
+      priority: 'high' as const,
     });
   }
 

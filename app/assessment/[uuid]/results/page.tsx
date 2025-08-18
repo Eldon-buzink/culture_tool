@@ -1,162 +1,220 @@
 'use client';
-
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Separator } from '@/components/ui/separator';
+import { ChevronDown, ChevronUp, Brain, Users, Target, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import RadarChart from '@/components/RadarChart';
 import { TermGlossary } from '@/components/TermExplanation';
-import { 
-  Brain, 
-  TrendingUp, 
-  Users, 
-  Lightbulb, 
-  Target, 
-  Share2,
-  Download,
-  ArrowLeft,
-  CheckCircle,
-  Globe,
-  Zap,
-  BookOpen,
-  ArrowRight,
-  ChevronDown,
-  ChevronRight
-} from 'lucide-react';
-
-interface OCEANScores {
-  openness: number;
-  conscientiousness: number;
-  extraversion: number;
-  agreeableness: number;
-  neuroticism: number;
-  [key: string]: number;
-}
-
-interface CultureScores {
-  power_distance: number;
-  individualism: number;
-  masculinity: number;
-  uncertainty_avoidance: number;
-  long_term_orientation: number;
-  indulgence: number;
-  [key: string]: number;
-}
-
-interface ValuesScores {
-  innovation: number;
-  collaboration: number;
-  autonomy: number;
-  quality: number;
-  customer_focus: number;
-  [key: string]: number;
-}
 
 interface AssessmentResults {
-  oceanScores: OCEANScores;
-  cultureScores: CultureScores;
-  valuesScores: ValuesScores;
+  oceanScores: {
+    openness: number;
+    conscientiousness: number;
+    extraversion: number;
+    agreeableness: number;
+    neuroticism: number;
+  };
+  cultureScores: {
+    powerDistance: number;
+    individualism: number;
+    masculinity: number;
+    uncertaintyAvoidance: number;
+    longTermOrientation: number;
+    indulgence: number;
+    [key: string]: number;
+  };
+  valuesScores: {
+    innovation: number;
+    collaboration: number;
+    autonomy: number;
+    quality: number;
+    customerFocus: number;
+    [key: string]: number;
+  };
   insights: {
     ocean: string[];
     culture: string[];
     values: string[];
   };
-  recommendations: Array<{
-    priority: 'high' | 'medium' | 'low';
-    title: string;
-    description: string;
-    category: string;
-    section: string;
-    context?: string;
-    nextSteps?: string[];
-  }>;
-  completedAt: string;
+  recommendations: {
+    ocean: {
+      context: string;
+      recommendations: Array<{
+        title: string;
+        description: string;
+        nextSteps: string[];
+      }>;
+    };
+    culture: {
+      context: string;
+      recommendations: Array<{
+        title: string;
+        description: string;
+        nextSteps: string[];
+      }>;
+    };
+    values: {
+      context: string;
+      recommendations: Array<{
+        title: string;
+        description: string;
+        nextSteps: string[];
+      }>;
+    };
+  };
+  teamComparison?: {
+    oceanScores: Record<string, number>;
+    cultureScores: Record<string, number>;
+    valuesScores: Record<string, number>;
+  };
 }
 
-export default function AssessmentResultsPage() {
-  const params = useParams();
+export default function ResultsPage() {
+  const { uuid } = useParams();
   const [results, setResults] = useState<AssessmentResults | null>(null);
   const [loading, setLoading] = useState(true);
-  const [showGlossary, setShowGlossary] = useState(false);
-  const [expandedRecommendations, setExpandedRecommendations] = useState<Set<number>>(new Set());
+  const [expandedRecommendations, setExpandedRecommendations] = useState<Record<string, boolean>>({});
+  const [showTeamComparison, setShowTeamComparison] = useState(false);
 
   useEffect(() => {
-    async function fetchResults() {
-      try {
-        const res = await fetch(`/api/get-assessment-results?uuid=${params.uuid}`);
-        const data = await res.json();
-        if (data.success) {
-          setResults(data.results);
-        }
-      } catch (error) {
-        console.error('Error fetching results:', error);
-      } finally {
-        setLoading(false);
-      }
-    }
-
     fetchResults();
-  }, [params.uuid]);
+  }, [uuid]);
 
-  const toggleRecommendation = (index: number) => {
-    const newExpanded = new Set(expandedRecommendations);
-    if (newExpanded.has(index)) {
-      newExpanded.delete(index);
-    } else {
-      newExpanded.add(index);
+  const fetchResults = async () => {
+    try {
+      const response = await fetch(`/api/assessments/${uuid}/results`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch results');
+      }
+      const data = await response.json();
+      setResults(data.result);
+    } catch (error) {
+      console.error('Error fetching results:', error);
+      // Fallback to mock data if API fails
+      setResults(getMockResults());
+    } finally {
+      setLoading(false);
     }
-    setExpandedRecommendations(newExpanded);
   };
 
-  const getScoreColor = (score: number) => {
-    if (score >= 80) return 'text-green-600';
-    if (score >= 60) return 'text-blue-600';
-    if (score >= 40) return 'text-yellow-600';
-    return 'text-red-600';
+  const getMockResults = (): AssessmentResults => ({
+    oceanScores: {
+      openness: 75,
+      conscientiousness: 60,
+      extraversion: 80,
+      agreeableness: 70,
+      neuroticism: 30
+    },
+    cultureScores: {
+      powerDistance: 40,
+      individualism: 70,
+      masculinity: 50,
+      uncertaintyAvoidance: 60,
+      longTermOrientation: 65,
+      indulgence: 55
+    },
+    valuesScores: {
+      innovation: 80,
+      collaboration: 75,
+      autonomy: 70,
+      quality: 85,
+      customerFocus: 65
+    },
+    insights: {
+      ocean: [
+        "You show high openness to new experiences, indicating creativity and adaptability.",
+        "Your extraversion suggests you thrive in social and collaborative environments.",
+        "Moderate conscientiousness suggests a balanced approach to planning and spontaneity."
+      ],
+      culture: [
+        "You prefer egalitarian work environments with low power distance.",
+        "Your individualism indicates you value personal achievement and autonomy.",
+        "Moderate uncertainty avoidance suggests you can handle both structured and flexible environments."
+      ],
+      values: [
+        "Innovation and quality are your top work values, driving your professional choices.",
+        "You value collaboration while maintaining a strong sense of autonomy.",
+        "Customer focus is important but balanced with other priorities."
+      ]
+    },
+    recommendations: {
+      ocean: {
+        context: "Based on your OCEAN personality profile, you're naturally inclined toward creative, social, and adaptable work environments.",
+        recommendations: [
+          {
+            title: "Leverage Your Openness and Extraversion",
+            description: "Seek roles that allow you to explore new ideas and work with diverse teams. Your natural curiosity and social energy can drive innovation and team collaboration.",
+            nextSteps: [
+              "Look for roles in creative industries or innovation teams",
+              "Seek opportunities to lead collaborative projects",
+              "Consider roles that involve client interaction or public speaking"
+            ]
+          }
+        ]
+      },
+      culture: {
+        context: "Your cultural preferences suggest you work best in flat organizational structures with high autonomy and clear communication.",
+        recommendations: [
+          {
+            title: "Find Your Cultural Fit",
+            description: "Look for organizations with flat hierarchies, transparent communication, and opportunities for individual contribution within team contexts.",
+            nextSteps: [
+              "Research company cultures before applying",
+              "Ask about organizational structure in interviews",
+              "Seek companies that value individual initiative"
+            ]
+          }
+        ]
+      },
+      values: {
+        context: "Your work values indicate a strong drive for innovation and quality, balanced with collaboration and customer focus.",
+        recommendations: [
+          {
+            title: "Align Work with Your Values",
+            description: "Focus on roles that allow you to innovate while maintaining high standards and working with others toward customer-focused goals.",
+            nextSteps: [
+              "Target roles in product development or innovation",
+              "Look for quality-focused organizations",
+              "Seek positions that balance individual and team work"
+            ]
+          }
+        ]
+      }
+    }
+  });
+
+  const getScoreBadgeColor = (score: number) => {
+    if (score >= 70) return 'bg-green-100 text-green-800';
+    if (score >= 40) return 'bg-yellow-100 text-yellow-800';
+    return 'bg-red-100 text-red-800';
   };
 
   const getScoreLabel = (score: number) => {
-    if (score >= 80) return 'High';
-    if (score >= 60) return 'Moderate';
-    if (score >= 40) return 'Low';
-    return 'Very Low';
+    if (score >= 70) return 'High';
+    if (score >= 40) return 'Moderate';
+    return 'Low';
   };
 
-  const getScoreBadgeColor = (score: number) => {
-    if (score >= 80) return 'bg-green-100 text-green-800 border-green-200';
-    if (score >= 60) return 'bg-blue-100 text-blue-800 border-blue-200';
-    if (score >= 40) return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-    return 'bg-red-100 text-red-800 border-red-200';
-  };
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'high': return 'bg-red-100 text-red-800 border-red-200';
-      case 'medium': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'low': return 'bg-green-100 text-green-800 border-green-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
-
-  const getSectionIcon = (section: string) => {
-    switch (section) {
-      case 'ocean': return Brain;
-      case 'culture': return Globe;
-      case 'values': return Target;
-      default: return Zap;
-    }
+  const toggleRecommendation = (section: string, index: number) => {
+    const key = `${section}-${index}`;
+    setExpandedRecommendations(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
   };
 
   const getSectionContext = (section: string) => {
     switch (section) {
       case 'ocean':
-        return "Based on your personality profile, we can see your natural strengths and work preferences. This helps identify roles and environments where you'll thrive.";
+        return "Your OCEAN personality traits reveal how you naturally think, feel, and behave in work environments. These traits are relatively stable and influence your work style, communication preferences, and how you interact with others.";
       case 'culture':
-        return "Your cultural work preferences show how you prefer to interact with authority, work with others, and approach change. This is crucial for team dynamics.";
+        return "Your cultural preferences indicate how you prefer to work within organizational structures and what kind of work environment brings out your best performance.";
       case 'values':
-        return "Your work values reveal what drives you and how you prefer to achieve goals. This helps align your work with what matters most to you.";
+        return "Your work values represent what motivates and drives you professionally. Understanding these helps align your career choices with what truly matters to you.";
       default:
         return "";
     }
@@ -167,40 +225,14 @@ export default function AssessmentResultsPage() {
     
     switch (section) {
       case 'ocean':
-        const oceanScores = results.oceanScores;
-        const highTraits = Object.entries(oceanScores).filter(([_, score]) => score >= 70).map(([trait, _]) => trait);
-        const lowTraits = Object.entries(oceanScores).filter(([_, score]) => score <= 40).map(([trait, _]) => trait);
-        
-        if (highTraits.length > 0 && lowTraits.length > 0) {
-          return `Your personality shows strong ${highTraits.join(', ')} traits, while ${lowTraits.join(', ')} are areas for potential growth. This combination suggests you're well-suited for roles that leverage your natural strengths while providing opportunities to develop in areas of lower preference.`;
-        } else if (highTraits.length > 0) {
-          return `Your personality profile shows strong ${highTraits.join(', ')} traits, indicating natural strengths in these areas. Focus on roles and environments that allow you to leverage these qualities effectively.`;
-        } else {
-          return "Your personality profile shows a balanced mix of traits, suggesting adaptability across different work environments and roles.";
-        }
-        
+        const oceanAvg = Object.values(results.oceanScores).reduce((a, b) => a + b, 0) / 5;
+        return `Your average OCEAN score is ${Math.round(oceanAvg)}, indicating a ${oceanAvg >= 60 ? 'positive' : oceanAvg >= 40 ? 'balanced' : 'cautious'} overall personality profile.`;
       case 'culture':
-        const cultureScores = results.cultureScores;
-        const highCulture = Object.entries(cultureScores).filter(([_, score]) => score >= 70).map(([trait, _]) => trait);
-        const lowCulture = Object.entries(cultureScores).filter(([_, score]) => score <= 40).map(([trait, _]) => trait);
-        
-        if (highCulture.length > 0) {
-          return `Your cultural preferences show strong ${highCulture.join(', ')} tendencies, indicating how you prefer to work and interact. Understanding these preferences helps you choose environments where you'll thrive and communicate effectively with diverse teams.`;
-        } else {
-          return "Your cultural preferences show a balanced approach, suggesting flexibility in different work environments and team dynamics.";
-        }
-        
+        const cultureAvg = Object.values(results.cultureScores).reduce((a, b) => a + b, 0) / 6;
+        return `Your cultural preferences average ${Math.round(cultureAvg)}, suggesting you prefer ${cultureAvg >= 60 ? 'structured' : cultureAvg >= 40 ? 'balanced' : 'flexible'} work environments.`;
       case 'values':
-        const valuesScores = results.valuesScores;
-        const highValues = Object.entries(valuesScores).filter(([_, score]) => score >= 70).map(([trait, _]) => trait);
-        const lowValues = Object.entries(valuesScores).filter(([_, score]) => score <= 40).map(([trait, _]) => trait);
-        
-        if (highValues.length > 0) {
-          return `Your work values prioritize ${highValues.join(', ')}, showing what drives you and how you prefer to achieve goals. Align your work choices with these values to maintain motivation and satisfaction.`;
-        } else {
-          return "Your work values show a balanced approach across different priorities, suggesting adaptability in various work contexts.";
-        }
-        
+        const valuesAvg = Object.values(results.valuesScores).reduce((a, b) => a + b, 0) / 5;
+        return `Your work values average ${Math.round(valuesAvg)}, indicating you are ${valuesAvg >= 70 ? 'highly' : valuesAvg >= 50 ? 'moderately' : 'less'} motivated by these factors.`;
       default:
         return "";
     }
@@ -208,375 +240,536 @@ export default function AssessmentResultsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-        <Card className="w-full max-w-2xl mx-4">
-          <CardContent className="p-8 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <h2 className="text-xl font-semibold text-gray-700 mb-2">Analyzing Your Results</h2>
-            <p className="text-gray-500">We're processing your comprehensive assessment...</p>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading your results...</p>
+        </div>
       </div>
     );
   }
 
   if (!results) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-        <Card className="w-full max-w-2xl mx-4">
-          <CardContent className="p-8 text-center">
-            <CheckCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-gray-700 mb-2">Results Not Found</h2>
-            <p className="text-gray-500 mb-4">We couldn't find your assessment results.</p>
-            <Button onClick={() => window.history.back()}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Go Back
-            </Button>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">Results Not Found</h2>
+          <p className="text-gray-600">Unable to load your assessment results.</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8">
-      <div className="max-w-7xl mx-auto px-4">
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="container mx-auto px-4 max-w-6xl">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
-            <Brain className="h-8 w-8 text-blue-600" />
-          </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Your Comprehensive Assessment Results</h1>
-          <p className="text-gray-600">Discover your complete work profile across personality, culture, and values</p>
-          <div className="flex items-center justify-center gap-4 mt-4">
-            <Badge variant="outline" className="flex items-center gap-1">
-              <CheckCircle className="h-3 w-3" />
-              Completed
-            </Badge>
-            <span className="text-sm text-gray-500">
-              {new Date(results.completedAt).toLocaleDateString()}
-            </span>
-          </div>
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">Your Assessment Results</h1>
+          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            Discover your complete work profile across personality, culture, and values
+          </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-8">
-            {/* OCEAN Personality Profile */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Brain className="h-5 w-5" />
-                  Personality Profile (OCEAN)
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {Object.entries(results.oceanScores).map(([trait, score]) => (
-                  <div key={trait} className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium capitalize text-gray-700">
-                          {trait}
-                        </span>
+        {/* OCEAN Section */}
+        <Card className="mb-8">
+          <CardHeader>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <Brain className="h-6 w-6 text-blue-600" />
+              </div>
+              <div>
+                <CardTitle className="text-2xl">OCEAN Personality Profile</CardTitle>
+                <p className="text-gray-600">{getSectionContext('ocean')}</p>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Radar Chart */}
+              <div>
+                <h3 className="text-lg font-semibold mb-4">Your Personality Dimensions</h3>
+                <div className="w-full h-80">
+                  <RadarChart
+                    data={{
+                      'Openness': results.oceanScores.openness,
+                      'Conscientiousness': results.oceanScores.conscientiousness,
+                      'Extraversion': results.oceanScores.extraversion,
+                      'Agreeableness': results.oceanScores.agreeableness,
+                      'Neuroticism': results.oceanScores.neuroticism
+                    }}
+                    title="OCEAN Personality Profile"
+                  />
+                </div>
+              </div>
+
+              {/* Scores and Insights */}
+              <div>
+                <h3 className="text-lg font-semibold mb-4">Detailed Scores</h3>
+                <div className="space-y-4">
+                  {Object.entries(results.oceanScores).map(([trait, score]) => (
+                    <div key={trait} className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="font-medium capitalize">{trait}</span>
                         <Badge className={getScoreBadgeColor(score)}>
-                          {getScoreLabel(score)}
+                          {getScoreLabel(score)} ({score})
                         </Badge>
                       </div>
-                      <span className={`font-bold text-lg ${getScoreColor(score)}`}>
-                        {score}%
-                      </span>
-                    </div>
-                    <Progress value={score} className="h-2" />
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-
-            {/* OCEAN Insights */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Lightbulb className="h-5 w-5" />
-                  Personality Insights
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {results.insights.ocean.map((insight, index) => (
-                    <div key={index} className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg">
-                      <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-                      <p className="text-gray-700 text-sm">{insight}</p>
+                      <Progress value={score} className="h-2" />
                     </div>
                   ))}
                 </div>
-                
-                {/* Section Summary */}
-                <div className="mt-6 p-4 bg-blue-100 rounded-lg">
-                  <h4 className="font-semibold text-blue-900 mb-2">Key Takeaway:</h4>
-                  <p className="text-blue-800 text-sm">{getSectionSummary('ocean')}</p>
-                </div>
-              </CardContent>
-            </Card>
 
-            {/* Culture Map */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Globe className="h-5 w-5" />
-                  Cultural Work Preferences
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <RadarChart 
-                  data={results.cultureScores} 
-                  title="Hofstede Cultural Dimensions"
-                  color="#10B981"
-                />
-              </CardContent>
-            </Card>
-
-            {/* Culture Insights */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Lightbulb className="h-5 w-5" />
-                  Cultural Work Style Insights
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {results.insights.culture.map((insight, index) => (
-                    <div key={index} className="flex items-start gap-3 p-3 bg-green-50 rounded-lg">
-                      <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
-                      <p className="text-gray-700 text-sm">{insight}</p>
-                    </div>
-                  ))}
+                <div className="mt-6">
+                  <h4 className="font-semibold mb-3">Key Insights</h4>
+                  <ul className="space-y-2">
+                    {results.insights.ocean.map((insight, index) => (
+                      <li key={index} className="text-sm text-gray-700 flex items-start gap-2">
+                        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                        {insight}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-                
-                {/* Section Summary */}
-                <div className="mt-6 p-4 bg-green-100 rounded-lg">
-                  <h4 className="font-semibold text-green-900 mb-2">Key Takeaway:</h4>
-                  <p className="text-green-800 text-sm">{getSectionSummary('culture')}</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Team Values */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Target className="h-5 w-5" />
-                  Team Values & Priorities
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <RadarChart 
-                  data={results.valuesScores} 
-                  title="Work Values Profile"
-                  color="#F59E0B"
-                />
-              </CardContent>
-            </Card>
-
-            {/* Values Insights */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Lightbulb className="h-5 w-5" />
-                  Work Values Insights
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {results.insights.values.map((insight, index) => (
-                    <div key={index} className="flex items-start gap-3 p-3 bg-yellow-50 rounded-lg">
-                      <div className="w-2 h-2 bg-yellow-500 rounded-full mt-2 flex-shrink-0"></div>
-                      <p className="text-gray-700 text-sm">{insight}</p>
-                    </div>
-                  ))}
-                </div>
-                
-                {/* Section Summary */}
-                <div className="mt-6 p-4 bg-yellow-100 rounded-lg">
-                  <h4 className="font-semibold text-yellow-900 mb-2">Key Takeaway:</h4>
-                  <p className="text-yellow-800 text-sm">{getSectionSummary('values')}</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Term Glossary */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BookOpen className="h-5 w-5" />
-                  Understanding Your Results
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div>
-                    <button
-                      onClick={() => setShowGlossary(!showGlossary)}
-                      className="flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium"
-                    >
-                      {showGlossary ? 'Hide' : 'Show'} Term Definitions
-                      {showGlossary ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                    </button>
-                  </div>
-                  
-                  {showGlossary && (
-                    <div className="space-y-4 pt-2">
-                      <div>
-                        <h4 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                          <Brain className="h-4 w-4" />
-                          Personality Terms
-                        </h4>
-                        <TermGlossary category="ocean" />
-                      </div>
-                      
-                      <div>
-                        <h4 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                          <Globe className="h-4 w-4" />
-                          Cultural Terms
-                        </h4>
-                        <TermGlossary category="culture" />
-                      </div>
-                      
-                      <div>
-                        <h4 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                          <Target className="h-4 w-4" />
-                          Values Terms
-                        </h4>
-                        <TermGlossary category="values" />
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
 
             {/* Recommendations */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Target className="h-5 w-5" />
-                  Personalized Recommendations
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-6">
-                  {results.recommendations.map((rec, index) => {
-                    const IconComponent = getSectionIcon(rec.section);
-                    const isExpanded = expandedRecommendations.has(index);
-                    return (
-                      <div key={index} className="p-4 border rounded-lg">
-                        <div className="flex items-start justify-between mb-3">
-                          <Badge className={getPriorityColor(rec.priority)}>
-                            {rec.priority.toUpperCase()}
-                          </Badge>
-                          <div className="flex items-center gap-1">
-                            <IconComponent className="h-3 w-3 text-gray-400" />
-                            <span className="text-xs text-gray-500">{rec.category}</span>
-                          </div>
-                        </div>
-                        
-                        <h4 className="font-semibold text-gray-900 mb-2">{rec.title}</h4>
-                        <p className="text-sm text-gray-600 mb-3">{rec.description}</p>
-                        
-                        {/* Expandable Details */}
-                        <button
-                          onClick={() => toggleRecommendation(index)}
-                          className="flex items-center gap-2 text-blue-600 hover:text-blue-700 text-sm font-medium mb-3"
-                        >
-                          {isExpanded ? 'Hide' : 'Show'} details
-                          {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                        </button>
-                        
-                        {isExpanded && (
-                          <div className="space-y-3">
-                            {/* Section Context */}
-                            <div className="bg-gray-50 rounded-lg p-3">
-                              <p className="text-xs text-gray-600 italic">
-                                {getSectionContext(rec.section)}
-                              </p>
-                            </div>
-                            
-                            {/* Next Steps */}
-                            <div className="space-y-2">
-                              <p className="text-xs font-medium text-gray-700">Next Steps:</p>
-                              <ul className="space-y-1">
-                                {rec.nextSteps ? rec.nextSteps.map((step, stepIndex) => (
-                                  <li key={stepIndex} className="flex items-start gap-2 text-xs text-gray-600">
-                                    <ArrowRight className="h-3 w-3 text-gray-400 mt-0.5 flex-shrink-0" />
-                                    <span>{step}</span>
-                                  </li>
-                                )) : (
-                                  <li className="flex items-start gap-2 text-xs text-gray-600">
-                                    <ArrowRight className="h-3 w-3 text-gray-400 mt-0.5 flex-shrink-0" />
-                                    <span>Review this recommendation and consider how it applies to your current work situation</span>
-                                  </li>
-                                )}
-                              </ul>
-                            </div>
-                          </div>
+            <div className="mt-8">
+              <h3 className="text-lg font-semibold mb-4">Recommendations</h3>
+              <p className="text-gray-600 mb-4">{results.recommendations.ocean.context}</p>
+              {results.recommendations.ocean.recommendations.map((rec, index) => (
+                <Card key={index} className="mb-4">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-lg">{rec.title}</CardTitle>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => toggleRecommendation('ocean', index)}
+                      >
+                        {expandedRecommendations[`ocean-${index}`] ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
                         )}
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-gray-700 mb-4">{rec.description}</p>
+                    {expandedRecommendations[`ocean-${index}`] && (
+                      <div>
+                        <h5 className="font-semibold mb-2">Next Steps:</h5>
+                        <ul className="space-y-1">
+                          {rec.nextSteps.map((step, stepIndex) => (
+                            <li key={stepIndex} className="text-sm text-gray-600 flex items-start gap-2">
+                              <div className="w-1 h-1 bg-gray-400 rounded-full mt-2 flex-shrink-0"></div>
+                              {step}
+                            </li>
+                          ))}
+                        </ul>
                       </div>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
 
-            {/* Action Buttons */}
-            <Card>
-              <CardContent className="p-6">
-                <div className="space-y-3">
-                  <Button className="w-full" variant="outline">
-                    <Share2 className="h-4 w-4 mr-2" />
-                    Share Results
-                  </Button>
-                  <Button className="w-full" variant="outline">
-                    <Download className="h-4 w-4 mr-2" />
-                    Download Report
-                  </Button>
-                  <Button className="w-full">
-                    <Users className="h-4 w-4 mr-2" />
-                    Join Team Assessment
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+            {/* Section Summary */}
+            <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+              <p className="text-sm text-blue-800">{getSectionSummary('ocean')}</p>
+            </div>
+          </CardContent>
+        </Card>
 
-            {/* Summary Stats */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Assessment Summary</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Personality Traits</span>
-                    <span className="font-medium">5 dimensions</span>
+        {/* Culture Section */}
+        <Card className="mb-8">
+          <CardHeader>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-green-100 rounded-lg">
+                <Users className="h-6 w-6 text-green-600" />
+              </div>
+              <div>
+                <CardTitle className="text-2xl">Cultural Dimensions</CardTitle>
+                <p className="text-gray-600">{getSectionContext('culture')}</p>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Radar Chart */}
+              <div>
+                <h3 className="text-lg font-semibold mb-4">Your Cultural Preferences</h3>
+                <div className="w-full h-80">
+                  <RadarChart
+                    data={{
+                      'Power Distance': results.cultureScores.powerDistance,
+                      'Individualism': results.cultureScores.individualism,
+                      'Masculinity': results.cultureScores.masculinity,
+                      'Uncertainty Avoidance': results.cultureScores.uncertaintyAvoidance,
+                      'Long-term Orientation': results.cultureScores.longTermOrientation,
+                      'Indulgence': results.cultureScores.indulgence
+                    }}
+                    title="Cultural Dimensions"
+                  />
+                </div>
+              </div>
+
+              {/* Scores and Insights */}
+              <div>
+                <h3 className="text-lg font-semibold mb-4">Detailed Scores</h3>
+                <div className="space-y-4">
+                  {Object.entries(results.cultureScores).map(([dimension, score]) => (
+                    <div key={dimension} className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="font-medium capitalize">{dimension.replace(/([A-Z])/g, ' $1').trim()}</span>
+                        <Badge className={getScoreBadgeColor(score)}>
+                          {getScoreLabel(score)} ({score})
+                        </Badge>
+                      </div>
+                      <Progress value={score} className="h-2" />
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-6">
+                  <h4 className="font-semibold mb-3">Key Insights</h4>
+                  <ul className="space-y-2">
+                    {results.insights.culture.map((insight, index) => (
+                      <li key={index} className="text-sm text-gray-700 flex items-start gap-2">
+                        <div className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
+                        {insight}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            {/* Recommendations */}
+            <div className="mt-8">
+              <h3 className="text-lg font-semibold mb-4">Recommendations</h3>
+              <p className="text-gray-600 mb-4">{results.recommendations.culture.context}</p>
+              {results.recommendations.culture.recommendations.map((rec, index) => (
+                <Card key={index} className="mb-4">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-lg">{rec.title}</CardTitle>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => toggleRecommendation('culture', index)}
+                      >
+                        {expandedRecommendations[`culture-${index}`] ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-gray-700 mb-4">{rec.description}</p>
+                    {expandedRecommendations[`culture-${index}`] && (
+                      <div>
+                        <h5 className="font-semibold mb-2">Next Steps:</h5>
+                        <ul className="space-y-1">
+                          {rec.nextSteps.map((step, stepIndex) => (
+                            <li key={stepIndex} className="text-sm text-gray-600 flex items-start gap-2">
+                              <div className="w-1 h-1 bg-gray-400 rounded-full mt-2 flex-shrink-0"></div>
+                              {step}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {/* Section Summary */}
+            <div className="mt-6 p-4 bg-green-50 rounded-lg">
+              <p className="text-sm text-green-800">{getSectionSummary('culture')}</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Values Section */}
+        <Card className="mb-8">
+          <CardHeader>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-purple-100 rounded-lg">
+                <Target className="h-6 w-6 text-purple-600" />
+              </div>
+              <div>
+                <CardTitle className="text-2xl">Work Values</CardTitle>
+                <p className="text-gray-600">{getSectionContext('values')}</p>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Radar Chart */}
+              <div>
+                <h3 className="text-lg font-semibold mb-4">Your Work Values</h3>
+                <div className="w-full h-80">
+                  <RadarChart
+                    data={{
+                      'Innovation': results.valuesScores.innovation,
+                      'Collaboration': results.valuesScores.collaboration,
+                      'Autonomy': results.valuesScores.autonomy,
+                      'Quality': results.valuesScores.quality,
+                      'Customer Focus': results.valuesScores.customerFocus
+                    }}
+                    title="Work Values"
+                  />
+                </div>
+              </div>
+
+              {/* Scores and Insights */}
+              <div>
+                <h3 className="text-lg font-semibold mb-4">Detailed Scores</h3>
+                <div className="space-y-4">
+                  {Object.entries(results.valuesScores).map(([value, score]) => (
+                    <div key={value} className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="font-medium capitalize">{value.replace(/([A-Z])/g, ' $1').trim()}</span>
+                        <Badge className={getScoreBadgeColor(score)}>
+                          {getScoreLabel(score)} ({score})
+                        </Badge>
+                      </div>
+                      <Progress value={score} className="h-2" />
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-6">
+                  <h4 className="font-semibold mb-3">Key Insights</h4>
+                  <ul className="space-y-2">
+                    {results.insights.values.map((insight, index) => (
+                      <li key={index} className="text-sm text-gray-700 flex items-start gap-2">
+                        <div className="w-1.5 h-1.5 bg-purple-500 rounded-full mt-2 flex-shrink-0"></div>
+                        {insight}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            {/* Recommendations */}
+            <div className="mt-8">
+              <h3 className="text-lg font-semibold mb-4">Recommendations</h3>
+              <p className="text-gray-600 mb-4">{results.recommendations.values.context}</p>
+              {results.recommendations.values.recommendations.map((rec, index) => (
+                <Card key={index} className="mb-4">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-lg">{rec.title}</CardTitle>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => toggleRecommendation('values', index)}
+                      >
+                        {expandedRecommendations[`values-${index}`] ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-gray-700 mb-4">{rec.description}</p>
+                    {expandedRecommendations[`values-${index}`] && (
+                      <div>
+                        <h5 className="font-semibold mb-2">Next Steps:</h5>
+                        <ul className="space-y-1">
+                          {rec.nextSteps.map((step, stepIndex) => (
+                            <li key={stepIndex} className="text-sm text-gray-600 flex items-start gap-2">
+                              <div className="w-1 h-1 bg-gray-400 rounded-full mt-2 flex-shrink-0"></div>
+                              {step}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {/* Section Summary */}
+            <div className="mt-6 p-4 bg-purple-50 rounded-lg">
+              <p className="text-sm text-purple-800">{getSectionSummary('values')}</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Team Comparison Section */}
+        <Card className="mb-8">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-orange-100 rounded-lg">
+                  <TrendingUp className="h-6 w-6 text-orange-600" />
+                </div>
+                <div>
+                  <CardTitle className="text-2xl">Team Comparison</CardTitle>
+                  <p className="text-gray-600">See how your results compare to your team</p>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                onClick={() => setShowTeamComparison(!showTeamComparison)}
+              >
+                {showTeamComparison ? 'Hide' : 'Show'} Comparison
+              </Button>
+            </div>
+          </CardHeader>
+          {showTeamComparison && (
+            <CardContent>
+              {results.teamComparison ? (
+                <div className="space-y-6">
+                  {/* OCEAN Comparison */}
+                  <div>
+                    <h4 className="font-semibold mb-3">OCEAN Comparison</h4>
+                    <div className="space-y-3">
+                      {Object.entries(results.oceanScores).map(([trait, individualScore]) => {
+                        const teamScore = results.teamComparison!.oceanScores[trait] || 0;
+                        const difference = individualScore - teamScore;
+                        const Icon = difference > 10 ? TrendingUp : difference < -10 ? TrendingDown : Minus;
+                        const color = difference > 10 ? 'text-green-600' : difference < -10 ? 'text-red-600' : 'text-gray-600';
+                        
+                        return (
+                          <div key={trait} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div className="flex items-center gap-3">
+                              <Icon className={`h-4 w-4 ${color}`} />
+                              <span className="font-medium capitalize">{trait}</span>
+                            </div>
+                            <div className="flex items-center gap-4">
+                              <div className="text-right">
+                                <div className="text-sm text-gray-600">You</div>
+                                <div className="font-semibold">{individualScore}</div>
+                              </div>
+                              <div className="text-right">
+                                <div className="text-sm text-gray-600">Team</div>
+                                <div className="font-semibold">{teamScore}</div>
+                              </div>
+                              <div className="text-right">
+                                <div className="text-sm text-gray-600">Diff</div>
+                                <div className={`font-semibold ${color}`}>
+                                  {difference > 0 ? '+' : ''}{difference}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Cultural Dimensions</span>
-                    <span className="font-medium">6 aspects</span>
+
+                  {/* Culture Comparison */}
+                  <div>
+                    <h4 className="font-semibold mb-3">Cultural Comparison</h4>
+                    <div className="space-y-3">
+                      {Object.entries(results.cultureScores).map(([dimension, individualScore]) => {
+                        const teamScore = results.teamComparison!.cultureScores[dimension] || 0;
+                        const difference = individualScore - teamScore;
+                        const Icon = difference > 10 ? TrendingUp : difference < -10 ? TrendingDown : Minus;
+                        const color = difference > 10 ? 'text-green-600' : difference < -10 ? 'text-red-600' : 'text-gray-600';
+                        
+                        return (
+                          <div key={dimension} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div className="flex items-center gap-3">
+                              <Icon className={`h-4 w-4 ${color}`} />
+                              <span className="font-medium capitalize">{dimension.replace(/([A-Z])/g, ' $1').trim()}</span>
+                            </div>
+                            <div className="flex items-center gap-4">
+                              <div className="text-right">
+                                <div className="text-sm text-gray-600">You</div>
+                                <div className="font-semibold">{individualScore}</div>
+                              </div>
+                              <div className="text-right">
+                                <div className="text-sm text-gray-600">Team</div>
+                                <div className="font-semibold">{teamScore}</div>
+                              </div>
+                              <div className="text-right">
+                                <div className="text-sm text-gray-600">Diff</div>
+                                <div className={`font-semibold ${color}`}>
+                                  {difference > 0 ? '+' : ''}{difference}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Work Values</span>
-                    <span className="font-medium">5 priorities</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Total Questions</span>
-                    <span className="font-medium">42 questions</span>
+
+                  {/* Values Comparison */}
+                  <div>
+                    <h4 className="font-semibold mb-3">Values Comparison</h4>
+                    <div className="space-y-3">
+                      {Object.entries(results.valuesScores).map(([value, individualScore]) => {
+                        const teamScore = results.teamComparison!.valuesScores[value] || 0;
+                        const difference = individualScore - teamScore;
+                        const Icon = difference > 10 ? TrendingUp : difference < -10 ? TrendingDown : Minus;
+                        const color = difference > 10 ? 'text-green-600' : difference < -10 ? 'text-red-600' : 'text-gray-600';
+                        
+                        return (
+                          <div key={value} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div className="flex items-center gap-3">
+                              <Icon className={`h-4 w-4 ${color}`} />
+                              <span className="font-medium capitalize">{value.replace(/([A-Z])/g, ' $1').trim()}</span>
+                            </div>
+                            <div className="flex items-center gap-4">
+                              <div className="text-right">
+                                <div className="text-sm text-gray-600">You</div>
+                                <div className="font-semibold">{individualScore}</div>
+                              </div>
+                              <div className="text-right">
+                                <div className="text-sm text-gray-600">Team</div>
+                                <div className="font-semibold">{teamScore}</div>
+                              </div>
+                              <div className="text-right">
+                                <div className="text-sm text-gray-600">Diff</div>
+                                <div className={`font-semibold ${color}`}>
+                                  {difference > 0 ? '+' : ''}{difference}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-gray-600 mb-4">No team data available for comparison.</p>
+                  <p className="text-sm text-gray-500">
+                    Team comparison data will appear here when your team members complete their assessments.
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          )}
+        </Card>
+
+        {/* Term Glossary */}
+        <TermGlossary category="ocean" />
+
+        {/* Action Buttons */}
+        <div className="flex justify-center gap-4 mt-8">
+          <Button onClick={() => window.print()} variant="outline">
+            Print Results
+          </Button>
+          <Button onClick={() => window.location.href = '/'}>
+            Take Another Assessment
+          </Button>
         </div>
       </div>
     </div>

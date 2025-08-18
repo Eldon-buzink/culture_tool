@@ -137,7 +137,7 @@ function generateTeamRecommendations(scores: Record<string, number>): Array<{
       id: 'team-1',
       title: 'Improve Team Collaboration',
       description: 'Focus on building trust and cooperation among team members',
-      priority: 'high',
+      priority: 'high' as const,
     });
   }
 
@@ -147,7 +147,7 @@ function generateTeamRecommendations(scores: Record<string, number>): Array<{
       id: 'team-2',
       title: 'Enhance Communication Channels',
       description: 'Implement structured communication protocols and regular team meetings',
-      priority: 'medium',
+      priority: 'medium' as const,
     });
   }
 
@@ -157,7 +157,7 @@ function generateTeamRecommendations(scores: Record<string, number>): Array<{
       id: 'team-3',
       title: 'Foster Innovation Culture',
       description: 'Create opportunities for creative thinking and experimentation',
-      priority: 'medium',
+      priority: 'medium' as const,
     });
   }
 
@@ -167,7 +167,7 @@ function generateTeamRecommendations(scores: Record<string, number>): Array<{
       id: 'team-4',
       title: 'Strengthen Process Management',
       description: 'Implement clear workflows and accountability measures',
-      priority: 'high',
+      priority: 'high' as const,
     });
   }
 

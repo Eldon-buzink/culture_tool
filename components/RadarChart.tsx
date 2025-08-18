@@ -131,7 +131,7 @@ export default function RadarChart({ data, title, size = 400, color = '#3B82F6' 
             dominantBaseline={dominantBaseline}
             className="text-xs font-medium fill-gray-600 cursor-help"
             style={{ fontSize: '13px' }}
-            title={termDefinitions[point.label as keyof typeof termDefinitions] || formatLabel(point.label)}
+            data-tooltip={termDefinitions[point.label as keyof typeof termDefinitions] || formatLabel(point.label)}
           >
             {line}
           </text>

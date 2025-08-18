@@ -1,154 +1,191 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { AssessmentService } from '@/lib/services/assessmentService';
 
 export async function POST(request: NextRequest) {
   try {
-    const { uuid, responses } = await request.json();
+    const { assessmentId, responses } = await request.json();
 
-    // Calculate OCEAN scores
-    const oceanScores = calculateOCEANScores(responses);
-    
-    // Calculate Culture Map scores
-    const cultureScores = calculateCultureScores(responses);
-    
-    // Calculate Team Values scores
-    const valuesScores = calculateValuesScores(responses);
+    // Validate input
+    if (!assessmentId || !responses) {
+      return NextResponse.json(
+        { success: false, error: 'Assessment ID and responses are required' },
+        { status: 400 }
+      );
+    }
 
-    // Store results (in a real app, this would go to a database)
-    const results = {
-      uuid,
-      oceanScores,
-      cultureScores,
-      valuesScores,
-      responses,
-      completedAt: new Date().toISOString(),
-    };
+    // Verify assessment exists
+    const assessment = await prisma.assessment.findUnique({
+      where: { id: assessmentId }
+    });
 
-    // For now, we'll just return the results
-    // In a real app, you'd store this in a database
-    console.log('Assessment results:', results);
+    if (!assessment) {
+      return NextResponse.json(
+        { success: false, error: 'Assessment not found' },
+        { status: 404 }
+      );
+    }
+
+    // Store responses in database
+    const responsePromises = Object.entries(responses).map(([questionId, response]) =>
+      prisma.assessmentResponse.upsert({
+        where: {
+          assessmentId_questionId: {
+            assessmentId,
+            questionId
+          }
+        },
+        update: {
+          response: response as number
+        },
+        create: {
+          assessmentId,
+          questionId,
+          response: response as number
+        }
+      })
+    );
+
+    await Promise.all(responsePromises);
+
+    // Calculate scores using AssessmentService
+    const oceanScores = await AssessmentService.calculateOCEANScores(responses);
+    const cultureScores = await AssessmentService.calculateCultureScores(responses);
+    const valuesScores = await AssessmentService.calculateValuesScores(responses);
+
+    // Store assessment results
+    const result = await prisma.assessmentResult.upsert({
+      where: { assessmentId },
+      update: {
+        // OCEAN Scores
+        openness: oceanScores.openness,
+        conscientiousness: oceanScores.conscientiousness,
+        extraversion: oceanScores.extraversion,
+        agreeableness: oceanScores.agreeableness,
+        neuroticism: oceanScores.neuroticism,
+        
+        // Culture Scores
+        powerDistance: cultureScores.powerDistance,
+        individualism: cultureScores.individualism,
+        masculinity: cultureScores.masculinity,
+        uncertaintyAvoidance: cultureScores.uncertaintyAvoidance,
+        longTermOrientation: cultureScores.longTermOrientation,
+        indulgence: cultureScores.indulgence,
+        
+        // Values Scores
+        innovation: valuesScores.innovation,
+        collaboration: valuesScores.collaboration,
+        autonomy: valuesScores.autonomy,
+        quality: valuesScores.quality,
+        customerFocus: valuesScores.customerFocus,
+      },
+      create: {
+        assessmentId,
+        // OCEAN Scores
+        openness: oceanScores.openness,
+        conscientiousness: oceanScores.conscientiousness,
+        extraversion: oceanScores.extraversion,
+        agreeableness: oceanScores.agreeableness,
+        neuroticism: oceanScores.neuroticism,
+        
+        // Culture Scores
+        powerDistance: cultureScores.powerDistance,
+        individualism: cultureScores.individualism,
+        masculinity: cultureScores.masculinity,
+        uncertaintyAvoidance: cultureScores.uncertaintyAvoidance,
+        longTermOrientation: cultureScores.longTermOrientation,
+        indulgence: cultureScores.indulgence,
+        
+        // Values Scores
+        innovation: valuesScores.innovation,
+        collaboration: valuesScores.collaboration,
+        autonomy: valuesScores.autonomy,
+        quality: valuesScores.quality,
+        customerFocus: valuesScores.customerFocus,
+      }
+    });
+
+    // Update assessment status to completed
+    await prisma.assessment.update({
+      where: { id: assessmentId },
+      data: { 
+        status: 'COMPLETED',
+        completedAt: new Date()
+      }
+    });
+
+    // Generate AI recommendations
+    let recommendations;
+    try {
+      const aiResponse = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/recommendations/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          oceanScores,
+          cultureScores,
+          valuesScores
+        })
+      });
+      
+      if (aiResponse.ok) {
+        const aiResult = await aiResponse.json();
+        recommendations = aiResult.recommendations;
+      } else {
+        throw new Error('AI service failed');
+      }
+    } catch (error) {
+      console.error('AI recommendations failed, using fallback:', error);
+      // Use fallback recommendations
+      recommendations = {
+        ocean: {
+          context: "Based on your OCEAN personality profile, here are some general recommendations for personal and professional development.",
+          recommendations: [
+            {
+              title: "Focus on Personal Growth",
+              description: "Consider areas where you can develop further based on your personality strengths and areas for improvement.",
+              nextSteps: ["Set specific goals", "Seek feedback", "Practice new behaviors"]
+            }
+          ]
+        },
+        culture: {
+          context: "Your cultural preferences suggest how you might work best in different organizational environments.",
+          recommendations: [
+            {
+              title: "Find Your Cultural Fit",
+              description: "Look for work environments that align with your cultural preferences and values.",
+              nextSteps: ["Research company cultures", "Ask about work environment", "Consider cultural alignment"]
+            }
+          ]
+        },
+        values: {
+          context: "Your work values indicate what motivates and drives you in professional settings.",
+          recommendations: [
+            {
+              title: "Align Work with Values",
+              description: "Seek opportunities that align with your core work values and priorities.",
+              nextSteps: ["Identify value-aligned roles", "Communicate your values", "Seek value-driven organizations"]
+            }
+          ]
+        }
+      };
+    }
 
     return NextResponse.json({
       success: true,
-      results,
+      assessmentId,
+      resultId: result.id,
+      scores: {
+        oceanScores,
+        cultureScores,
+        valuesScores
+      },
+      recommendations
     });
   } catch (error) {
-    console.error('Error submitting responses:', error);
+    console.error('Error submitting assessment:', error);
     return NextResponse.json(
-      { error: 'Failed to submit responses' },
+      { success: false, error: 'Failed to submit assessment' },
       { status: 500 }
     );
   }
-}
-
-function calculateOCEANScores(responses: Record<string, number>) {
-  const oceanQuestions = {
-    openness: ['ocean_5', 'ocean_10', 'ocean_15', 'ocean_20'],
-    conscientiousness: ['ocean_3', 'ocean_8', 'ocean_13', 'ocean_18'],
-    extraversion: ['ocean_1', 'ocean_6', 'ocean_11', 'ocean_16'],
-    agreeableness: ['ocean_2', 'ocean_7', 'ocean_12', 'ocean_17'],
-    neuroticism: ['ocean_4', 'ocean_9', 'ocean_14', 'ocean_19'],
-  };
-
-  const reverseScored = {
-    'ocean_6': true, 'ocean_7': true, 'ocean_8': true, 'ocean_9': true, 'ocean_10': true,
-    'ocean_15': true, 'ocean_16': true, 'ocean_17': true, 'ocean_18': true, 'ocean_19': true, 'ocean_20': true,
-  };
-
-  const scores: Record<string, number> = {};
-
-  Object.entries(oceanQuestions).forEach(([trait, questionIds]) => {
-    const traitResponses = questionIds
-      .map(id => responses[id])
-      .filter(response => response !== undefined);
-
-    if (traitResponses.length === 0) {
-      scores[trait] = 0;
-      return;
-    }
-
-    const adjustedResponses = traitResponses.map((response, index) => {
-      const questionId = questionIds[index];
-      return reverseScored[questionId] ? (8 - response) : response;
-    });
-
-    const average = adjustedResponses.reduce((sum, response) => sum + response, 0) / adjustedResponses.length;
-    scores[trait] = Math.round((average / 7) * 100);
-  });
-
-  return scores;
-}
-
-function calculateCultureScores(responses: Record<string, number>) {
-  const cultureQuestions = {
-    power_distance: ['culture_1', 'culture_2'],
-    individualism: ['culture_3', 'culture_4'],
-    masculinity: ['culture_5', 'culture_6'],
-    uncertainty_avoidance: ['culture_7', 'culture_8'],
-    long_term_orientation: ['culture_9', 'culture_10'],
-    indulgence: ['culture_11', 'culture_12'],
-  };
-
-  const reverseScored = {
-    'culture_2': true, 'culture_4': true, 'culture_6': true, 'culture_8': true, 'culture_10': true, 'culture_12': true,
-  };
-
-  const scores: Record<string, number> = {};
-
-  Object.entries(cultureQuestions).forEach(([dimension, questionIds]) => {
-    const dimensionResponses = questionIds
-      .map(id => responses[id])
-      .filter(response => response !== undefined);
-
-    if (dimensionResponses.length === 0) {
-      scores[dimension] = 0;
-      return;
-    }
-
-    const adjustedResponses = dimensionResponses.map((response, index) => {
-      const questionId = questionIds[index];
-      return reverseScored[questionId] ? (8 - response) : response;
-    });
-
-    const average = adjustedResponses.reduce((sum, response) => sum + response, 0) / adjustedResponses.length;
-    scores[dimension] = Math.round((average / 7) * 100);
-  });
-
-  return scores;
-}
-
-function calculateValuesScores(responses: Record<string, number>) {
-  const valuesQuestions = {
-    innovation: ['values_1', 'values_2'],
-    collaboration: ['values_3', 'values_4'],
-    autonomy: ['values_5', 'values_6'],
-    quality: ['values_7', 'values_8'],
-    customer_focus: ['values_9', 'values_10'],
-  };
-
-  const reverseScored = {
-    'values_2': true, 'values_4': true, 'values_6': true, 'values_8': true, 'values_10': true,
-  };
-
-  const scores: Record<string, number> = {};
-
-  Object.entries(valuesQuestions).forEach(([value, questionIds]) => {
-    const valueResponses = questionIds
-      .map(id => responses[id])
-      .filter(response => response !== undefined);
-
-    if (valueResponses.length === 0) {
-      scores[value] = 0;
-      return;
-    }
-
-    const adjustedResponses = valueResponses.map((response, index) => {
-      const questionId = questionIds[index];
-      return reverseScored[questionId] ? (8 - response) : response;
-    });
-
-    const average = adjustedResponses.reduce((sum, response) => sum + response, 0) / adjustedResponses.length;
-    scores[value] = Math.round((average / 7) * 100);
-  });
-
-  return scores;
 }

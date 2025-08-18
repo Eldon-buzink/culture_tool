@@ -116,7 +116,7 @@ async function generateRecommendations(scores: Record<string, number>): Promise<
       id: '1',
       title: 'Encourage Innovation',
       description: 'Create opportunities for creative problem-solving',
-      priority: 'medium',
+      priority: 'medium' as const,
     });
   }
 
@@ -125,7 +125,7 @@ async function generateRecommendations(scores: Record<string, number>): Promise<
       id: '2',
       title: 'Improve Organization',
       description: 'Implement structured workflows and clear deadlines',
-      priority: 'high',
+      priority: 'high' as const,
     });
   }
 
@@ -134,7 +134,7 @@ async function generateRecommendations(scores: Record<string, number>): Promise<
       id: '3',
       title: 'Enhance Communication',
       description: 'Establish regular check-ins and feedback sessions',
-      priority: 'medium',
+      priority: 'medium' as const,
     });
   }
 
@@ -143,7 +143,7 @@ async function generateRecommendations(scores: Record<string, number>): Promise<
       id: '4',
       title: 'Stress Management',
       description: 'Provide stress management resources and support',
-      priority: 'high',
+      priority: 'high' as const,
     });
   }
 
