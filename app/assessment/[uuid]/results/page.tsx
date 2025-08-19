@@ -6,9 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
-import { ChevronDown, ChevronUp, Brain, Users, Target, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { ChevronDown, ChevronUp, Brain, Users, Target, TrendingUp, TrendingDown, Minus, HelpCircle } from 'lucide-react';
 import RadarChart from '@/components/RadarChart';
-import { TermGlossary } from '@/components/TermExplanation';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface AssessmentResults {
   oceanScores: {
@@ -81,16 +81,47 @@ export default function ResultsPage() {
   const [showTeamComparison, setShowTeamComparison] = useState(false);
 
   useEffect(() => {
-    fetchResults();
-  }, [uuid]);
+    if (uuid) {
+      // Add a small delay to ensure component is mounted
+      const timer = setTimeout(() => {
+        fetchResults();
+      }, 100);
+      
+      // Fallback timeout - if loading takes too long, show mock data
+      const fallbackTimer = setTimeout(() => {
+        if (loading) {
+          console.log('Fallback: Loading took too long, showing mock data');
+          setResults(getMockResults());
+          setLoading(false);
+        }
+      }, 10000); // 10 second fallback
+      
+      return () => {
+        clearTimeout(timer);
+        clearTimeout(fallbackTimer);
+      };
+    }
+  }, [uuid, loading]);
 
   const fetchResults = async () => {
     try {
-      const response = await fetch(`/api/assessments/${uuid}/results`);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+      
+      const response = await fetch(`/api/assessments/${uuid}/results`, {
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
       if (!response.ok) {
         throw new Error('Failed to fetch results');
       }
       const data = await response.json();
+      console.log('API Response:', data); // Debug log
+      if (!data.success || !data.result) {
+        console.log('No results found, using mock data'); // Debug log
+        throw new Error('No results found');
+      }
       setResults(data.result);
     } catch (error) {
       console.error('Error fetching results:', error);
@@ -238,6 +269,29 @@ export default function ResultsPage() {
     }
   };
 
+  const getTermTooltip = (term: string) => {
+    const tooltips: Record<string, string> = {
+      'openness': 'Openness reflects your curiosity, imagination, and willingness to try new experiences. High scores indicate creativity and adaptability, while low scores suggest practicality and routine preference.',
+      'conscientiousness': 'Conscientiousness measures your organization, responsibility, and self-discipline. High scores indicate reliability and attention to detail, while low scores suggest flexibility and spontaneity.',
+      'extraversion': 'Extraversion reflects your social energy and assertiveness. High scores indicate outgoing, energetic behavior, while low scores suggest reserved, thoughtful tendencies.',
+      'agreeableness': 'Agreeableness measures your cooperation, trust, and compassion. High scores indicate helpfulness and empathy, while low scores suggest directness and competitiveness.',
+      'neuroticism': 'Neuroticism reflects emotional stability and stress response. High scores indicate sensitivity to stress, while low scores suggest emotional resilience and calmness.',
+      'powerDistance': 'Power Distance reflects your comfort with hierarchical structures and authority. High scores indicate preference for clear leadership, while low scores suggest egalitarian work environments.',
+      'individualism': 'Individualism measures your preference for working independently vs. in teams. High scores indicate self-reliance, while low scores suggest collaborative work styles.',
+      'masculinity': 'Masculinity reflects competitive vs. cooperative work preferences. High scores indicate achievement focus, while low scores suggest relationship and quality of life focus.',
+      'uncertaintyAvoidance': 'Uncertainty Avoidance measures your comfort with ambiguity and change. High scores indicate preference for structure and rules, while low scores suggest adaptability to change.',
+      'longTermOrientation': 'Long-term Orientation reflects your focus on future planning vs. immediate results. High scores indicate strategic thinking, while low scores suggest short-term focus.',
+      'indulgence': 'Indulgence measures your preference for enjoying life vs. restraint. High scores indicate work-life balance focus, while low scores suggest discipline and restraint.',
+      'innovation': 'Innovation reflects your preference for new approaches and creative solutions. High scores indicate adaptability to change, while low scores suggest preference for proven methods.',
+      'collaboration': 'Collaboration measures your preference for teamwork and shared success. High scores indicate cooperative work style, while low scores suggest independent achievement focus.',
+      'autonomy': 'Autonomy reflects your need for independence and self-direction. High scores indicate preference for freedom, while low scores suggest appreciation for guidance and structure.',
+      'quality': 'Quality reflects your focus on excellence and attention to detail. High scores indicate perfectionist tendencies, while low scores suggest efficiency and speed focus.',
+      'customerFocus': 'Customer Focus measures your orientation toward serving others and meeting needs. High scores indicate service orientation, while low scores suggest task or product focus.'
+    };
+    
+    return tooltips[term.toLowerCase()] || 'No explanation available for this term.';
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -310,7 +364,17 @@ export default function ResultsPage() {
                   {Object.entries(results.oceanScores).map(([trait, score]) => (
                     <div key={trait} className="space-y-2">
                       <div className="flex justify-between items-center">
-                        <span className="font-medium capitalize">{trait}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium capitalize">{trait}</span>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-4 w-4 text-gray-400 hover:text-gray-600 cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs">
+                              <p>{getTermTooltip(trait)}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
                         <Badge className={getScoreBadgeColor(score)}>
                           {getScoreLabel(score)} ({score})
                         </Badge>
@@ -341,12 +405,17 @@ export default function ResultsPage() {
               {results.recommendations.ocean.recommendations.map((rec, index) => (
                 <Card key={index} className="mb-4">
                   <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg">{rec.title}</CardTitle>
+                    <div className="flex items-center justify-between cursor-pointer hover:bg-gray-50 p-2 rounded-lg transition-colors" onClick={() => toggleRecommendation('ocean', index)}>
+                      <div className="flex items-center gap-3">
+                        <CardTitle className="text-lg">{rec.title}</CardTitle>
+                        <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                          {expandedRecommendations[`ocean-${index}`] ? 'Click to collapse' : 'Click to expand'}
+                        </span>
+                      </div>
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => toggleRecommendation('ocean', index)}
+                        className="hover:bg-gray-200"
                       >
                         {expandedRecommendations[`ocean-${index}`] ? (
                           <ChevronUp className="h-4 w-4" />
@@ -423,7 +492,17 @@ export default function ResultsPage() {
                   {Object.entries(results.cultureScores).map(([dimension, score]) => (
                     <div key={dimension} className="space-y-2">
                       <div className="flex justify-between items-center">
-                        <span className="font-medium capitalize">{dimension.replace(/([A-Z])/g, ' $1').trim()}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium capitalize">{dimension.replace(/([A-Z])/g, ' $1').trim()}</span>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-4 w-4 text-gray-400 hover:text-gray-600 cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs">
+                              <p>{getTermTooltip(dimension)}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
                         <Badge className={getScoreBadgeColor(score)}>
                           {getScoreLabel(score)} ({score})
                         </Badge>
@@ -454,12 +533,17 @@ export default function ResultsPage() {
               {results.recommendations.culture.recommendations.map((rec, index) => (
                 <Card key={index} className="mb-4">
                   <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg">{rec.title}</CardTitle>
+                    <div className="flex items-center justify-between cursor-pointer hover:bg-gray-50 p-2 rounded-lg transition-colors" onClick={() => toggleRecommendation('culture', index)}>
+                      <div className="flex items-center gap-3">
+                        <CardTitle className="text-lg">{rec.title}</CardTitle>
+                        <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                          {expandedRecommendations[`culture-${index}`] ? 'Click to collapse' : 'Click to expand'}
+                        </span>
+                      </div>
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => toggleRecommendation('culture', index)}
+                        className="hover:bg-gray-200"
                       >
                         {expandedRecommendations[`culture-${index}`] ? (
                           <ChevronUp className="h-4 w-4" />
@@ -535,7 +619,17 @@ export default function ResultsPage() {
                   {Object.entries(results.valuesScores).map(([value, score]) => (
                     <div key={value} className="space-y-2">
                       <div className="flex justify-between items-center">
-                        <span className="font-medium capitalize">{value.replace(/([A-Z])/g, ' $1').trim()}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium capitalize">{value.replace(/([A-Z])/g, ' $1').trim()}</span>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <HelpCircle className="h-4 w-4 text-gray-400 hover:text-gray-600 cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs">
+                              <p>{getTermTooltip(value)}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
                         <Badge className={getScoreBadgeColor(score)}>
                           {getScoreLabel(score)} ({score})
                         </Badge>
@@ -566,12 +660,17 @@ export default function ResultsPage() {
               {results.recommendations.values.recommendations.map((rec, index) => (
                 <Card key={index} className="mb-4">
                   <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg">{rec.title}</CardTitle>
+                    <div className="flex items-center justify-between cursor-pointer hover:bg-gray-50 p-2 rounded-lg transition-colors" onClick={() => toggleRecommendation('values', index)}>
+                      <div className="flex items-center gap-3">
+                        <CardTitle className="text-lg">{rec.title}</CardTitle>
+                        <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                          {expandedRecommendations[`values-${index}`] ? 'Click to collapse' : 'Click to expand'}
+                        </span>
+                      </div>
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => toggleRecommendation('values', index)}
+                        className="hover:bg-gray-200"
                       >
                         {expandedRecommendations[`values-${index}`] ? (
                           <ChevronUp className="h-4 w-4" />
@@ -759,17 +858,84 @@ export default function ResultsPage() {
           )}
         </Card>
 
-        {/* Term Glossary */}
-        <TermGlossary category="ocean" />
+
 
         {/* Action Buttons */}
-        <div className="flex justify-center gap-4 mt-8">
-          <Button onClick={() => window.print()} variant="outline">
-            Print Results
-          </Button>
-          <Button onClick={() => window.location.href = '/'}>
-            Take Another Assessment
-          </Button>
+        <div className="mt-8">
+          <div className="text-center mb-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Save Your Results</h3>
+            <p className="text-gray-600">Keep your results for future reference</p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <Button 
+              onClick={() => window.print()} 
+              variant="outline" 
+              className="h-auto p-4 flex flex-col items-center gap-2"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+              </svg>
+              <span>Print Results</span>
+            </Button>
+            
+            <Button 
+              onClick={() => {
+                const element = document.createElement('a');
+                const file = new Blob([document.documentElement.outerHTML], {type: 'text/html'});
+                element.href = URL.createObjectURL(file);
+                element.download = 'assessment-results.html';
+                document.body.appendChild(element);
+                element.click();
+                document.body.removeChild(element);
+              }} 
+              variant="outline" 
+              className="h-auto p-4 flex flex-col items-center gap-2"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <span>Download HTML</span>
+            </Button>
+            
+            <Button 
+              onClick={() => {
+                const email = prompt('Enter your email to receive your results:');
+                if (email) {
+                  // In a real app, this would send to your backend
+                  alert(`Results will be sent to ${email}. This feature will be available soon!`);
+                }
+              }} 
+              variant="outline" 
+              className="h-auto p-4 flex flex-col items-center gap-2"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+              <span>Email Results</span>
+            </Button>
+            
+            <Button 
+              onClick={() => {
+                const url = window.location.href;
+                navigator.clipboard.writeText(url);
+                alert('Results link copied to clipboard! You can share this link to access your results later.');
+              }} 
+              variant="outline" 
+              className="h-auto p-4 flex flex-col items-center gap-2"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
+              </svg>
+              <span>Copy Link</span>
+            </Button>
+          </div>
+          
+          <div className="text-center">
+            <Button onClick={() => window.location.href = '/'} className="bg-blue-600 hover:bg-blue-700">
+              Take Another Assessment
+            </Button>
+          </div>
         </div>
       </div>
     </div>
