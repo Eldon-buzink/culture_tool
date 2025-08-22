@@ -196,7 +196,7 @@ Make the recommendations specific, actionable, and tailored to their scores. Foc
     };
   }
 
-  private static getFallbackRecommendations(scores: AssessmentScores): AIRecommendations {
+  public static getFallbackRecommendations(scores: AssessmentScores): AIRecommendations {
     // Provide basic fallback recommendations based on scores
     const getScoreLevel = (score: number) => {
       if (score >= 70) return 'high';
