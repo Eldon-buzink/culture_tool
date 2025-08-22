@@ -4,7 +4,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Brain, Users, Target, CheckCircle, PlayCircle } from 'lucide-react';
+import { Brain, Users, Target, CheckCircle, PlayCircle, Lock } from 'lucide-react';
 
 interface SectionData {
   id: string;
@@ -285,27 +285,78 @@ export default function AssessmentOverviewPage() {
           ))}
         </div>
 
-        {/* Submit Button or Progress Message */}
-        {canSubmit() ? (
-          <div className="text-center">
+        {/* Submit Assessment Section */}
+        <div className="text-center p-8 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl border-2 border-dashed border-gray-300">
+          <div className="max-w-md mx-auto">
+            <div className="mb-4">
+              <div className={`w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center ${
+                canSubmit() 
+                  ? 'bg-green-100 text-green-600' 
+                  : 'bg-gray-100 text-gray-400'
+              }`}>
+                {canSubmit() ? (
+                  <CheckCircle className="h-8 w-8" />
+                ) : (
+                  <Target className="h-8 w-8" />
+                )}
+              </div>
+              
+              <h3 className={`text-xl font-bold mb-2 ${
+                canSubmit() ? 'text-green-700' : 'text-gray-700'
+              }`}>
+                {canSubmit() ? 'Ready to Submit!' : 'Complete All Sections'}
+              </h3>
+              
+              <p className={`text-sm mb-6 ${
+                canSubmit() ? 'text-green-600' : 'text-gray-600'
+              }`}>
+                {canSubmit() 
+                  ? 'All assessment sections are complete. Submit now to view your personalized results and AI-powered recommendations.'
+                  : `Complete ${sections.length - sections.filter(s => s.completed).length} more section${sections.filter(s => !s.completed).length === 1 ? '' : 's'} to unlock your results.`
+                }
+              </p>
+            </div>
+            
             <Button
               onClick={handleSubmitAssessment}
               size="lg"
-              className="bg-green-600 hover:bg-green-700 px-8 py-3"
+              disabled={!canSubmit()}
+              className={`px-8 py-3 min-w-[200px] transition-all duration-200 ${
+                canSubmit()
+                  ? 'bg-green-600 hover:bg-green-700 shadow-lg hover:shadow-xl transform hover:scale-105'
+                  : 'bg-gray-300 text-gray-500 cursor-not-allowed shadow-sm'
+              }`}
             >
-              Submit Assessment & View Results
+              {canSubmit() ? (
+                <>
+                  <CheckCircle className="w-5 h-5 mr-2" />
+                  Submit Assessment & View Results
+                </>
+              ) : (
+                <>
+                  <Lock className="w-5 h-5 mr-2" />
+                  Complete All Sections First
+                </>
+              )}
             </Button>
-            <p className="text-sm text-green-600 mt-2 font-medium">
-              🎉 All sections completed! You can now submit your assessment and view your results.
-            </p>
+            
+            {/* Progress Summary */}
+            <div className="mt-6 flex items-center justify-center gap-4 text-sm">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-gray-300 rounded-full"></div>
+                <span className="text-gray-500">Not Started</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-blue-400 rounded-full"></div>
+                <span className="text-gray-500">In Progress</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                <span className="text-gray-500">Complete</span>
+              </div>
+            </div>
           </div>
-        ) : (
-          <div className="text-center p-6 bg-gray-50 rounded-lg border border-gray-200">
-            <p className="text-gray-600 text-sm">
-              💡 The "Submit Assessment & View Results" button above will become clickable once you complete all sections.
-            </p>
-          </div>
-        )}
+        </div>
       </div>
     </div>
   );
