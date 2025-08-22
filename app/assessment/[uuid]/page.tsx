@@ -71,6 +71,8 @@ export default function AssessmentOverviewPage() {
         const allResponses = localStorage.getItem(`assessment-responses-${params.uuid}`) || '{}';
         const existingResponses = JSON.parse(allResponses);
         
+        console.log('Raw localStorage data:', { allResponses, existingResponses });
+        
         const sectionProgress = {
           ocean: { progress: 0, completed: false, answered: 0 },
           culture: { progress: 0, completed: false, answered: 0 },
@@ -82,6 +84,8 @@ export default function AssessmentOverviewPage() {
           const sectionResponses = existingResponses[sectionId] || {};
           const answeredCount = Object.keys(sectionResponses).length;
           
+          console.log(`Section ${sectionId}:`, { sectionResponses, answeredCount });
+          
           if (sectionProgress[sectionId as keyof typeof sectionProgress]) {
             sectionProgress[sectionId as keyof typeof sectionProgress].answered = answeredCount;
             sectionProgress[sectionId as keyof typeof sectionProgress].progress = (answeredCount / 5) * 100;
@@ -89,14 +93,22 @@ export default function AssessmentOverviewPage() {
           }
         });
         
-        console.log('Progress from localStorage:', sectionProgress);
+        console.log('Calculated sectionProgress:', sectionProgress);
         
-        setSections(prev => prev.map(section => ({
-          ...section,
-          progress: sectionProgress[section.id as keyof typeof sectionProgress]?.progress || 0,
-          completed: sectionProgress[section.id as keyof typeof sectionProgress]?.completed || false,
-          answered: sectionProgress[section.id as keyof typeof sectionProgress]?.answered || 0
-        })));
+        setSections(prev => {
+          const updatedSections = prev.map(section => {
+            const sectionData = sectionProgress[section.id as keyof typeof sectionProgress];
+            return {
+              ...section,
+              progress: sectionData?.progress || 0,
+              completed: sectionData?.completed || false,
+              answered: sectionData?.answered || 0
+            };
+          });
+          
+          console.log('Final sections state:', updatedSections);
+          return updatedSections;
+        });
         
         // Also try to fetch from API as backup
         if (response.ok) {
