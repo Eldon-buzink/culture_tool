@@ -10,6 +10,7 @@ import { ChevronDown, ChevronUp, Brain, Users, Target, TrendingUp, TrendingDown,
 import RadarChart from '@/components/RadarChart';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { generateAssessmentPDF, PDFExportData } from '@/lib/pdf-export';
+import EmailResultsModal from '@/components/EmailResultsModal';
 import LoadingSpinner from '@/components/LoadingSpinner';
 
 interface AssessmentResults {
@@ -79,6 +80,7 @@ export default function ResultsPage() {
   const { uuid } = useParams();
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
+  const [showEmailModal, setShowEmailModal] = useState(false);
   
   // Check if user has completed all sections before allowing access
   useEffect(() => {
@@ -1041,44 +1043,7 @@ export default function ResultsPage() {
             </Button>
             
             <Button 
-              onClick={async () => {
-                const email = prompt('Enter your email to receive your results:');
-                if (email && results) {
-                  try {
-                    const response = await fetch('/api/email/send-results', {
-                      method: 'POST',
-                      headers: {
-                        'Content-Type': 'application/json',
-                      },
-                      body: JSON.stringify({
-                        recipientName: 'Assessment User',
-                        recipientEmail: email,
-                        assessmentId: uuid,
-                        resultsUrl: window.location.href,
-                        oceanScores: results.oceanScores,
-                        cultureScores: results.cultureScores,
-                        valuesScores: results.valuesScores,
-                        topInsights: [
-                          results.insights.ocean[0],
-                          results.insights.culture[0],
-                          results.insights.values[0]
-                        ]
-                      }),
-                    });
-
-                    const data = await response.json();
-                    
-                    if (data.success) {
-                      alert(`✅ Results sent successfully to ${email}! Check your inbox.`);
-                    } else {
-                      alert(`❌ Failed to send email: ${data.error}`);
-                    }
-                  } catch (error) {
-                    console.error('Error sending email:', error);
-                    alert('❌ Failed to send email. Please try again.');
-                  }
-                }
-              }} 
+              onClick={() => setShowEmailModal(true)}
               variant="outline" 
               className="h-auto p-4 flex flex-col items-center gap-2"
             >
@@ -1111,6 +1076,24 @@ export default function ResultsPage() {
           </div>
         </div>
       </div>
+      
+      {/* Email Results Modal */}
+      {results && (
+        <EmailResultsModal
+          isOpen={showEmailModal}
+          onClose={() => setShowEmailModal(false)}
+          assessmentId={uuid as string}
+          resultsUrl={window.location.href}
+          oceanScores={results.oceanScores}
+          cultureScores={results.cultureScores}
+          valuesScores={results.valuesScores}
+          topInsights={[
+            results.insights.ocean[0],
+            results.insights.culture[0],
+            results.insights.values[0]
+          ]}
+        />
+      )}
     </div>
   );
 }

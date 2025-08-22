@@ -87,12 +87,29 @@ export default function SectionPage() {
   const isFirstQuestion = currentQuestionIndex === 0;
 
   useEffect(() => {
-    // Ensure session user ID exists
-    let sessionUserId = localStorage.getItem(`assessment-user-${uuid}`);
-    if (!sessionUserId) {
-      sessionUserId = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      localStorage.setItem(`assessment-user-${uuid}`, sessionUserId);
-      console.log('Created new session userId:', sessionUserId);
+    // Get the user ID from the assessment creation
+    let userId = localStorage.getItem(`assessment-user-${uuid}`);
+    
+    // If no user ID exists, we need to get it from the assessment
+    if (!userId) {
+      // Try to get the user ID from the assessment data
+      const fetchUserId = async () => {
+        try {
+          const response = await fetch(`/api/assessments/${uuid}`);
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.assessment.createdBy) {
+              const retrievedUserId = data.assessment.createdBy;
+              localStorage.setItem(`assessment-user-${uuid}`, retrievedUserId);
+  
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching assessment for userId:', error);
+        }
+      };
+      
+      fetchUserId();
     }
     
     // Load existing responses from localStorage
@@ -114,8 +131,11 @@ export default function SectionPage() {
     
     // Save to database
     try {
-      const userId = localStorage.getItem(`assessment-user-${uuid}`) || `session-${Date.now()}`;
-      console.log('Saving response with userId:', userId);
+      const userId = localStorage.getItem(`assessment-user-${uuid}`);
+      if (!userId) {
+        console.error('No userId found - cannot save response');
+        return;
+      }
       
       const response = await fetch(`/api/assessments/${uuid}/responses`, {
         method: 'POST',
@@ -134,6 +154,8 @@ export default function SectionPage() {
         // Trigger storage event to update progress on overview page
         const event = new Event('storage');
         window.dispatchEvent(event);
+      } else {
+        console.error('Failed to save response:', response.status, response.statusText);
       }
     } catch (error) {
       console.error('Error saving response:', error);

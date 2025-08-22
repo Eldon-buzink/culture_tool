@@ -1,5 +1,5 @@
-import { prisma } from '../prisma';
-import { TeamMemberStatus } from '@prisma/client';
+import { prisma } from '../database';
+// TeamMemberStatus enum doesn't exist in schema, using string values instead
 import { AssessmentService } from './assessmentService';
 
 export interface CreateTeamData {
@@ -22,7 +22,7 @@ export interface TeamWithMembers {
   };
   members: Array<{
     id: string;
-    status: TeamMemberStatus;
+    status: string;
     joinedAt?: Date | null;
     user: {
       id: string;
@@ -67,25 +67,15 @@ export class TeamService {
           name: data.name,
           description: data.description,
           code: teamCode!,
-          creatorId: data.creatorId,
-        },
-        include: {
-          creator: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
-          },
         },
       });
 
-      // Add creator as first member
+      // Add creator as first member with owner role
       await tx.teamMember.create({
         data: {
           teamId: newTeam.id,
           userId: data.creatorId,
-          status: TeamMemberStatus.COMPLETED,
+          role: 'owner',
           joinedAt: new Date(),
         },
       });
@@ -118,7 +108,7 @@ export class TeamService {
           create: {
             teamId: newTeam.id,
             userId: user.id,
-            status: TeamMemberStatus.INVITED,
+            role: 'member',
           },
         });
       }

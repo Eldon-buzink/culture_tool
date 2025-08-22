@@ -57,11 +57,22 @@ export default function AssessmentOverviewPage() {
   useEffect(() => {
     const loadAssessmentData = async () => {
       try {
-        // Get or create a session user ID for this assessment
-        let sessionUserId = localStorage.getItem(`assessment-user-${params.uuid}`);
-        if (!sessionUserId) {
-          sessionUserId = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-          localStorage.setItem(`assessment-user-${params.uuid}`, sessionUserId);
+        // Get the user ID from the assessment creation
+        let userId = localStorage.getItem(`assessment-user-${params.uuid}`);
+        if (!userId) {
+          // Try to get the user ID from the assessment data
+          try {
+            const assessmentResponse = await fetch(`/api/assessments/${params.uuid}`);
+            if (assessmentResponse.ok) {
+              const assessmentData = await assessmentResponse.json();
+                        if (assessmentData.success && assessmentData.assessment.createdBy) {
+            const retrievedUserId = assessmentData.assessment.createdBy;
+            localStorage.setItem(`assessment-user-${params.uuid}`, retrievedUserId);
+          }
+            }
+          } catch (error) {
+            console.error('Error fetching assessment for userId:', error);
+          }
         }
 
         // Fetch assessment data from API
@@ -70,8 +81,6 @@ export default function AssessmentOverviewPage() {
         // Calculate progress from localStorage (primary source)
         const allResponses = localStorage.getItem(`assessment-responses-${params.uuid}`) || '{}';
         const existingResponses = JSON.parse(allResponses);
-        
-        console.log('Raw localStorage data:', { allResponses, existingResponses });
         
         const sectionProgress = {
           ocean: { progress: 0, completed: false, answered: 0 },
@@ -84,16 +93,12 @@ export default function AssessmentOverviewPage() {
           const sectionResponses = existingResponses[sectionId] || {};
           const answeredCount = Object.keys(sectionResponses).length;
           
-          console.log(`Section ${sectionId}:`, { sectionResponses, answeredCount });
-          
           if (sectionProgress[sectionId as keyof typeof sectionProgress]) {
             sectionProgress[sectionId as keyof typeof sectionProgress].answered = answeredCount;
             sectionProgress[sectionId as keyof typeof sectionProgress].progress = (answeredCount / 5) * 100;
             sectionProgress[sectionId as keyof typeof sectionProgress].completed = answeredCount >= 5;
           }
         });
-        
-        console.log('Calculated sectionProgress:', sectionProgress);
         
         setSections(prev => {
           const updatedSections = prev.map(section => {
@@ -106,7 +111,6 @@ export default function AssessmentOverviewPage() {
             };
           });
           
-          console.log('Final sections state:', updatedSections);
           return updatedSections;
         });
         
@@ -155,12 +159,7 @@ export default function AssessmentOverviewPage() {
   };
 
   const canSubmit = () => {
-    const result = sections.every(section => section.completed);
-    console.log('canSubmit check:', {
-      sections: sections.map(s => ({ id: s.id, completed: s.completed, progress: s.progress, answered: s.answered })),
-      result
-    });
-    return result;
+    return sections.every(section => section.completed);
   };
 
   const handleSectionClick = (sectionId: string) => {
@@ -168,15 +167,8 @@ export default function AssessmentOverviewPage() {
   };
 
   const handleSubmitAssessment = () => {
-    console.log('Submit button clicked!');
-    const canSubmitResult = canSubmit();
-    console.log('canSubmit result:', canSubmitResult);
-    
-    if (canSubmitResult) {
-      console.log('Navigating to results page...');
+    if (canSubmit()) {
       router.push(`/assessment/${params.uuid}/results`);
-    } else {
-      console.log('Cannot submit - not all sections complete');
     }
   };
 
@@ -296,58 +288,12 @@ export default function AssessmentOverviewPage() {
             <p className="text-sm text-green-600 mt-2 font-medium">
               🎉 All sections completed! You can now submit your assessment and view your results.
             </p>
-            
-            {/* Debug info */}
-            <div className="mt-4 p-3 bg-gray-100 rounded text-xs text-gray-600">
-              <p>Debug: Button should be working</p>
-              <p>Router: {typeof router}</p>
-              <p>Params: {JSON.stringify(params)}</p>
-              
-              {/* Test button */}
-              <Button
-                onClick={() => {
-                  console.log('Test button clicked!');
-                  alert('Test button works!');
-                }}
-                variant="outline"
-                size="sm"
-                className="mt-2"
-              >
-                Test Button
-              </Button>
-              
-              <Button
-                onClick={() => {
-                  console.log('Direct navigation test');
-                  router.push(`/assessment/${params.uuid}/results`);
-                }}
-                variant="outline"
-                size="sm"
-                className="mt-2 ml-2"
-              >
-                Test Navigation
-              </Button>
-            </div>
           </div>
         ) : (
-          <div className="text-center p-6 bg-blue-50 rounded-lg border border-blue-200">
-            <h3 className="text-lg font-medium text-blue-900 mb-2">Complete All Sections</h3>
-            <p className="text-blue-700 mb-3">
-              You need to complete {sections.length - sections.filter(s => s.completed).length} more section(s) before you can submit your assessment.
+          <div className="text-center p-6 bg-gray-50 rounded-lg border border-gray-200">
+            <p className="text-gray-600 text-sm">
+              💡 The "Submit Assessment & View Results" button above will become clickable once you complete all sections.
             </p>
-            <div className="flex justify-center gap-4">
-              {sections.filter(s => !s.completed).map(section => (
-                <Button
-                  key={section.id}
-                  onClick={() => handleSectionClick(section.id)}
-                  variant="outline"
-                  size="sm"
-                  className="border-blue-300 text-blue-700 hover:bg-blue-100"
-                >
-                  {section.progress > 0 ? 'Continue' : 'Start'} {section.title.split(' ')[0]}
-                </Button>
-              ))}
-            </div>
           </div>
         )}
       </div>

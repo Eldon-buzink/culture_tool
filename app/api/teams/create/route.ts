@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { TeamService } from '@/lib/services/teamService';
+import { prisma } from '@/lib/database';
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,12 +25,69 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create team using TeamService
-    const team = await TeamService.createTeam({
-      name,
-      description: description || '',
-      creatorId,
-      memberEmails: memberEmails || []
+    // Generate unique team code
+    let teamCode: string;
+    let isUnique = false;
+    
+    while (!isUnique) {
+      teamCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+      const existingTeam = await prisma.team.findUnique({
+        where: { code: teamCode },
+      });
+      if (!existingTeam) {
+        isUnique = true;
+      }
+    }
+
+    // Create team and members in a transaction
+    const team = await prisma.$transaction(async (tx) => {
+      // Create the team
+      const newTeam = await tx.team.create({
+        data: {
+          name,
+          description: description || '',
+          code: teamCode,
+        },
+      });
+
+      // Add creator as first member with owner role
+      await tx.teamMember.create({
+        data: {
+          teamId: newTeam.id,
+          userId: creatorId,
+          role: 'owner',
+          joinedAt: new Date(),
+        },
+      });
+
+      // Add other members
+      for (const email of memberEmails || []) {
+        // Find or create user
+        let user = await tx.user.findUnique({
+          where: { email },
+        });
+
+        if (!user) {
+          user = await tx.user.create({
+            data: {
+              email,
+              name: email.split('@')[0], // Use email prefix as name
+            },
+          });
+        }
+
+        // Add member
+        await tx.teamMember.create({
+          data: {
+            teamId: newTeam.id,
+            userId: user.id,
+            role: 'member',
+            joinedAt: new Date(),
+          },
+        });
+      }
+
+      return newTeam;
     });
 
     return NextResponse.json({ 

@@ -45,13 +45,117 @@ export default function CreateTeamPage() {
   const handleCreateTeam = async () => {
     setIsCreating(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      const generatedCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-      setTeamCode(generatedCode);
+    try {
+      // First, create a user for the team creator
+      const userResponse = await fetch('/api/create-test-user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: 'Team Leader',
+          email: `team-leader-${Date.now()}@temp.com`
+        }),
+      });
+
+      if (!userResponse.ok) {
+        throw new Error('Failed to create user');
+      }
+
+      const userData = await userResponse.json();
+      if (!userData.success) {
+        throw new Error('Failed to create user: ' + userData.error);
+      }
+
+      // Now create the team using the real API
+      const teamResponse = await fetch('/api/teams/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: teamName,
+          description: teamDescription,
+          creatorId: userData.user.id,
+          memberEmails: emails.filter(email => email.trim() && email.includes('@'))
+        }),
+      });
+
+      if (!teamResponse.ok) {
+        throw new Error('Failed to create team');
+      }
+
+      const teamData = await teamResponse.json();
+      if (!teamData.success) {
+        throw new Error('Failed to create team: ' + teamData.error);
+      }
+
+      console.log('Team created successfully:', teamData.team);
+      setTeamCode(teamData.team.code);
       setTeamCreated(true);
+
+      // Automatically send email invitations
+      await sendEmailInvitations(teamData.team.code, teamData.team.name);
+
+    } catch (error) {
+      console.error('Error creating team:', error);
+      alert('Failed to create team: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    } finally {
       setIsCreating(false);
-    }, 2000);
+    }
+  };
+
+  const sendEmailInvitations = async (code: string, name: string) => {
+    const validEmails = emails.filter(email => email.trim() && email.includes('@'));
+    
+    if (validEmails.length === 0) {
+      return; // No emails to send
+    }
+
+    try {
+      let successCount = 0;
+      let errorCount = 0;
+
+      for (const email of validEmails) {
+        try {
+          const response = await fetch('/api/email/send-invitation', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              recipientName: email.split('@')[0], // Use email prefix as name
+              recipientEmail: email.trim(),
+              teamName: name,
+              teamCode: code,
+              inviterName: 'Team Leader',
+              assessmentUrl: `${window.location.origin}/assessment/start-assessment?team=${code}`
+            }),
+          });
+
+          const data = await response.json();
+          
+          if (data.success) {
+            successCount++;
+          } else {
+            errorCount++;
+            console.error(`Failed to send to ${email}:`, data.error);
+          }
+        } catch (error) {
+          errorCount++;
+          console.error(`Error sending to ${email}:`, error);
+        }
+      }
+
+      if (successCount > 0) {
+        console.log(`✅ Successfully sent ${successCount} invitation${successCount > 1 ? 's' : ''}!`);
+        if (errorCount > 0) {
+          console.log(`❌ Failed to send ${errorCount} invitation${errorCount > 1 ? 's' : ''}.`);
+        }
+      }
+    } catch (error) {
+      console.error('Error sending invitations:', error);
+    }
   };
 
   const copyInviteLink = () => {
@@ -71,6 +175,11 @@ export default function CreateTeamPage() {
               <h1 className="text-2xl font-bold text-gray-900 mb-2">Team Created Successfully! 🎉</h1>
               <p className="text-gray-600 mb-6">
                 Your team "{teamName}" is ready for the comprehensive assessment.
+                {emails.filter(email => email.trim() && email.includes('@')).length > 0 && (
+                  <span className="block mt-2 text-green-600">
+                    ✅ Email invitations have been sent automatically to your team members!
+                  </span>
+                )}
               </p>
               
               <div className="bg-blue-50 rounded-lg p-6 mb-6">
@@ -143,7 +252,7 @@ export default function CreateTeamPage() {
                       }
 
                       if (successCount > 0) {
-                        alert(`✅ Successfully sent ${successCount} invitation${successCount > 1 ? 's' : ''}!${errorCount > 0 ? `\n❌ Failed to send ${errorCount} invitation${errorCount > 1 ? 's' : ''}.` : ''}`);
+                        alert(`✅ Successfully resent ${successCount} invitation${successCount > 1 ? 's' : ''}!${errorCount > 0 ? `\n❌ Failed to send ${errorCount} invitation${errorCount > 1 ? 's' : ''}.` : ''}`);
                       } else {
                         alert(`❌ Failed to send any invitations. Please check your email configuration.`);
                       }
@@ -154,7 +263,7 @@ export default function CreateTeamPage() {
                   }}
                 >
                   <Mail className="h-4 w-4 mr-2" />
-                  Send Email Invitations
+                  Resend Email Invitations
                 </Button>
               </div>
             </CardContent>

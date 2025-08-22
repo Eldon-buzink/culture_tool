@@ -190,13 +190,17 @@ export default function TeamDashboardPage() {
   useEffect(() => {
     const fetchTeamData = async () => {
       try {
+        console.log('Fetching team data for code:', params.code);
         const response = await fetch(`/api/teams/${params.code}`);
         
+        console.log('Response status:', response.status);
+        
         if (!response.ok) {
-          throw new Error('Failed to fetch team data');
+          throw new Error(`Failed to fetch team data: ${response.status} ${response.statusText}`);
         }
         
         const data = await response.json();
+        console.log('Team data response:', data);
         
         if (!data.success) {
           throw new Error(data.error || 'Failed to load team data');
