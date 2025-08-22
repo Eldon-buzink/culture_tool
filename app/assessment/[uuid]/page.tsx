@@ -82,49 +82,56 @@ export default function AssessmentOverviewPage() {
           }
         }
 
-        // Fetch assessment data from API
-        const response = await fetch(`/api/assessments?id=${params.uuid}`);
-        
-        // Calculate progress from localStorage (primary source)
-        const allResponses = localStorage.getItem(`assessment-responses-${params.uuid}`) || '{}';
-        const existingResponses = JSON.parse(allResponses);
-        
-        const sectionProgress = {
-          ocean: { progress: 0, completed: false, answered: 0 },
-          culture: { progress: 0, completed: false, answered: 0 },
-          values: { progress: 0, completed: false, answered: 0 }
-        };
-        
-        // Calculate progress from localStorage responses
-        Object.keys(existingResponses).forEach(sectionId => {
-          const sectionResponses = existingResponses[sectionId] || {};
-          const answeredCount = Object.keys(sectionResponses).length;
+        // For session-based assessments, skip API call and use localStorage only
+        if (sessionData) {
+          // Calculate progress from localStorage (primary source)
+          const allResponses = localStorage.getItem(`assessment-responses-${params.uuid}`) || '{}';
+          const existingResponses = JSON.parse(allResponses);
           
-          if (sectionProgress[sectionId as keyof typeof sectionProgress]) {
-            sectionProgress[sectionId as keyof typeof sectionProgress].answered = answeredCount;
-            sectionProgress[sectionId as keyof typeof sectionProgress].progress = (answeredCount / 5) * 100;
-            sectionProgress[sectionId as keyof typeof sectionProgress].completed = answeredCount >= 5;
-          }
-        });
-        
-        setSections(prev => {
-          const updatedSections = prev.map(section => {
-            const sectionData = sectionProgress[section.id as keyof typeof sectionProgress];
-            return {
-              ...section,
-              progress: sectionData?.progress || 0,
-              completed: sectionData?.completed || false,
-              answered: sectionData?.answered || 0
-            };
+          const sectionProgress = {
+            ocean: { progress: 0, completed: false, answered: 0 },
+            culture: { progress: 0, completed: false, answered: 0 },
+            values: { progress: 0, completed: false, answered: 0 }
+          };
+          
+          // Calculate progress from localStorage responses
+          Object.keys(existingResponses).forEach(sectionId => {
+            const sectionResponses = existingResponses[sectionId] || {};
+            const answeredCount = Object.keys(sectionResponses).length;
+            
+            if (sectionProgress[sectionId as keyof typeof sectionProgress]) {
+              sectionProgress[sectionId as keyof typeof sectionProgress].answered = answeredCount;
+              sectionProgress[sectionId as keyof typeof sectionProgress].progress = (answeredCount / 5) * 100;
+              sectionProgress[sectionId as keyof typeof sectionProgress].completed = answeredCount >= 5;
+            }
           });
           
-          return updatedSections;
-        });
+          setSections(prev => {
+            const updatedSections = prev.map(section => {
+              const sectionData = sectionProgress[section.id as keyof typeof sectionProgress];
+              return {
+                ...section,
+                progress: sectionData?.progress || 0,
+                completed: sectionData?.completed || false,
+                answered: sectionData?.answered || 0
+              };
+            });
+            
+            return updatedSections;
+          });
+          
+          return; // Exit early for session-based assessments
+        }
         
-        // Also try to fetch from API as backup
-        if (response.ok) {
-          const data = await response.json();
-          console.log('Assessment data fetched successfully');
+        // For database-based assessments, fetch from API
+        try {
+          const response = await fetch(`/api/assessments?id=${params.uuid}`);
+          if (response.ok) {
+            const data = await response.json();
+            console.log('Assessment data fetched successfully');
+          }
+        } catch (error) {
+          console.error('Error fetching assessment data from API:', error);
         }
       } catch (error) {
         console.error('Error loading assessment data:', error);
@@ -143,9 +150,6 @@ export default function AssessmentOverviewPage() {
 
     loadAssessmentData();
     
-    // Set up interval to check for progress updates
-    const interval = setInterval(loadAssessmentData, 2000);
-    
     // Listen for storage events to refresh progress when responses are saved
     const handleStorageChange = () => {
       loadAssessmentData();
@@ -154,7 +158,6 @@ export default function AssessmentOverviewPage() {
     window.addEventListener('storage', handleStorageChange);
     
     return () => {
-      clearInterval(interval);
       window.removeEventListener('storage', handleStorageChange);
     };
   }, [params.uuid]);
