@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/database';
 
 export async function POST(request: NextRequest) {
   try {
@@ -42,10 +42,12 @@ export async function POST(request: NextRequest) {
     // Create new assessment
     const assessment = await prisma.assessment.create({
       data: {
-        userId,
+        title: 'Individual Assessment',
+        description: 'Personal assessment for team member',
+        type: 'individual',
+        createdBy: userId,
         teamId: teamId || null,
-        status: 'IN_PROGRESS',
-        startedAt: new Date(),
+        status: 'draft'
       }
     });
 

@@ -234,6 +234,8 @@ export default function TeamDashboardPage() {
           }
         };
         
+        console.log('Transformed team data:', transformedData);
+        console.log('Member statuses:', transformedData.members.map(m => ({ email: m.email, status: m.status })));
         setTeamData(transformedData);
         setLoading(false);
       } catch (error) {
@@ -322,6 +324,13 @@ export default function TeamDashboardPage() {
 
   const completedMembers = teamData.members.filter(m => m.status === 'completed');
   const completionRate = (completedMembers.length / teamData.members.length) * 100;
+  
+  console.log('Completion calculation:', {
+    totalMembers: teamData.members.length,
+    completedMembers: completedMembers.length,
+    completionRate: completionRate,
+    memberStatuses: teamData.members.map(m => ({ email: m.email, status: m.status }))
+  });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8">

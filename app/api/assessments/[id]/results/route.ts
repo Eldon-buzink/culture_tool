@@ -83,7 +83,7 @@ export async function GET(
         type: assessment.type,
         status: assessment.status,
         createdAt: assessment.createdAt,
-        creator: assessment.creator
+        createdBy: assessment.createdBy
       }
     });
 
