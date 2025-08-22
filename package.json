@@ -47,7 +47,8 @@
     "uuid": "^11.1.0"
   },
   "devDependencies": {
-    "prisma": "^5.22.0"
+    "prisma": "^5.22.0",
+    "ts-node": "^10.9.2"
   },
   "prisma": {
     "seed": "ts-node ./prisma/seed.ts"

@@ -186,6 +186,8 @@ export default function TeamDashboardPage() {
     quality: false,
   });
   const [expandedConflicts, setExpandedConflicts] = useState<{ [key: number]: boolean }>({});
+  const [teamRecommendations, setTeamRecommendations] = useState<any>(null);
+  const [recommendationsLoading, setRecommendationsLoading] = useState(false);
 
   useEffect(() => {
     const fetchTeamData = async () => {
@@ -246,6 +248,71 @@ export default function TeamDashboardPage() {
 
     fetchTeamData();
   }, [params.code]);
+
+  // Generate team recommendations when team data is available
+  useEffect(() => {
+    const generateTeamRecommendations = async () => {
+      if (!teamData || teamData.members.filter(m => m.status === 'completed').length < 2) {
+        return; // Need at least 2 completed assessments
+      }
+
+      try {
+        // Check if we already have recommendations
+        const recommendationsResponse = await fetch(`/api/teams/${params.code}/recommendations`);
+        if (recommendationsResponse.ok) {
+          const recommendationsData = await recommendationsResponse.json();
+          if (recommendationsData.recommendations) {
+            console.log('Using existing team recommendations');
+            setTeamRecommendations(recommendationsData.recommendations);
+            return; // Already have recommendations
+          }
+        }
+
+        // Generate new recommendations
+        console.log('Generating new team recommendations...');
+        setRecommendationsLoading(true);
+        
+        // Calculate aggregate scores from completed members
+        const completedMembers = teamData.members.filter(m => m.status === 'completed');
+        const aggregateScores = {
+          ocean: { openness: 0, conscientiousness: 0, extraversion: 0, agreeableness: 0, neuroticism: 0 },
+          culture: { powerDistance: 0, individualism: 0, masculinity: 0, uncertaintyAvoidance: 0, longTermOrientation: 0, indulgence: 0 },
+          values: { innovation: 0, collaboration: 0, autonomy: 0, quality: 0, customerFocus: 0 }
+        };
+
+        // For now, use placeholder scores - in a real implementation, you'd fetch actual assessment results
+        // and calculate the averages
+        const memberCount = completedMembers.length;
+
+        const response = await fetch(`/api/teams/${params.code}/recommendations`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            teamScores: aggregateScores,
+            memberCount
+          })
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success && result.recommendations) {
+            console.log('Team recommendations generated successfully');
+            setTeamRecommendations(result.recommendations);
+          } else {
+            console.error('Failed to generate team recommendations');
+          }
+        } else {
+          console.error('Failed to generate team recommendations');
+        }
+        setRecommendationsLoading(false);
+      } catch (error) {
+        console.error('Error generating team recommendations:', error);
+        setRecommendationsLoading(false);
+      }
+    };
+
+    generateTeamRecommendations();
+  }, [teamData, params.code]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -618,178 +685,101 @@ export default function TeamDashboardPage() {
                 <CardTitle className="text-lg">Team Recommendations</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {/* Communication Strategy */}
-                  <div className="border border-gray-200 rounded-lg overflow-hidden">
-                    <div 
-                      className="p-4 bg-blue-50 cursor-pointer hover:bg-blue-100 transition-colors"
-                      onClick={() => setExpandedRecommendations(prev => ({ ...prev, communication: !prev.communication }))}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                            <MessageSquare className="h-4 w-4 text-blue-600" />
+                {recommendationsLoading ? (
+                  <div className="text-center py-8">
+                    <ModernSpinner />
+                    <p className="text-gray-600 mt-2">Generating AI-powered team insights...</p>
+                  </div>
+                ) : teamRecommendations ? (
+                  <div className="space-y-4">
+                    {/* Team Summary */}
+                    {teamRecommendations.summary && (
+                      <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                        <div className="flex items-start gap-3">
+                          <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <Lightbulb className="h-4 w-4 text-blue-600" />
                           </div>
                           <div>
-                            <h4 className="font-semibold text-blue-900">Communication Strategy</h4>
-                            <p className="text-sm text-blue-700">Optimize team communication based on personality preferences</p>
-                          </div>
-                        </div>
-                        <ChevronDown className={`h-5 w-5 text-blue-600 transition-transform ${expandedRecommendations.communication ? 'rotate-180' : ''}`} />
-                      </div>
-                    </div>
-                    
-                    {expandedRecommendations.communication && (
-                      <div className="p-4 bg-white border-t border-gray-200">
-                        <div className="space-y-4">
-                          <div>
-                            <div className="flex items-center gap-2 mb-2">
-                              <Target className="h-4 w-4 text-blue-600" />
-                              <span className="font-medium text-gray-900">What This Means</span>
-                            </div>
-                            <p className="text-gray-700 text-sm mb-3">
-                              Your team shows moderate extraversion levels, which means some members prefer structured communication while others are comfortable with spontaneous discussions. This diversity can be a strength when managed effectively.
-                            </p>
-                            <ul className="text-sm text-gray-600 space-y-1 ml-6">
-                              <li>• Mixed communication preferences across the team</li>
-                              <li>• Some members may need time to process before responding</li>
-                              <li>• Others prefer immediate, interactive discussions</li>
-                              <li>• This diversity can lead to more thoughtful and comprehensive solutions</li>
-                            </ul>
-                          </div>
-                          
-                          <div>
-                            <div className="flex items-center gap-2 mb-2">
-                              <Lightbulb className="h-4 w-4 text-green-600" />
-                              <span className="font-medium text-gray-900">How to Use This Information</span>
-                            </div>
-                            <ul className="text-sm text-gray-600 space-y-1 ml-6">
-                              <li>• Send meeting agendas 24 hours in advance</li>
-                              <li>• Use both synchronous and asynchronous communication channels</li>
-                              <li>• Allow quiet time during brainstorming sessions</li>
-                              <li>• Follow up written decisions with quick video calls</li>
-                            </ul>
+                            <p className="text-sm font-medium text-blue-900 mb-1">AI Team Analysis</p>
+                            <p className="text-sm text-blue-700">{teamRecommendations.summary}</p>
                           </div>
                         </div>
                       </div>
                     )}
-                  </div>
 
-                  {/* Innovation & Problem-Solving */}
-                  <div className="border border-gray-200 rounded-lg overflow-hidden">
-                    <div 
-                      className="p-4 bg-green-50 cursor-pointer hover:bg-green-100 transition-colors"
-                      onClick={() => setExpandedRecommendations(prev => ({ ...prev, innovation: !prev.innovation }))}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                            <Zap className="h-4 w-4 text-green-600" />
+                    {/* Team Strengths */}
+                    {teamRecommendations.strengths && teamRecommendations.strengths.length > 0 && (
+                      <div className="border border-green-200 rounded-lg overflow-hidden">
+                        <div className="p-4 bg-green-50">
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                              <Award className="h-4 w-4 text-green-600" />
+                            </div>
+                            <h4 className="font-semibold text-green-900">Team Strengths</h4>
                           </div>
-                          <div>
-                            <h4 className="font-semibold text-green-900">Innovation & Problem-Solving</h4>
-                            <p className="text-sm text-green-700">Leverage creative thinking and adaptability</p>
-                          </div>
+                          <ul className="text-sm text-green-700 space-y-1 ml-6">
+                            {teamRecommendations.strengths.map((strength: string, index: number) => (
+                              <li key={index}>• {strength}</li>
+                            ))}
+                          </ul>
                         </div>
-                        <ChevronDown className={`h-5 w-5 text-green-600 transition-transform ${expandedRecommendations.innovation ? 'rotate-180' : ''}`} />
                       </div>
-                    </div>
-                    
-                    {expandedRecommendations.innovation && (
-                      <div className="p-4 bg-white border-t border-gray-200">
-                        <div className="space-y-4">
-                          <div>
-                            <div className="flex items-center gap-2 mb-2">
-                              <Target className="h-4 w-4 text-green-600" />
-                              <span className="font-medium text-gray-900">What This Means</span>
+                    )}
+
+                    {/* Team Challenges */}
+                    {teamRecommendations.challenges && teamRecommendations.challenges.length > 0 && (
+                      <div className="border border-yellow-200 rounded-lg overflow-hidden">
+                        <div className="p-4 bg-yellow-50">
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
+                              <AlertTriangle className="h-4 w-4 text-yellow-600" />
                             </div>
-                            <p className="text-gray-700 text-sm mb-3">
-                              Your team has high innovation values and low uncertainty avoidance, making you excellent at creative problem-solving and adapting to change.
-                            </p>
-                            <ul className="text-sm text-gray-600 space-y-1 ml-6">
-                              <li>• Team naturally embraces new ideas and approaches</li>
-                              <li>• Comfortable with ambiguity and changing requirements</li>
-                              <li>• Strong creative thinking and experimentation mindset</li>
-                            </ul>
+                            <h4 className="font-semibold text-yellow-900">Areas for Growth</h4>
                           </div>
-                          
-                          <div>
-                            <div className="flex items-center gap-2 mb-2">
-                              <Lightbulb className="h-4 w-4 text-green-600" />
-                              <span className="font-medium text-gray-900">How to Use This Information</span>
+                          <ul className="text-sm text-yellow-700 space-y-1 ml-6">
+                            {teamRecommendations.challenges.map((challenge: string, index: number) => (
+                              <li key={index}>• {challenge}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Team Opportunities */}
+                    {teamRecommendations.opportunities && teamRecommendations.opportunities.length > 0 && (
+                      <div className="border border-blue-200 rounded-lg overflow-hidden">
+                        <div className="p-4 bg-blue-50">
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                              <TrendingUp className="h-4 w-4 text-blue-600" />
                             </div>
-                            <ul className="text-sm text-gray-600 space-y-1 ml-6">
-                              <li>• Schedule regular innovation workshops and hackathons</li>
-                              <li>• Encourage experimentation with new tools and processes</li>
-                              <li>• Use design thinking methodologies for complex problems</li>
-                              <li>• Create "innovation time" for exploring new ideas</li>
-                            </ul>
+                            <h4 className="font-semibold text-blue-900">Growth Opportunities</h4>
                           </div>
+                          <ul className="text-sm text-blue-700 space-y-1 ml-6">
+                            {teamRecommendations.opportunities.map((opportunity: string, index: number) => (
+                              <li key={index}>• {opportunity}</li>
+                            ))}
+                          </ul>
                         </div>
                       </div>
                     )}
                   </div>
-
-                  {/* Quality & Process Balance */}
-                  <div className="border border-gray-200 rounded-lg overflow-hidden">
-                    <div 
-                      className="p-4 bg-yellow-50 cursor-pointer hover:bg-yellow-100 transition-colors"
-                      onClick={() => setExpandedRecommendations(prev => ({ ...prev, quality: !prev.quality }))}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
-                            <Award className="h-4 w-4 text-yellow-600" />
-                          </div>
-                          <div>
-                            <h4 className="font-semibold text-yellow-900">Quality & Process Balance</h4>
-                            <p className="text-sm text-yellow-700">Optimize workflows for excellence and efficiency</p>
-                          </div>
-                        </div>
-                        <ChevronDown className={`h-5 w-5 text-yellow-600 transition-transform ${expandedRecommendations.quality ? 'rotate-180' : ''}`} />
-                      </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Users className="h-8 w-8 text-gray-400" />
                     </div>
-                    
-                    {expandedRecommendations.quality && (
-                      <div className="p-4 bg-white border-t border-gray-200">
-                        <div className="space-y-4">
-                          <div>
-                            <div className="flex items-center gap-2 mb-2">
-                              <Target className="h-4 w-4 text-yellow-600" />
-                              <span className="font-medium text-gray-900">What This Means</span>
-                            </div>
-                            <p className="text-gray-700 text-sm mb-3">
-                              Your team shows high conscientiousness and quality focus, but varied autonomy preferences suggest different approaches to achieving excellence.
-                            </p>
-                            <ul className="text-sm text-gray-600 space-y-1 ml-6">
-                              <li>• Strong attention to detail and reliability</li>
-                              <li>• Some prefer structured processes, others want flexibility</li>
-                              <li>• High standards for deliverables and outcomes</li>
-                            </ul>
-                          </div>
-                          
-                          <div>
-                            <div className="flex items-center gap-2 mb-2">
-                              <Lightbulb className="h-4 w-4 text-yellow-600" />
-                              <span className="font-medium text-gray-900">How to Use This Information</span>
-                            </div>
-                            <ul className="text-sm text-gray-600 space-y-1 ml-6">
-                              <li>• Establish clear quality standards and review processes</li>
-                              <li>• Provide both structured templates and creative freedom</li>
-                              <li>• Create peer review systems that leverage attention to detail</li>
-                              <li>• Balance deadlines with quality expectations</li>
-                            </ul>
-                          </div>
-                        </div>
-                      </div>
-                    )}
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No Recommendations Yet</h3>
+                    <p className="text-gray-600 text-sm mb-4">
+                      Team recommendations will be generated once at least 2 team members complete their assessments.
+                    </p>
+                    <div className="text-xs text-gray-500">
+                      <p>• AI-powered insights based on team personality dynamics</p>
+                      <p>• Personalized recommendations for team collaboration</p>
+                      <p>• Conflict prevention and communication optimization</p>
+                    </div>
                   </div>
-
-                  <Button variant="outline" className="w-full">
-                    View Detailed Team Analysis
-                    <ArrowRight className="h-4 w-4 ml-2" />
-                  </Button>
-                </div>
+                )}
               </CardContent>
             </Card>
 

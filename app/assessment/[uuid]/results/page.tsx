@@ -219,7 +219,7 @@ export default function ResultsPage() {
     }
   });
 
-  const [results, setResults] = useState<AssessmentResults | null>(getMockResults());
+  const [results, setResults] = useState<AssessmentResults | null>(null);
   const [loading, setLoading] = useState(false);
   const [expandedRecommendations, setExpandedRecommendations] = useState<Record<string, boolean>>({});
   const [showTeamComparison, setShowTeamComparison] = useState(false);
@@ -240,14 +240,13 @@ export default function ResultsPage() {
       // Start fetch immediately
       fetchWithFallback();
       
-      // Fallback timeout - show mock data after 3 seconds if still loading
+      // Fallback timeout - show error after 5 seconds if still loading
       const fallbackTimer = setTimeout(() => {
         if (loading) {
-          console.log('Fallback: Loading took too long, showing mock data');
-          setResults(getMockResults());
+          console.log('Fallback: Loading took too long, showing error');
           setLoading(false);
         }
-      }, 3000); // 3 second fallback
+      }, 5000); // 5 second fallback
       
       return () => {
         clearTimeout(fallbackTimer);

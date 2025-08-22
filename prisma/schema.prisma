@@ -27,6 +27,7 @@ model Team {
   description String?
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
+  teamRecommendations String?  // JSON string for storing AI-generated team insights
   assessments Assessment[]
   invitations TeamInvitation[]
   members     TeamMember[]
