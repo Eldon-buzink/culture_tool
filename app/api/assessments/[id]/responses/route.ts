@@ -1,16 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { saveResponse, getAssessmentResponses, getAssessmentById } from '@/lib/data-service';
 
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
-    const { responses } = await request.json();
-    const assessmentId = params.id;
+    const { id } = params;
+    const body = await request.json();
+    const { userId, section, questionId, response } = body;
+
+    if (!userId || !section || !questionId || response === undefined) {
+      return NextResponse.json(
+        { success: false, error: 'Missing required fields' },
+        { status: 400 }
+      );
+    }
 
     // Validate assessment exists
-    const assessment = await prisma.assessment.findUnique({
-      where: { id: assessmentId }
-    });
-
+    const assessment = await getAssessmentById(id);
     if (!assessment) {
       return NextResponse.json(
         { success: false, error: 'Assessment not found' },
@@ -18,62 +26,56 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       );
     }
 
-    // Store responses in database
-    const responsePromises = Object.entries(responses).map(([questionId, response]) =>
-      prisma.assessmentResponse.upsert({
-        where: {
-          assessmentId_questionId: {
-            assessmentId,
-            questionId
-          }
-        },
-        update: {
-          response: response as number
-        },
-        create: {
-          assessmentId,
-          questionId,
-          response: response as number
-        }
-      })
-    );
+    // Save the response
+    const savedResponse = await saveResponse({
+      assessmentId: id,
+      userId,
+      section,
+      questionId,
+      response
+    });
 
-    await Promise.all(responsePromises);
+    return NextResponse.json({
+      success: true,
+      response: savedResponse
+    });
 
-    return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error storing responses:', error);
+    console.error('Error saving response:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to store responses' },
+      { success: false, error: 'Failed to save response' },
       { status: 500 }
     );
   }
 }
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
-    const assessmentId = params.id;
+    const { id } = params;
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get('userId');
 
-    // Get responses from database
-    const responses = await prisma.assessmentResponse.findMany({
-      where: { assessmentId },
-      select: {
-        questionId: true,
-        response: true
-      }
+    if (!userId) {
+      return NextResponse.json(
+        { success: false, error: 'User ID is required' },
+        { status: 400 }
+      );
+    }
+
+    const responses = await getAssessmentResponses(id, userId);
+
+    return NextResponse.json({
+      success: true,
+      responses
     });
 
-    // Convert to expected format
-    const responseMap = responses.reduce((acc, response) => {
-      acc[response.questionId] = response.response;
-      return acc;
-    }, {} as Record<string, number>);
-
-    return NextResponse.json({ success: true, responses: responseMap });
   } catch (error) {
-    console.error('Error retrieving responses:', error);
+    console.error('Error fetching responses:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to retrieve responses' },
+      { success: false, error: 'Failed to fetch responses' },
       { status: 500 }
     );
   }

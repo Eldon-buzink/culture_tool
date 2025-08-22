@@ -9,6 +9,8 @@ import { Separator } from '@/components/ui/separator';
 import { ChevronDown, ChevronUp, Brain, Users, Target, TrendingUp, TrendingDown, Minus, HelpCircle } from 'lucide-react';
 import RadarChart from '@/components/RadarChart';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { generateAssessmentPDF, PDFExportData } from '@/lib/pdf-export';
+import LoadingSpinner from '@/components/LoadingSpinner';
 
 interface AssessmentResults {
   oceanScores: {
@@ -75,63 +77,60 @@ interface AssessmentResults {
 
 export default function ResultsPage() {
   const { uuid } = useParams();
-  const [results, setResults] = useState<AssessmentResults | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [expandedRecommendations, setExpandedRecommendations] = useState<Record<string, boolean>>({});
-  const [showTeamComparison, setShowTeamComparison] = useState(false);
-
+  const [isAuthorized, setIsAuthorized] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+  
+  // Check if user has completed all sections before allowing access
   useEffect(() => {
-    if (uuid) {
-      // Add a small delay to ensure component is mounted
-      const timer = setTimeout(() => {
-        fetchResults();
-      }, 100);
+    const checkCompletion = async () => {
+      if (!uuid) return;
       
-      // Fallback timeout - if loading takes too long, show mock data
-      const fallbackTimer = setTimeout(() => {
-        if (loading) {
-          console.log('Fallback: Loading took too long, showing mock data');
-          setResults(getMockResults());
-          setLoading(false);
+      const sessionUserId = localStorage.getItem(`assessment-user-${uuid}`);
+      if (!sessionUserId) {
+        console.log('No session user ID found, redirecting to overview');
+        window.location.href = `/assessment/${uuid}`;
+        return;
+      }
+      
+      try {
+        const progressResponse = await fetch(`/api/assessments/${uuid}/responses?userId=${sessionUserId}`);
+        if (progressResponse.ok) {
+          const progressData = await progressResponse.json();
+          if (progressData.success) {
+            const sectionCounts = { ocean: 0, culture: 0, values: 0 };
+            progressData.responses.forEach((resp: any) => {
+              if (sectionCounts[resp.section as keyof typeof sectionCounts] !== undefined) {
+                sectionCounts[resp.section as keyof typeof sectionCounts]++;
+              }
+            });
+            
+            const allSectionsComplete = Object.values(sectionCounts).every(count => count >= 5);
+            
+            if (allSectionsComplete) {
+              setIsAuthorized(true);
+            } else {
+              console.log('Not all sections complete, redirecting to overview');
+              window.location.href = `/assessment/${uuid}`;
+            }
+          } else {
+            console.log('Failed to get progress data, redirecting to overview');
+            window.location.href = `/assessment/${uuid}`;
+          }
+        } else {
+          console.log('Failed to get progress data, redirecting to overview');
+          window.location.href = `/assessment/${uuid}`;
         }
-      }, 10000); // 10 second fallback
-      
-      return () => {
-        clearTimeout(timer);
-        clearTimeout(fallbackTimer);
-      };
-    }
-  }, [uuid, loading]);
-
-  const fetchResults = async () => {
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
-      
-      const response = await fetch(`/api/assessments/${uuid}/results`, {
-        signal: controller.signal
-      });
-      
-      clearTimeout(timeoutId);
-      if (!response.ok) {
-        throw new Error('Failed to fetch results');
+      } catch (error) {
+        console.error('Error checking completion:', error);
+        window.location.href = `/assessment/${uuid}`;
+      } finally {
+        setCheckingAuth(false);
       }
-      const data = await response.json();
-      console.log('API Response:', data); // Debug log
-      if (!data.success || !data.result) {
-        console.log('No results found, using mock data'); // Debug log
-        throw new Error('No results found');
-      }
-      setResults(data.result);
-    } catch (error) {
-      console.error('Error fetching results:', error);
-      // Fallback to mock data if API fails
-      setResults(getMockResults());
-    } finally {
-      setLoading(false);
-    }
-  };
-
+    };
+    
+    checkCompletion();
+  }, [uuid]);
+  
   const getMockResults = (): AssessmentResults => ({
     oceanScores: {
       openness: 75,
@@ -169,7 +168,7 @@ export default function ResultsPage() {
       values: [
         "Innovation and quality are your top work values, driving your professional choices.",
         "You value collaboration while maintaining a strong sense of autonomy.",
-        "Customer focus is important but balanced with other priorities."
+        "Customer focus indicates your commitment to delivering value to others."
       ]
     },
     recommendations: {
@@ -217,6 +216,66 @@ export default function ResultsPage() {
       }
     }
   });
+
+  const [results, setResults] = useState<AssessmentResults | null>(getMockResults());
+  const [loading, setLoading] = useState(false);
+  const [expandedRecommendations, setExpandedRecommendations] = useState<Record<string, boolean>>({});
+  const [showTeamComparison, setShowTeamComparison] = useState(false);
+
+  useEffect(() => {
+    if (uuid) {
+      // Try to fetch results, but fallback quickly if it fails
+      const fetchWithFallback = async () => {
+        try {
+          await fetchResults();
+        } catch (error) {
+          console.log('Fetch failed, using mock data immediately');
+          setResults(getMockResults());
+          setLoading(false);
+        }
+      };
+      
+      // Start fetch immediately
+      fetchWithFallback();
+      
+      // Fallback timeout - show mock data after 3 seconds if still loading
+      const fallbackTimer = setTimeout(() => {
+        if (loading) {
+          console.log('Fallback: Loading took too long, showing mock data');
+          setResults(getMockResults());
+          setLoading(false);
+        }
+      }, 3000); // 3 second fallback
+      
+      return () => {
+        clearTimeout(fallbackTimer);
+      };
+    }
+  }, [uuid]);
+
+  const fetchResults = async () => {
+    try {
+      const response = await fetch(`/api/assessments/${uuid}/results`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch results');
+      }
+      
+      const data = await response.json();
+      console.log('API Response:', data);
+      
+      if (!data.success || !data.result) {
+        console.log('No results found, using mock data');
+        throw new Error('No results found');
+      }
+      
+      setResults(data.result);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching results:', error);
+      throw error; // Re-throw to trigger the fallback in useEffect
+    }
+  };
 
   const getScoreBadgeColor = (score: number) => {
     if (score >= 70) return 'bg-green-100 text-green-800';
@@ -292,12 +351,55 @@ export default function ResultsPage() {
     return tooltips[term.toLowerCase()] || 'No explanation available for this term.';
   };
 
+  // Show loading while checking authorization
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <LoadingSpinner />
+          <p className="mt-4 text-gray-600">Verifying assessment completion...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  // Show unauthorized message if not all sections complete
+  if (!isAuthorized) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">Access Denied</h2>
+          <p className="text-gray-600 mb-6">Please complete all assessment sections before viewing results.</p>
+          <Button onClick={() => window.location.href = `/assessment/${uuid}`}>
+            Return to Assessment
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading your results...</p>
+          <LoadingSpinner size="xl" text="Analyzing your responses..." />
+          <div className="mt-8 max-w-md mx-auto">
+            <p className="text-gray-600 mb-4">We're processing your assessment data to generate personalized insights.</p>
+            <div className="bg-white rounded-lg p-4 shadow-sm">
+              <div className="flex items-center justify-between text-sm text-gray-500 mb-2">
+                <span>Processing personality traits...</span>
+                <span>✓</span>
+              </div>
+              <div className="flex items-center justify-between text-sm text-gray-500 mb-2">
+                <span>Analyzing cultural preferences...</span>
+                <span>✓</span>
+              </div>
+              <div className="flex items-center justify-between text-sm text-gray-500">
+                <span>Generating recommendations...</span>
+                <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -318,9 +420,9 @@ export default function ResultsPage() {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="container mx-auto px-4 max-w-6xl">
         {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">Your Assessment Results</h1>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+        <div className="text-center mb-8 px-4">
+          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Your Assessment Results</h1>
+          <p className="text-lg md:text-xl text-gray-600 max-w-3xl mx-auto">
             Discover your complete work profile across personality, culture, and values
           </p>
         </div>
@@ -867,7 +969,7 @@ export default function ResultsPage() {
             <p className="text-gray-600">Keep your results for future reference</p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             <Button 
               onClick={() => window.print()} 
               variant="outline" 
@@ -880,14 +982,54 @@ export default function ResultsPage() {
             </Button>
             
             <Button 
-              onClick={() => {
-                const element = document.createElement('a');
-                const file = new Blob([document.documentElement.outerHTML], {type: 'text/html'});
-                element.href = URL.createObjectURL(file);
-                element.download = 'assessment-results.html';
-                document.body.appendChild(element);
-                element.click();
-                document.body.removeChild(element);
+              onClick={async () => {
+                if (!results) return;
+                
+                try {
+                  const pdfData: PDFExportData = {
+                    name: 'Assessment User',
+                    date: new Date().toLocaleDateString(),
+                    oceanScores: results.oceanScores,
+                    cultureScores: results.cultureScores,
+                    valuesScores: results.valuesScores,
+                    insights: results.insights,
+                    recommendations: {
+                      ocean: results.recommendations.ocean.recommendations.map(rec => ({
+                        title: rec.title,
+                        description: rec.description,
+                        priority: 'medium',
+                        actionable: rec.nextSteps.join(' ')
+                      })),
+                      culture: results.recommendations.culture.recommendations.map(rec => ({
+                        title: rec.title,
+                        description: rec.description,
+                        priority: 'medium',
+                        actionable: rec.nextSteps.join(' ')
+                      })),
+                      values: results.recommendations.values.recommendations.map(rec => ({
+                        title: rec.title,
+                        description: rec.description,
+                        priority: 'medium',
+                        actionable: rec.nextSteps.join(' ')
+                      }))
+                    }
+                  };
+                  
+                  const blob = await generateAssessmentPDF(pdfData);
+                  const url = URL.createObjectURL(blob);
+                  const link = document.createElement('a');
+                  link.href = url;
+                  link.download = `assessment-results-${new Date().toISOString().split('T')[0]}.pdf`;
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                  URL.revokeObjectURL(url);
+                  
+                  alert('✅ PDF report generated successfully!');
+                } catch (error) {
+                  console.error('Error generating PDF:', error);
+                  alert('❌ Failed to generate PDF. Please try again.');
+                }
               }} 
               variant="outline" 
               className="h-auto p-4 flex flex-col items-center gap-2"
@@ -895,15 +1037,46 @@ export default function ResultsPage() {
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-              <span>Download HTML</span>
+              <span>Download PDF</span>
             </Button>
             
             <Button 
-              onClick={() => {
+              onClick={async () => {
                 const email = prompt('Enter your email to receive your results:');
-                if (email) {
-                  // In a real app, this would send to your backend
-                  alert(`Results will be sent to ${email}. This feature will be available soon!`);
+                if (email && results) {
+                  try {
+                    const response = await fetch('/api/email/send-results', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({
+                        recipientName: 'Assessment User',
+                        recipientEmail: email,
+                        assessmentId: uuid,
+                        resultsUrl: window.location.href,
+                        oceanScores: results.oceanScores,
+                        cultureScores: results.cultureScores,
+                        valuesScores: results.valuesScores,
+                        topInsights: [
+                          results.insights.ocean[0],
+                          results.insights.culture[0],
+                          results.insights.values[0]
+                        ]
+                      }),
+                    });
+
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                      alert(`✅ Results sent successfully to ${email}! Check your inbox.`);
+                    } else {
+                      alert(`❌ Failed to send email: ${data.error}`);
+                    }
+                  } catch (error) {
+                    console.error('Error sending email:', error);
+                    alert('❌ Failed to send email. Please try again.');
+                  }
                 }
               }} 
               variant="outline" 

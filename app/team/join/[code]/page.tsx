@@ -118,7 +118,7 @@ export default function JoinTeamPage() {
 
             <Button 
               className="w-full" 
-              onClick={() => window.location.href = `/assessment/${Math.random().toString(36).substring(2, 15)}`}
+              onClick={() => window.location.href = '/assessment/start-assessment'}
             >
               Start Assessment
               <ArrowRight className="h-4 w-4 ml-2" />

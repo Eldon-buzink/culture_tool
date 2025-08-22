@@ -1,15 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { getAssessmentResults, getAssessmentByUuid, saveAssessmentResults, updateAssessmentStatus } from '@/lib/data-service';
 
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const assessmentId = params.id;
-    const { oceanScores, cultureScores, valuesScores } = await request.json();
+    const { oceanScores, cultureScores, valuesScores, insights, recommendations } = await request.json();
 
     // Validate assessment exists
-    const assessment = await prisma.assessment.findUnique({
-      where: { id: assessmentId }
-    });
+    const assessment = await getAssessmentByUuid(assessmentId);
 
     if (!assessment) {
       return NextResponse.json(
@@ -18,66 +16,18 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       );
     }
 
-    // Store or update assessment results
-    const result = await prisma.assessmentResult.upsert({
-      where: { assessmentId },
-      update: {
-        // OCEAN Scores
-        openness: oceanScores.openness,
-        conscientiousness: oceanScores.conscientiousness,
-        extraversion: oceanScores.extraversion,
-        agreeableness: oceanScores.agreeableness,
-        neuroticism: oceanScores.neuroticism,
-        
-        // Culture Scores
-        powerDistance: cultureScores.powerDistance,
-        individualism: cultureScores.individualism,
-        masculinity: cultureScores.masculinity,
-        uncertaintyAvoidance: cultureScores.uncertaintyAvoidance,
-        longTermOrientation: cultureScores.longTermOrientation,
-        indulgence: cultureScores.indulgence,
-        
-        // Values Scores
-        innovation: valuesScores.innovation,
-        collaboration: valuesScores.collaboration,
-        autonomy: valuesScores.autonomy,
-        quality: valuesScores.quality,
-        customerFocus: valuesScores.customerFocus,
-      },
-      create: {
-        assessmentId,
-        // OCEAN Scores
-        openness: oceanScores.openness,
-        conscientiousness: oceanScores.conscientiousness,
-        extraversion: oceanScores.extraversion,
-        agreeableness: oceanScores.agreeableness,
-        neuroticism: oceanScores.neuroticism,
-        
-        // Culture Scores
-        powerDistance: cultureScores.powerDistance,
-        individualism: cultureScores.individualism,
-        masculinity: cultureScores.masculinity,
-        uncertaintyAvoidance: cultureScores.uncertaintyAvoidance,
-        longTermOrientation: cultureScores.longTermOrientation,
-        indulgence: cultureScores.indulgence,
-        
-        // Values Scores
-        innovation: valuesScores.innovation,
-        collaboration: valuesScores.collaboration,
-        autonomy: valuesScores.autonomy,
-        quality: valuesScores.quality,
-        customerFocus: valuesScores.customerFocus,
-      }
+    // Save assessment results
+    const result = await saveAssessmentResults({
+      assessmentId,
+      oceanScores,
+      cultureScores,
+      valuesScores,
+      insights,
+      recommendations
     });
 
     // Update assessment status to completed
-    await prisma.assessment.update({
-      where: { id: assessmentId },
-      data: { 
-        status: 'COMPLETED',
-        completedAt: new Date()
-      }
-    });
+    await updateAssessmentStatus(assessmentId, 'completed');
 
     return NextResponse.json({ success: true, resultId: result.id });
   } catch (error) {
@@ -89,64 +39,58 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   }
 }
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
-    const assessmentId = params.id;
-
-    // Get assessment results with related data
-    const result = await prisma.assessmentResult.findUnique({
-      where: { assessmentId },
-      include: {
-        assessment: {
-          include: {
-            user: true,
-            team: true
-          }
-        }
-      }
-    });
-
-    if (!result) {
+    const { id } = params;
+    
+    if (!id) {
       return NextResponse.json(
-        { success: false, error: 'Assessment results not found' },
+        { success: false, error: 'Assessment ID is required' },
+        { status: 400 }
+      );
+    }
+
+    // First check if the assessment exists
+    const assessment = await getAssessmentByUuid(id);
+    
+    if (!assessment) {
+      return NextResponse.json(
+        { success: false, error: 'Assessment not found' },
         { status: 404 }
       );
     }
 
-    // Format the response
-    const formattedResult = {
-      oceanScores: {
-        openness: result.openness,
-        conscientiousness: result.conscientiousness,
-        extraversion: result.extraversion,
-        agreeableness: result.agreeableness,
-        neuroticism: result.neuroticism,
-      },
-      cultureScores: {
-        powerDistance: result.powerDistance,
-        individualism: result.individualism,
-        masculinity: result.masculinity,
-        uncertaintyAvoidance: result.uncertaintyAvoidance,
-        longTermOrientation: result.longTermOrientation,
-        indulgence: result.indulgence,
-      },
-      valuesScores: {
-        innovation: result.innovation,
-        collaboration: result.collaboration,
-        autonomy: result.autonomy,
-        quality: result.quality,
-        customerFocus: result.customerFocus,
-      },
-      user: result.assessment.user,
-      team: result.assessment.team,
-      completedAt: result.assessment.completedAt
-    };
+    // Get the results
+    const results = await getAssessmentResults(id);
+    
+    if (!results) {
+      return NextResponse.json(
+        { success: false, error: 'Results not found for this assessment' },
+        { status: 404 }
+      );
+    }
 
-    return NextResponse.json({ success: true, result: formattedResult });
+    return NextResponse.json({
+      success: true,
+      result: results,
+      assessment: {
+        id: assessment.id,
+        title: assessment.title,
+        description: assessment.description,
+        type: assessment.type,
+        status: assessment.status,
+        createdAt: assessment.createdAt,
+        creator: assessment.creator
+      }
+    });
+
   } catch (error) {
-    console.error('Error retrieving assessment results:', error);
+    console.error('Error fetching assessment results:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to retrieve assessment results' },
+      { success: false, error: 'Internal server error' },
       { status: 500 }
     );
   }

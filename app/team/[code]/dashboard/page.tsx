@@ -31,6 +31,10 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import { TermGlossary } from '@/components/TermExplanation';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { ModernSpinner } from '@/components/LoadingSpinner';
+import ShareModal from '@/components/ShareModal';
+import InviteModal from '@/components/InviteModal';
 
 interface TeamMember {
   id: string;
@@ -174,6 +178,8 @@ export default function TeamDashboardPage() {
   const params = useParams();
   const [teamData, setTeamData] = useState<TeamData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
   const [expandedRecommendations, setExpandedRecommendations] = useState({
     communication: false,
     innovation: false,
@@ -182,78 +188,57 @@ export default function TeamDashboardPage() {
   const [expandedConflicts, setExpandedConflicts] = useState<{ [key: number]: boolean }>({});
 
   useEffect(() => {
-    // Simulate fetching team data
-    setTimeout(() => {
-      setTeamData({
-        code: params.code as string,
-        name: "Product Development Team",
-        description: "Cross-functional team responsible for product development and innovation",
-        createdAt: "2024-01-15",
-        members: [
-          {
-            id: "1",
-            name: "Sarah Johnson",
-            email: "sarah.johnson@company.com",
-            status: "completed",
-            completedAt: "2024-01-16",
-            oceanScores: { openness: 85, conscientiousness: 92, extraversion: 78, agreeableness: 88, neuroticism: 45 },
-            cultureScores: { power_distance: 35, individualism: 72, masculinity: 45, uncertainty_avoidance: 28, long_term_orientation: 68, indulgence: 55 },
-            valuesScores: { innovation: 78, collaboration: 85, autonomy: 65, quality: 88, customer_focus: 82 }
-          },
-          {
-            id: "2",
-            name: "Mike Chen",
-            email: "mike.chen@company.com",
-            status: "completed",
-            completedAt: "2024-01-17",
-            oceanScores: { openness: 72, conscientiousness: 88, extraversion: 65, agreeableness: 75, neuroticism: 52 },
-            cultureScores: { power_distance: 42, individualism: 68, masculinity: 38, uncertainty_avoidance: 35, long_term_orientation: 75, indulgence: 48 },
-            valuesScores: { innovation: 72, collaboration: 78, autonomy: 58, quality: 85, customer_focus: 75 }
-          },
-          {
-            id: "3",
-            name: "Emma Rodriguez",
-            email: "emma.rodriguez@company.com",
-            status: "in_progress",
-            completedAt: undefined,
-            oceanScores: undefined,
-            cultureScores: undefined,
-            valuesScores: undefined
-          },
-          {
-            id: "4",
-            name: "David Kim",
-            email: "david.kim@company.com",
-            status: "invited",
-            completedAt: undefined,
-            oceanScores: undefined,
-            cultureScores: undefined,
-            valuesScores: undefined
-          }
-        ],
-        aggregateScores: {
-          ocean: { openness: 78, conscientiousness: 90, extraversion: 71, agreeableness: 81, neuroticism: 48 },
-          culture: { power_distance: 38, individualism: 70, masculinity: 41, uncertainty_avoidance: 31, long_term_orientation: 71, indulgence: 51 },
-          values: { innovation: 75, collaboration: 81, autonomy: 61, quality: 86, customer_focus: 78 }
-        },
-        insights: {
-          strengths: [
-            "High conscientiousness indicates strong organization and reliability across the team",
-            "Strong collaboration values suggest excellent teamwork potential",
-            "Low uncertainty avoidance shows comfort with change and innovation"
-          ],
-          challenges: [
-            "Moderate extraversion may require structured communication channels",
-            "Varied autonomy preferences need balanced management approaches"
-          ],
-          opportunities: [
-            "High innovation values can be leveraged for creative problem-solving",
-            "Strong quality focus suggests excellence in deliverables"
-          ]
+    const fetchTeamData = async () => {
+      try {
+        const response = await fetch(`/api/teams/${params.code}`);
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch team data');
         }
-      });
-      setLoading(false);
-    }, 1500);
+        
+        const data = await response.json();
+        
+        if (!data.success) {
+          throw new Error(data.error || 'Failed to load team data');
+        }
+        
+        // Transform the API data to match our expected format
+        const transformedData: TeamData = {
+          code: data.team.code,
+          name: data.team.name,
+          description: data.team.description || 'Team description not available',
+          createdAt: data.team.createdAt,
+          members: data.team.members.map((member: any) => ({
+            id: member.id,
+            name: member.name,
+            email: member.email,
+            status: member.status,
+            completedAt: member.completedAt,
+            oceanScores: undefined, // Will be populated when we have assessment results
+            cultureScores: undefined,
+            valuesScores: undefined
+          })),
+          aggregateScores: {
+            ocean: { openness: 0, conscientiousness: 0, extraversion: 0, agreeableness: 0, neuroticism: 0 },
+            culture: { power_distance: 0, individualism: 0, masculinity: 0, uncertainty_avoidance: 0, long_term_orientation: 0, indulgence: 0 },
+            values: { innovation: 0, collaboration: 0, autonomy: 0, quality: 0, customer_focus: 0 }
+          },
+          insights: {
+            strengths: [],
+            challenges: [],
+            opportunities: []
+          }
+        };
+        
+        setTeamData(transformedData);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error fetching team data:', error);
+        setLoading(false);
+      }
+    };
+
+    fetchTeamData();
   }, [params.code]);
 
   const getStatusIcon = (status: string) => {
@@ -283,13 +268,33 @@ export default function TeamDashboardPage() {
     }
   };
 
+  const getTermExplanation = (term: string) => {
+    const explanations: Record<string, string> = {
+      'openness': 'Openness reflects curiosity, imagination, and willingness to try new experiences. High scores indicate creativity and adaptability.',
+      'conscientiousness': 'Conscientiousness measures organization, responsibility, and self-discipline. High scores indicate reliability and attention to detail.',
+      'extraversion': 'Extraversion reflects social energy and assertiveness. High scores indicate outgoing, energetic behavior.',
+      'agreeableness': 'Agreeableness measures cooperation, trust, and compassion. High scores indicate helpfulness and empathy.',
+      'neuroticism': 'Neuroticism reflects emotional stability and stress response. High scores indicate sensitivity to stress.',
+      'powerDistance': 'Power Distance reflects comfort with hierarchical structures and authority. High scores indicate preference for clear leadership.',
+      'individualism': 'Individualism measures preference for working independently vs. in teams. High scores indicate self-reliance.',
+      'masculinity': 'Masculinity reflects competitive vs. cooperative work preferences. High scores indicate achievement focus.',
+      'uncertaintyAvoidance': 'Uncertainty Avoidance measures comfort with ambiguity and change. High scores indicate preference for structure and rules.',
+      'longTermOrientation': 'Long-term Orientation reflects focus on future planning vs. immediate results. High scores indicate strategic thinking.',
+      'indulgence': 'Indulgence measures preference for enjoying life vs. restraint. High scores indicate work-life balance focus.',
+      'innovation': 'Innovation reflects preference for new approaches and creative solutions. High scores indicate adaptability to change.',
+      'collaboration': 'Collaboration measures preference for teamwork and shared success. High scores indicate cooperative work style.',
+      'autonomy': 'Autonomy reflects need for independence and self-direction. High scores indicate preference for freedom.',
+      'quality': 'Quality reflects focus on excellence and attention to detail. High scores indicate perfectionist tendencies.',
+      'customerFocus': 'Customer Focus measures orientation toward serving others and meeting needs. High scores indicate service orientation.'
+    };
+    
+    return explanations[term.toLowerCase()] || 'No explanation available for this term.';
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading team dashboard...</p>
-        </div>
+        <ModernSpinner text="Loading team dashboard..." />
       </div>
     );
   }
@@ -330,11 +335,11 @@ export default function TeamDashboardPage() {
             </div>
           </div>
           <div className="flex gap-3">
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => setShowShareModal(true)}>
               <Share2 className="h-4 w-4 mr-2" />
               Share
             </Button>
-            <Button>
+            <Button onClick={() => setShowInviteModal(true)}>
               <UserPlus className="h-4 w-4 mr-2" />
               Invite Members
             </Button>
@@ -491,11 +496,11 @@ export default function TeamDashboardPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {teamData.members.map((member) => (
                     <div 
                       key={member.id} 
-                      className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-all duration-200 hover:shadow-sm"
+                      className="p-5 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-all duration-200 hover:shadow-sm"
                       onClick={() => {
                         if (member.status === 'completed') {
                           // Navigate to individual results
@@ -514,32 +519,24 @@ export default function TeamDashboardPage() {
                         </div>
                         
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between mb-2">
-                            <div className="flex-1 min-w-0">
-                              <div className="font-semibold text-gray-900 text-base truncate">{member.name}</div>
-                              <div className="text-sm text-gray-500 truncate">{member.email}</div>
-                            </div>
-                            
-                            <div className="flex items-center gap-2 ml-3 flex-shrink-0">
-                              <Badge className={`${getStatusColor(member.status)} px-2 py-1 text-xs`}>
-                                {getStatusIcon(member.status)}
-                                <span className="ml-1 font-medium">{getStatusText(member.status)}</span>
-                              </Badge>
-                              {member.status === 'completed' && (
-                                <div className="flex items-center gap-1 text-blue-600 text-sm">
-                                  <span className="font-medium">View</span>
-                                  <ArrowRight className="h-3 w-3" />
-                                </div>
-                              )}
-                            </div>
+                          <div className="mb-3">
+                            <div className="font-semibold text-gray-900 text-base truncate">{member.name}</div>
+                            <div className="text-sm text-gray-500 truncate">{member.email}</div>
                           </div>
                           
-                          {member.status === 'completed' && member.completedAt && (
-                            <div className="flex items-center gap-2 text-xs text-green-600 font-medium">
-                              <span>✓</span>
-                              <span>Completed {new Date(member.completedAt).toLocaleDateString()}</span>
-                            </div>
-                          )}
+                          <div className="flex items-center justify-between">
+                            <Badge className={`${getStatusColor(member.status)} px-2 py-1 text-xs`}>
+                              {getStatusIcon(member.status)}
+                              <span className="ml-1 font-medium">{getStatusText(member.status)}</span>
+                            </Badge>
+                            
+                            {member.status === 'completed' && (
+                              <div className="flex items-center gap-1 text-blue-600 text-sm font-medium hover:text-blue-700 transition-colors">
+                                <span>View Results</span>
+                                <ArrowRight className="h-3 w-3" />
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -638,12 +635,13 @@ export default function TeamDashboardPage() {
                               <span className="font-medium text-gray-900">What This Means</span>
                             </div>
                             <p className="text-gray-700 text-sm mb-3">
-                              Your team shows moderate extraversion levels, which means some members prefer structured communication while others are comfortable with spontaneous discussions.
+                              Your team shows moderate extraversion levels, which means some members prefer structured communication while others are comfortable with spontaneous discussions. This diversity can be a strength when managed effectively.
                             </p>
                             <ul className="text-sm text-gray-600 space-y-1 ml-6">
                               <li>• Mixed communication preferences across the team</li>
                               <li>• Some members may need time to process before responding</li>
                               <li>• Others prefer immediate, interactive discussions</li>
+                              <li>• This diversity can lead to more thoughtful and comprehensive solutions</li>
                             </ul>
                           </div>
                           
@@ -782,6 +780,60 @@ export default function TeamDashboardPage() {
               </CardContent>
             </Card>
 
+            {/* Individual vs Team Comparison */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5" />
+                  Individual vs Team Comparison
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {completedMembers.length > 0 ? (
+                    <div className="space-y-3">
+                      <p className="text-sm text-gray-600">
+                        Compare individual scores with team averages to understand how each member contributes to the team dynamic.
+                      </p>
+                      {completedMembers.slice(0, 3).map((member) => (
+                        <div key={member.id} className="p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="font-medium text-gray-900">{member.name}</span>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => window.open(`/assessment/${member.id}/results`, '_blank')}
+                            >
+                              View Comparison
+                            </Button>
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            Click to see detailed comparison with team averages
+                          </div>
+                        </div>
+                      ))}
+                      {completedMembers.length > 3 && (
+                        <div className="text-center">
+                          <Button variant="outline" size="sm">
+                            View All Comparisons ({completedMembers.length - 3} more)
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-center py-4">
+                      <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <Users className="h-6 w-6 text-gray-400" />
+                      </div>
+                      <p className="text-sm text-gray-500">
+                        Individual vs team comparisons will be available once members complete their assessments.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Personality-Based Conflict Prediction */}
             <Card>
               <CardHeader>
@@ -893,6 +945,21 @@ export default function TeamDashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Modals */}
+      <ShareModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        teamCode={teamData.code}
+        teamName={teamData.name}
+      />
+      
+      <InviteModal
+        isOpen={showInviteModal}
+        onClose={() => setShowInviteModal(false)}
+        teamCode={teamData.code}
+        teamName={teamData.name}
+      />
     </div>
   );
 }

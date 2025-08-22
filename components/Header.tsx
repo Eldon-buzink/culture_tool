@@ -12,13 +12,13 @@ interface HeaderProps {
   ctaLink?: string;
 }
 
-export default function Header({ showCTA = true, ctaText = "Start Assessment", ctaLink = "/" }: HeaderProps) {
+export default function Header({ showCTA = true, ctaText = "Start Assessment", ctaLink = "/assessment/start-assessment" }: HeaderProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const pathname = usePathname();
 
   const navigation = [
     { name: 'Home', href: '/' },
-    { name: 'Individual Assessment', href: '/assessment/new' },
+    { name: 'Individual Assessment', href: '/assessment/start-assessment' },
     { name: 'Team Assessment', href: '/team/create' },
     { name: 'About', href: '/about' },
   ];

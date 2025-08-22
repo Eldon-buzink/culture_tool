@@ -94,7 +94,65 @@ export default function CreateTeamPage() {
                   <Users className="h-4 w-4 mr-2" />
                   Go to Team Dashboard
                 </Button>
-                <Button variant="outline" className="w-full" onClick={() => window.location.href = `/team/${teamCode}/invite`}>
+                <Button 
+                  variant="outline" 
+                  className="w-full" 
+                  onClick={async () => {
+                    const validEmails = emails.filter(email => email.trim() && email.includes('@'));
+                    
+                    if (validEmails.length === 0) {
+                      alert('No valid email addresses to send invitations to.');
+                      return;
+                    }
+
+                    const inviterName = prompt('Enter your name for the invitation:') || 'Team Leader';
+                    
+                    try {
+                      let successCount = 0;
+                      let errorCount = 0;
+
+                      for (const email of validEmails) {
+                        try {
+                          const response = await fetch('/api/email/send-invitation', {
+                            method: 'POST',
+                            headers: {
+                              'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                              recipientName: email.split('@')[0], // Use email prefix as name
+                              recipientEmail: email.trim(),
+                              teamName: teamName,
+                              teamCode: teamCode,
+                              inviterName: inviterName,
+                              assessmentUrl: `${window.location.origin}/assessment/start-assessment?team=${teamCode}`
+                            }),
+                          });
+
+                          const data = await response.json();
+                          
+                          if (data.success) {
+                            successCount++;
+                          } else {
+                            errorCount++;
+                            console.error(`Failed to send to ${email}:`, data.error);
+                          }
+                        } catch (error) {
+                          errorCount++;
+                          console.error(`Error sending to ${email}:`, error);
+                        }
+                      }
+
+                      if (successCount > 0) {
+                        alert(`✅ Successfully sent ${successCount} invitation${successCount > 1 ? 's' : ''}!${errorCount > 0 ? `\n❌ Failed to send ${errorCount} invitation${errorCount > 1 ? 's' : ''}.` : ''}`);
+                      } else {
+                        alert(`❌ Failed to send any invitations. Please check your email configuration.`);
+                      }
+                    } catch (error) {
+                      console.error('Error sending invitations:', error);
+                      alert('❌ Failed to send invitations. Please try again.');
+                    }
+                  }}
+                >
                   <Mail className="h-4 w-4 mr-2" />
                   Send Email Invitations
                 </Button>

@@ -72,7 +72,7 @@ export default function Home() {
                 Discover your personality profile with our comprehensive OCEAN assessment. 
                 Get personalized insights and recommendations for personal growth.
               </p>
-              <Link href="/assessment/test-uuid">
+              <Link href="/assessment/start-assessment">
                 <Button size="lg" variant="outline" className="w-full group-hover:bg-purple-50 transition-colors">
                   Start Assessment
                   <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" />

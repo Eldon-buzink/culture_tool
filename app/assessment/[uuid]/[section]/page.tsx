@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
-import { Brain, Users, Target, ArrowLeft, CheckCircle } from 'lucide-react';
+import { Brain, Users, Target, ArrowLeft, CheckCircle, ArrowRight, ArrowLeft as ArrowLeftIcon } from 'lucide-react';
 
 interface Question {
   id: string;
@@ -76,11 +76,25 @@ export default function SectionPage() {
   
   const [responses, setResponses] = useState<Record<string, number>>({});
   const [questions] = useState<Question[]>(mockQuestions[sectionId] || []);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const sectionConfig = sectionConfigs[sectionId];
+  const currentQuestion = questions[currentQuestionIndex];
+  const progress = ((currentQuestionIndex + 1) / questions.length) * 100;
+  const answeredQuestions = Object.keys(responses).length;
+  const isLastQuestion = currentQuestionIndex === questions.length - 1;
+  const isFirstQuestion = currentQuestionIndex === 0;
 
   useEffect(() => {
+    // Ensure session user ID exists
+    let sessionUserId = localStorage.getItem(`assessment-user-${uuid}`);
+    if (!sessionUserId) {
+      sessionUserId = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      localStorage.setItem(`assessment-user-${uuid}`, sessionUserId);
+      console.log('Created new session userId:', sessionUserId);
+    }
+    
     // Load existing responses from localStorage
     const savedResponses = localStorage.getItem(`section-responses-${uuid}-${sectionId}`);
     if (savedResponses) {
@@ -88,68 +102,137 @@ export default function SectionPage() {
     }
   }, [uuid, sectionId]);
 
-  const handleResponse = (questionId: string, value: number) => {
+  const handleResponse = async (questionId: string, value: number) => {
     const newResponses = {
       ...responses,
       [questionId]: value
     };
     setResponses(newResponses);
     
-    // Save to localStorage
+    // Save to localStorage for immediate UI update
     localStorage.setItem(`section-responses-${uuid}-${sectionId}`, JSON.stringify(newResponses));
+    
+    // Save to database
+    try {
+      const userId = localStorage.getItem(`assessment-user-${uuid}`) || `session-${Date.now()}`;
+      console.log('Saving response with userId:', userId);
+      
+      const response = await fetch(`/api/assessments/${uuid}/responses`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: userId,
+          section: sectionId,
+          questionId,
+          response: value
+        }),
+      });
+      
+      if (response.ok) {
+        // Trigger storage event to update progress on overview page
+        const event = new Event('storage');
+        window.dispatchEvent(event);
+      }
+    } catch (error) {
+      console.error('Error saving response:', error);
+    }
   };
 
-  const getProgress = () => {
-    const answeredQuestions = Object.keys(responses).length;
-    return questions.length > 0 ? (answeredQuestions / questions.length) * 100 : 0;
+  const goToNextQuestion = () => {
+    if (currentQuestionIndex < questions.length - 1) {
+      setCurrentQuestionIndex(currentQuestionIndex + 1);
+    }
   };
 
-  const canComplete = () => {
-    return questions.every(q => responses[q.id] !== undefined);
+  const goToPreviousQuestion = () => {
+    if (currentQuestionIndex > 0) {
+      setCurrentQuestionIndex(currentQuestionIndex - 1);
+    }
   };
 
-  const handleCompleteSection = async () => {
-    if (!canComplete()) return;
+  const [showCompletionChoice, setShowCompletionChoice] = useState(false);
+
+  const handleSubmit = async () => {
+    if (answeredQuestions < questions.length) {
+      alert('Please answer all questions before submitting.');
+      return;
+    }
 
     setIsSubmitting(true);
     
     try {
-      // Save progress to localStorage
-      const progress = {
-        [sectionId]: {
-          progress: 100,
-          completed: true,
-          responses: responses
-        }
+      // Save all responses
+      const allResponses = localStorage.getItem(`assessment-responses-${uuid}`) || '{}';
+      const existingResponses = JSON.parse(allResponses);
+      const updatedResponses = {
+        ...existingResponses,
+        [sectionId]: responses
       };
       
-      const existingProgress = localStorage.getItem(`assessment-progress-${uuid}`);
-      const allProgress = existingProgress ? JSON.parse(existingProgress) : {};
-      const updatedProgress = { ...allProgress, ...progress };
+      localStorage.setItem(`assessment-responses-${uuid}`, JSON.stringify(updatedResponses));
       
-      localStorage.setItem(`assessment-progress-${uuid}`, JSON.stringify(updatedProgress));
+      // Trigger storage event to update overview page
+      window.dispatchEvent(new Event('storage'));
       
-      // Navigate to thank you page
-      router.push(`/assessment/${uuid}/${sectionId}/complete`);
+      // Check what sections are complete
+      const allSections = ['ocean', 'culture', 'values'];
+      const completedSections = [];
+      
+      for (const section of allSections) {
+        const sectionResponses = updatedResponses[section] || {};
+        if (Object.keys(sectionResponses).length >= 5) {
+          completedSections.push(section);
+        }
+      }
+      
+      // If all sections are complete, go to results
+      if (completedSections.length === 3) {
+        router.push(`/assessment/${uuid}/results`);
+        return;
+      }
+      
+      // Show completion choice instead of auto-navigating
+      setShowCompletionChoice(true);
+      
     } catch (error) {
-      console.error('Error completing section:', error);
+      console.error('Error submitting responses:', error);
+      alert('Error submitting responses. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleBackToOverview = () => {
+  const handleGoToOverview = () => {
     router.push(`/assessment/${uuid}`);
+  };
+
+  const handleGoToNextSection = () => {
+    const allSections = ['ocean', 'culture', 'values'];
+    const allResponses = localStorage.getItem(`assessment-responses-${uuid}`) || '{}';
+    const existingResponses = JSON.parse(allResponses);
+    
+    // Find next incomplete section
+    const nextIncompleteSection = allSections.find(section => {
+      const sectionResponses = existingResponses[section] || {};
+      return Object.keys(sectionResponses).length < 5;
+    });
+    
+    if (nextIncompleteSection) {
+      router.push(`/assessment/${uuid}/${nextIncompleteSection}`);
+    } else {
+      // Fallback to overview page
+      router.push(`/assessment/${uuid}`);
+    }
   };
 
   if (!sectionConfig) {
     return (
-      <div className="min-h-screen bg-gray-50 py-8">
-        <div className="container mx-auto px-4 max-w-4xl">
-          <div className="text-center">
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">Section Not Found</h1>
-            <Button onClick={handleBackToOverview}>Back to Overview</Button>
-          </div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">Section Not Found</h2>
+          <p className="text-gray-600">The requested assessment section does not exist.</p>
         </div>
       </div>
     );
@@ -157,20 +240,20 @@ export default function SectionPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
-      <div className="container mx-auto px-4 max-w-4xl">
+      <div className="max-w-4xl mx-auto px-4">
         {/* Header */}
         <div className="mb-8">
-          <Button
-            onClick={handleBackToOverview}
-            variant="ghost"
+          <Button 
+            variant="ghost" 
+            onClick={() => router.push(`/assessment/${uuid}`)}
             className="mb-4"
           >
-            <ArrowLeft className="w-4 h-4 mr-2" />
+            <ArrowLeftIcon className="h-4 w-4 mr-2" />
             Back to Overview
           </Button>
           
-          <div className="flex items-center gap-4 mb-4">
-            <div className={`p-3 rounded-lg ${sectionConfig.color} text-white`}>
+          <div className="flex items-center gap-3 mb-4">
+            <div className={`p-2 rounded-lg ${sectionConfig.color}`}>
               {sectionConfig.icon}
             </div>
             <div>
@@ -178,93 +261,167 @@ export default function SectionPage() {
               <p className="text-gray-600">{sectionConfig.description}</p>
             </div>
           </div>
-
-          {/* Progress */}
-          <div className="mb-6">
-            <div className="flex justify-between text-sm text-gray-600 mb-2">
-              <span>Section Progress</span>
-              <span>{Math.round(getProgress())}%</span>
-            </div>
-            <Progress value={getProgress()} className="h-3" />
-            <p className="text-sm text-gray-500 mt-2">
-              {Object.keys(responses).length} of {questions.length} questions answered
-            </p>
-          </div>
         </div>
 
-        {/* Questions */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Questions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {questions.length > 0 ? (
-              <div className="space-y-8">
-                {questions.map((question, questionIndex) => (
-                  <div key={question.id} className="space-y-4">
-                    <div className="flex items-start gap-4">
-                      <div className="flex-shrink-0 w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-sm font-medium text-gray-600">
-                        {questionIndex + 1}
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="text-lg font-medium text-gray-900 mb-3">
-                          {question.text}
-                        </h3>
-                        
-                        <RadioGroup
-                          value={responses[question.id]?.toString() || ''}
-                          onValueChange={(value: string) => handleResponse(question.id, parseInt(value))}
-                          className="space-y-3"
-                        >
-                          {[1, 2, 3, 4, 5, 6, 7].map((value) => (
-                            <div key={value} className="flex items-center space-x-3">
-                              <RadioGroupItem value={value.toString()} id={`q${question.id}-${value}`} />
-                              <label htmlFor={`q${question.id}-${value}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                                {value} - {value === 1 ? 'Strongly Disagree' : value === 4 ? 'Neutral' : value === 7 ? 'Strongly Agree' : ''}
-                              </label>
-                            </div>
-                          ))}
-                        </RadioGroup>
-                      </div>
-                    </div>
-                    
-                    {questionIndex < questions.length - 1 && (
-                      <Separator className="my-6" />
-                    )}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8 text-gray-500">
-                No questions available for this section.
-              </div>
-            )}
+        {/* Progress Section */}
+        <Card className="mb-8">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-gray-700">Section Progress</span>
+              <span className="text-sm text-gray-500">{Math.round(progress)}%</span>
+            </div>
+            <Progress value={progress} className="mb-2" />
+            <p className="text-sm text-gray-500">
+              {answeredQuestions} of {questions.length} questions answered
+            </p>
           </CardContent>
         </Card>
 
-        {/* Complete Button */}
-        <div className="mt-8 text-center">
-          <Button
-            onClick={handleCompleteSection}
-            disabled={!canComplete() || isSubmitting}
-            size="lg"
-            className="bg-green-600 hover:bg-green-700 px-8 py-3"
-          >
-            {isSubmitting ? (
-              'Completing...'
-            ) : (
-              <>
-                <CheckCircle className="w-4 h-4 mr-2" />
-                Complete Section
-              </>
-            )}
-          </Button>
-          
-          {!canComplete() && (
-            <p className="text-sm text-gray-500 mt-2">
-              Please answer all questions before completing this section
-            </p>
-          )}
+        {/* Question Card */}
+        <Card className="mb-8">
+          <CardContent className="pt-6">
+            <div className="mb-6">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="inline-flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full text-sm font-medium">
+                  {currentQuestionIndex + 1}
+                </span>
+                <span className="text-sm text-gray-500">Question {currentQuestionIndex + 1} of {questions.length}</span>
+              </div>
+              
+              <h2 className="text-xl font-semibold text-gray-900 mb-6">
+                {currentQuestion.text}
+              </h2>
+
+              <div className="mb-4">
+                <div className="flex justify-between text-xs text-gray-500 mb-2">
+                  <span>Strongly Disagree</span>
+                  <span>Strongly Agree</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-1">
+                  <div className="bg-blue-500 h-1 rounded-full" style={{ width: '100%' }}></div>
+                </div>
+              </div>
+
+              <RadioGroup
+                value={responses[currentQuestion.id]?.toString() || ''}
+                onValueChange={(value) => handleResponse(currentQuestion.id, parseInt(value))}
+                className="grid grid-cols-7 gap-2"
+              >
+                {[1, 2, 3, 4, 5, 6, 7].map((value) => (
+                  <div key={value} className="flex flex-col items-center space-y-2">
+                    <RadioGroupItem value={value.toString()} id={`${currentQuestion.id}-${value}`} />
+                    <label 
+                      htmlFor={`${currentQuestion.id}-${value}`} 
+                      className="text-xs font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer text-center"
+                    >
+                      {value}
+                    </label>
+                    <div className="text-xs text-gray-500 text-center">
+                      {value === 1 ? 'Strongly Disagree' : 
+                       value === 2 ? 'Disagree' :
+                       value === 3 ? 'Somewhat Disagree' :
+                       value === 4 ? 'Neutral' :
+                       value === 5 ? 'Somewhat Agree' :
+                       value === 6 ? 'Agree' :
+                       'Strongly Agree'}
+                    </div>
+                  </div>
+                ))}
+              </RadioGroup>
+            </div>
+          </CardContent>
+        </Card>
+
+                 {/* Navigation Buttons */}
+         <div className="flex justify-between items-center mb-8">
+           <Button
+             variant="outline"
+             onClick={goToPreviousQuestion}
+             disabled={isFirstQuestion}
+             className="flex items-center gap-2 px-6 py-3"
+           >
+             <ArrowLeft className="h-4 w-4" />
+             Previous
+           </Button>
+
+           <div className="flex gap-4">
+             {!isLastQuestion ? (
+               <Button
+                 onClick={goToNextQuestion}
+                 disabled={!responses[currentQuestion.id]}
+                 className="flex items-center gap-2 px-6 py-3"
+               >
+                 Next
+                 <ArrowRight className="h-4 w-4" />
+               </Button>
+             ) : (
+               <Button
+                 onClick={handleSubmit}
+                 disabled={answeredQuestions < questions.length || isSubmitting}
+                 className="flex items-center gap-2 px-8 py-3 bg-green-600 hover:bg-green-700"
+               >
+                 {isSubmitting ? (
+                   <>
+                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                     Submitting...
+                   </>
+                 ) : (
+                   <>
+                     Complete Section
+                     <ArrowRight className="h-4 w-4" />
+                   </>
+                 )}
+               </Button>
+             )}
+           </div>
+         </div>
+
+         {/* Completion Choice Modal */}
+         {showCompletionChoice && (
+           <Card className="mb-8 border-green-200 bg-green-50">
+             <CardContent className="pt-6">
+               <div className="text-center">
+                 <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                   <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                   </svg>
+                 </div>
+                 <h3 className="text-xl font-semibold text-green-900 mb-2">Section Complete! 🎉</h3>
+                 <p className="text-green-700 mb-6">You've successfully completed the {sectionConfig.title} section. What would you like to do next?</p>
+                 
+                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                   <Button
+                     onClick={handleGoToOverview}
+                     variant="outline"
+                     className="border-green-300 text-green-700 hover:bg-green-100 px-6 py-3"
+                   >
+                     <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                     </svg>
+                     Go to Overview
+                   </Button>
+                   
+                   <Button
+                     onClick={handleGoToNextSection}
+                     className="bg-green-600 hover:bg-green-700 px-6 py-3"
+                   >
+                     <ArrowRight className="h-4 w-4 mr-2" />
+                     Continue to Next Section
+                   </Button>
+                 </div>
+               </div>
+             </CardContent>
+           </Card>
+         )}
+
+        {/* Progress Info */}
+        <div className="mt-4 text-center">
+          <p className="text-sm text-gray-600">
+            You've answered {answeredQuestions} out of {questions.length} questions in this section.
+          </p>
+          <p className="text-xs text-gray-500 mt-1">
+            Complete all questions to finish this section and return to the overview.
+          </p>
         </div>
       </div>
     </div>
