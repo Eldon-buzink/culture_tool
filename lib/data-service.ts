@@ -1,5 +1,6 @@
 import { prisma } from './database';
 import { AssessmentResults } from '@/types/assessment';
+import { AIRecommendations } from './services/aiService';
 
 export interface CreateUserData {
   email: string;
@@ -34,7 +35,7 @@ export interface SaveResultsData {
   cultureScores: Record<string, number>;
   valuesScores: Record<string, number>;
   insights: Record<string, string[]>;
-  recommendations: Record<string, any[]>;
+  recommendations: AIRecommendations; // AI-generated recommendations structure
 }
 
 // User operations
