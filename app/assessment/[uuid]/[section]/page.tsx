@@ -152,8 +152,6 @@ export default function SectionPage() {
     }
   };
 
-  const [showCompletionChoice, setShowCompletionChoice] = useState(false);
-
   const handleSubmit = async () => {
     if (answeredQuestions < questions.length) {
       alert('Please answer all questions before submitting.');
@@ -193,8 +191,18 @@ export default function SectionPage() {
         return;
       }
       
-      // Show completion choice instead of auto-navigating
-      setShowCompletionChoice(true);
+      // Find next incomplete section and go there
+      const nextIncompleteSection = allSections.find(section => {
+        const sectionResponses = updatedResponses[section] || {};
+        return Object.keys(sectionResponses).length < 5;
+      });
+      
+      if (nextIncompleteSection) {
+        router.push(`/assessment/${uuid}/${nextIncompleteSection}`);
+      } else {
+        // Fallback to overview page
+        router.push(`/assessment/${uuid}`);
+      }
       
     } catch (error) {
       console.error('Error submitting responses:', error);
@@ -208,23 +216,22 @@ export default function SectionPage() {
     router.push(`/assessment/${uuid}`);
   };
 
-  const handleGoToNextSection = () => {
-    const allSections = ['ocean', 'culture', 'values'];
+  // Check if this is the last section to complete
+  const isLastSection = () => {
     const allResponses = localStorage.getItem(`assessment-responses-${uuid}`) || '{}';
     const existingResponses = JSON.parse(allResponses);
+    const allSections = ['ocean', 'culture', 'values'];
     
-    // Find next incomplete section
-    const nextIncompleteSection = allSections.find(section => {
+    let completedCount = 0;
+    allSections.forEach(section => {
       const sectionResponses = existingResponses[section] || {};
-      return Object.keys(sectionResponses).length < 5;
+      if (Object.keys(sectionResponses).length >= 5) {
+        completedCount++;
+      }
     });
     
-    if (nextIncompleteSection) {
-      router.push(`/assessment/${uuid}/${nextIncompleteSection}`);
-    } else {
-      // Fallback to overview page
-      router.push(`/assessment/${uuid}`);
-    }
+    // If this section will be the 3rd completed, it's the last one
+    return completedCount === 2 && Object.keys(responses).length === 5;
   };
 
   if (!sectionConfig) {
@@ -355,64 +362,47 @@ export default function SectionPage() {
                  <ArrowRight className="h-4 w-4" />
                </Button>
              ) : (
-               <Button
-                 onClick={handleSubmit}
-                 disabled={answeredQuestions < questions.length || isSubmitting}
-                 className="flex items-center gap-2 px-8 py-3 bg-green-600 hover:bg-green-700"
-               >
-                 {isSubmitting ? (
-                   <>
-                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                     Submitting...
-                   </>
-                 ) : (
-                   <>
-                     Complete Section
-                     <ArrowRight className="h-4 w-4" />
-                   </>
-                 )}
-               </Button>
+               <>
+                 {/* Go to Overview Button */}
+                 <Button
+                   variant="outline"
+                   onClick={handleGoToOverview}
+                   className="flex items-center gap-2 px-6 py-3 border-gray-300 text-gray-700 hover:bg-gray-50"
+                 >
+                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                   </svg>
+                   Go to Overview
+                 </Button>
+                 
+                 {/* Dynamic Complete Section Button */}
+                 <Button
+                   onClick={handleSubmit}
+                   disabled={answeredQuestions < questions.length || isSubmitting}
+                   className={`flex items-center gap-2 px-8 py-3 ${
+                     isLastSection() 
+                       ? 'bg-purple-600 hover:bg-purple-700' 
+                       : 'bg-green-600 hover:bg-green-700'
+                   }`}
+                 >
+                   {isSubmitting ? (
+                     <>
+                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                       Submitting...
+                     </>
+                   ) : (
+                     <>
+                       {isLastSection() ? 'Submit & View Results' : 'Continue to Next Section'}
+                       <ArrowRight className="h-4 w-4" />
+                     </>
+                   )}
+                 </Button>
+               </>
              )}
            </div>
          </div>
 
-         {/* Completion Choice Modal */}
-         {showCompletionChoice && (
-           <Card className="mb-8 border-green-200 bg-green-50">
-             <CardContent className="pt-6">
-               <div className="text-center">
-                 <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                   <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                   </svg>
-                 </div>
-                 <h3 className="text-xl font-semibold text-green-900 mb-2">Section Complete! 🎉</h3>
-                 <p className="text-green-700 mb-6">You've successfully completed the {sectionConfig.title} section. What would you like to do next?</p>
-                 
-                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                   <Button
-                     onClick={handleGoToOverview}
-                     variant="outline"
-                     className="border-green-300 text-green-700 hover:bg-green-100 px-6 py-3"
-                   >
-                     <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                     </svg>
-                     Go to Overview
-                   </Button>
-                   
-                   <Button
-                     onClick={handleGoToNextSection}
-                     className="bg-green-600 hover:bg-green-700 px-6 py-3"
-                   >
-                     <ArrowRight className="h-4 w-4 mr-2" />
-                     Continue to Next Section
-                   </Button>
-                 </div>
-               </div>
-             </CardContent>
-           </Card>
-         )}
+
 
         {/* Progress Info */}
         <div className="mt-4 text-center">
@@ -420,7 +410,10 @@ export default function SectionPage() {
             You've answered {answeredQuestions} out of {questions.length} questions in this section.
           </p>
           <p className="text-xs text-gray-500 mt-1">
-            Complete all questions to finish this section and return to the overview.
+            {isLastSection() 
+              ? 'Complete all questions to finish your assessment and view results.'
+              : 'Complete all questions to finish this section and continue to the next one.'
+            }
           </p>
         </div>
       </div>
