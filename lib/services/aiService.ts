@@ -1,8 +1,18 @@
 import OpenAI from 'openai';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Lazy initialization to avoid build-time errors
+let openai: OpenAI | null = null;
+
+function getOpenAI(): OpenAI {
+  if (!openai) {
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      throw new Error('OPENAI_API_KEY environment variable is not set');
+    }
+    openai = new OpenAI({ apiKey });
+  }
+  return openai;
+}
 
 export interface AssessmentScores {
   ocean: {
@@ -58,7 +68,7 @@ export class AIService {
     try {
       const prompt = this.buildPrompt(scores);
       
-      const completion = await openai.chat.completions.create({
+      const completion = await getOpenAI().chat.completions.create({
         model: "gpt-4",
         messages: [
           {
@@ -298,7 +308,7 @@ Team Values (0-100):
 Provide insights about team dynamics, potential conflicts, strengths, and recommendations for effective collaboration.
       `;
 
-      const completion = await openai.chat.completions.create({
+      const completion = await getOpenAI().chat.completions.create({
         model: "gpt-4",
         messages: [
           {
