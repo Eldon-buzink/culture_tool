@@ -21,55 +21,26 @@ export default function StartAssessmentPage() {
     setError(null);
 
     try {
-      // First, create a user for this assessment
-      const userResponse = await fetch('/api/create-test-user', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: `User ${Date.now()}`,
-          email: `user-${Date.now()}@temp.com`
-        }),
-      });
+      // Generate a unique session ID for this assessment
+      const sessionId = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Create a temporary assessment ID
+      const assessmentId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Store session data in localStorage for this assessment
+      localStorage.setItem(`assessment-session-${assessmentId}`, JSON.stringify({
+        sessionId,
+        assessmentId,
+        createdAt: new Date().toISOString(),
+        type: 'individual',
+        status: 'in_progress'
+      }));
 
-      if (!userResponse.ok) {
-        throw new Error('Failed to create user');
-      }
-
-      const userData = await userResponse.json();
-      if (!userData.success) {
-        throw new Error('Failed to create user: ' + userData.error);
-      }
-
-      // Now create the assessment with the valid user ID
-      const assessmentResponse = await fetch('/api/assessments', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          title: 'Individual Personality Assessment',
-          description: 'Personal assessment to discover your OCEAN personality traits, cultural preferences, and work values.',
-          type: 'individual',
-          createdBy: userData.user.id
-        }),
-      });
-
-      if (assessmentResponse.ok) {
-        const data = await assessmentResponse.json();
-        if (data.success) {
-          // Redirect to the assessment overview page
-          router.push(`/assessment/${data.assessment.id}`);
-        } else {
-          setError('Failed to create assessment: ' + data.error);
-        }
-      } else {
-        setError('Failed to create assessment');
-      }
+      // Redirect to the assessment overview page
+      router.push(`/assessment/${assessmentId}`);
     } catch (error) {
-      console.error('Error creating assessment:', error);
-      setError('Failed to create assessment: ' + (error instanceof Error ? error.message : 'Unknown error'));
+      console.error('Error starting assessment:', error);
+      setError('Failed to start assessment: ' + (error instanceof Error ? error.message : 'Unknown error'));
     } finally {
       setIsCreating(false);
     }

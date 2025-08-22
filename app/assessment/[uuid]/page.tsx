@@ -57,18 +57,25 @@ export default function AssessmentOverviewPage() {
   useEffect(() => {
     const loadAssessmentData = async () => {
       try {
-        // Get the user ID from the assessment creation
-        let userId = localStorage.getItem(`assessment-user-${params.uuid}`);
-        if (!userId) {
-          // Try to get the user ID from the assessment data
+        // Check if this is a session-based assessment
+        const sessionData = localStorage.getItem(`assessment-session-${params.uuid}`);
+        let userId;
+        
+        if (sessionData) {
+          // This is a session-based assessment
+          const session = JSON.parse(sessionData);
+          userId = session.sessionId;
+          localStorage.setItem(`assessment-user-${params.uuid}`, userId);
+        } else {
+          // Try to get the user ID from the assessment data (for database-based assessments)
           try {
             const assessmentResponse = await fetch(`/api/assessments/${params.uuid}`);
             if (assessmentResponse.ok) {
               const assessmentData = await assessmentResponse.json();
-                        if (assessmentData.success && assessmentData.assessment.createdBy) {
-            const retrievedUserId = assessmentData.assessment.createdBy;
-            localStorage.setItem(`assessment-user-${params.uuid}`, retrievedUserId);
-          }
+              if (assessmentData.success && assessmentData.assessment.createdBy) {
+                userId = assessmentData.assessment.createdBy;
+                localStorage.setItem(`assessment-user-${params.uuid}`, userId);
+              }
             }
           } catch (error) {
             console.error('Error fetching assessment for userId:', error);

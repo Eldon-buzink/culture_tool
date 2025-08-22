@@ -254,8 +254,166 @@ export default function ResultsPage() {
     }
   }, [uuid]);
 
+  const generateResultsFromSession = async () => {
+    // Get all responses from localStorage
+    const allResponses = localStorage.getItem(`assessment-responses-${uuid}`) || '{}';
+    const responses = JSON.parse(allResponses);
+    
+    // Calculate scores from responses
+    const oceanScores = calculateOceanScores(responses.ocean || {});
+    const cultureScores = calculateCultureScores(responses.culture || {});
+    const valuesScores = calculateValuesScores(responses.values || {});
+    
+    // Generate insights based on scores
+    const insights = generateInsights(oceanScores, cultureScores, valuesScores);
+    
+    // Generate AI recommendations
+    let recommendations;
+    try {
+      const aiResponse = await fetch('/api/recommendations/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ocean: oceanScores,
+          culture: cultureScores,
+          values: valuesScores
+        })
+      });
+      
+      if (aiResponse.ok) {
+        const aiData = await aiResponse.json();
+        recommendations = aiData.recommendations;
+      } else {
+        // Fallback to basic recommendations if AI fails
+        recommendations = generateFallbackRecommendations(oceanScores, cultureScores, valuesScores);
+      }
+    } catch (error) {
+      console.error('Failed to generate AI recommendations:', error);
+      recommendations = generateFallbackRecommendations(oceanScores, cultureScores, valuesScores);
+    }
+    
+    return {
+      oceanScores,
+      cultureScores,
+      valuesScores,
+      insights,
+      recommendations
+    };
+  };
+
+  const calculateOceanScores = (responses: Record<string, number>) => {
+    // Map question IDs to OCEAN dimensions
+    const oceanMapping: Record<string, 'openness' | 'conscientiousness' | 'extraversion' | 'agreeableness' | 'neuroticism'> = {
+      'openness': 'openness',
+      'conscientiousness': 'conscientiousness', 
+      'extraversion': 'extraversion',
+      'agreeableness': 'agreeableness',
+      'neuroticism': 'neuroticism'
+    };
+    
+    const scores = { openness: 0, conscientiousness: 0, extraversion: 0, agreeableness: 0, neuroticism: 0 };
+    
+    Object.entries(responses).forEach(([questionId, response]) => {
+      const dimension = oceanMapping[questionId];
+      if (dimension) {
+        scores[dimension] = response;
+      }
+    });
+    
+    return scores;
+  };
+
+  const calculateCultureScores = (responses: Record<string, number>) => {
+    const scores = { 
+      powerDistance: 0, 
+      individualism: 0, 
+      masculinity: 0, 
+      uncertaintyAvoidance: 0, 
+      longTermOrientation: 0, 
+      indulgence: 0 
+    };
+    
+    Object.entries(responses).forEach(([questionId, response]) => {
+      if (questionId in scores) {
+        (scores as any)[questionId] = response;
+      }
+    });
+    
+    return scores;
+  };
+
+  const calculateValuesScores = (responses: Record<string, number>) => {
+    const scores = { innovation: 0, collaboration: 0, autonomy: 0, quality: 0, customerFocus: 0 };
+    
+    Object.entries(responses).forEach(([questionId, response]) => {
+      if (questionId in scores) {
+        scores[questionId as keyof typeof scores] = response;
+      }
+    });
+    
+    return scores;
+  };
+
+  const generateInsights = (ocean: any, culture: any, values: any) => {
+    return {
+      ocean: [
+        `Your openness score of ${ocean.openness} indicates ${ocean.openness >= 70 ? 'high' : ocean.openness >= 40 ? 'moderate' : 'low'} creativity and adaptability.`,
+        `With conscientiousness at ${ocean.conscientiousness}, you show ${ocean.conscientiousness >= 70 ? 'strong' : ocean.conscientiousness >= 40 ? 'moderate' : 'flexible'} organization skills.`,
+        `Your extraversion level of ${ocean.extraversion} suggests you prefer ${ocean.extraversion >= 70 ? 'high' : ocean.extraversion >= 40 ? 'moderate' : 'low'} social interaction.`
+      ],
+      culture: [
+        `Your power distance preference of ${culture.powerDistance} indicates how you prefer ${culture.powerDistance >= 70 ? 'hierarchical' : culture.powerDistance >= 40 ? 'balanced' : 'flat'} work structures.`,
+        `With individualism at ${culture.individualism}, you prefer ${culture.individualism >= 70 ? 'independent' : culture.individualism >= 40 ? 'balanced' : 'collaborative'} work styles.`,
+        `Your uncertainty avoidance of ${culture.uncertaintyAvoidance} shows you prefer ${culture.uncertaintyAvoidance >= 70 ? 'structured' : culture.uncertaintyAvoidance >= 40 ? 'balanced' : 'flexible'} environments.`
+      ],
+      values: [
+        `Your innovation score of ${values.innovation} indicates ${values.innovation >= 70 ? 'high' : values.innovation >= 40 ? 'moderate' : 'low'} preference for creative solutions.`,
+        `With collaboration at ${values.collaboration}, you prefer ${values.collaboration >= 70 ? 'strong' : values.collaboration >= 40 ? 'moderate' : 'independent'} teamwork.`,
+        `Your quality focus of ${values.quality} shows you prioritize ${values.quality >= 70 ? 'excellence' : values.quality >= 40 ? 'balance' : 'efficiency'} in your work.`
+      ]
+    };
+  };
+
+  const generateFallbackRecommendations = (ocean: any, culture: any, values: any) => {
+    return {
+      ocean: {
+        insights: [`Your OCEAN profile shows a unique combination of traits that can guide your career choices.`],
+        recommendations: [`Consider how your personality influences your work preferences and communication style.`],
+        nextSteps: [`Reflect on how these traits show up in your daily work and relationships.`]
+      },
+      culture: {
+        insights: [`Your cultural preferences suggest specific work environments where you'll thrive.`],
+        recommendations: [`Seek out organizations that match your cultural preferences and work style.`],
+        nextSteps: [`Research companies and teams that align with your cultural values.`]
+      },
+      values: {
+        insights: [`Your work values indicate what truly motivates you professionally.`],
+        recommendations: [`Look for roles that align with your highest-value areas.`],
+        nextSteps: [`Identify specific job opportunities that match your values.`]
+      },
+      overall: {
+        summary: 'Your assessment results reveal a unique combination of personality traits, work preferences, and values that can guide your career decisions.',
+        keyStrengths: ['Self-awareness and willingness to understand your preferences'],
+        developmentAreas: ['Understanding how to leverage your strengths effectively'],
+        careerSuggestions: ['Consider roles that align with your highest scores']
+      }
+    };
+  };
+
   const fetchResults = async () => {
     try {
+      // Check if this is a session-based assessment
+      const sessionData = localStorage.getItem(`assessment-session-${uuid}`);
+      
+      if (sessionData) {
+        // This is a session-based assessment - generate results from localStorage
+        const results = await generateResultsFromSession();
+        setResults(results);
+        setLoading(false);
+        return;
+      }
+      
+      // Try to fetch from database for existing assessments
       const response = await fetch(`/api/assessments/${uuid}/results`);
       
       if (!response.ok) {
