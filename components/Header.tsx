@@ -20,6 +20,7 @@ export default function Header({ showCTA = true, ctaText = "Start Assessment", c
     { name: 'Home', href: '/' },
     { name: 'Individual Assessment', href: '/assessment/start-assessment' },
     { name: 'Team Assessment', href: '/team/create' },
+    { name: 'See Results', href: '/demo-results' },
     { name: 'About', href: '/about' },
   ];
 

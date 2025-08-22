@@ -82,6 +82,22 @@ export default function Home() {
           </Card>
         </div>
 
+        {/* See What You'll Get */}
+        <div className="text-center mb-16">
+          <h2 className="text-3xl font-bold text-gray-900 mb-4">See What You'll Get</h2>
+          <p className="text-lg text-gray-600 mb-8 max-w-2xl mx-auto">
+            Get a preview of the comprehensive results, AI-powered insights, and personalized recommendations 
+            you'll receive after completing your assessment.
+          </p>
+          <Link href="/demo-results">
+            <Button size="lg" variant="outline" className="bg-white hover:bg-gray-50">
+              <Brain className="h-5 w-5 mr-2" />
+              View Sample Results
+              <ArrowRight className="h-4 w-4 ml-2" />
+            </Button>
+          </Link>
+        </div>
+
         {/* Features */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
           <div className="text-center">
