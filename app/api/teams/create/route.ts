@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/database';
+
+// Temporary in-memory storage for teams (this will reset when the server restarts)
+let teams: any[] = [];
+let users: any[] = [];
+let teamMembers: any[] = [];
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,12 +22,13 @@ export async function POST(request: NextRequest) {
 
     console.log('Creating team leader user...');
     // Create default team leader user
-    const creator = await prisma.user.create({
-      data: {
-        name: 'Team Leader',
-        email: `team-leader-${Date.now()}@temp.com`
-      }
-    });
+    const creator = {
+      id: `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      name: 'Team Leader',
+      email: `team-leader-${Date.now()}@temp.com`,
+      createdAt: new Date()
+    };
+    users.push(creator);
     console.log('Team leader user created:', creator.id);
 
     // Generate unique team code
@@ -33,9 +38,7 @@ export async function POST(request: NextRequest) {
     console.log('Generating unique team code...');
     while (!isUnique) {
       teamCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-      const existingTeam = await prisma.team.findUnique({
-        where: { code: teamCode },
-      });
+      const existingTeam = teams.find(t => t.code === teamCode);
       if (!existingTeam) {
         isUnique = true;
       }
@@ -44,25 +47,26 @@ export async function POST(request: NextRequest) {
 
     console.log('Creating team...');
     // Create the team
-    const newTeam = await prisma.team.create({
-      data: {
-        name,
-        description: description || '',
-        code: teamCode,
-      },
-    });
+    const newTeam = {
+      id: `team-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      name,
+      description: description || '',
+      code: teamCode,
+      createdAt: new Date()
+    };
+    teams.push(newTeam);
     console.log('Team created:', newTeam.id);
 
     console.log('Adding team leader as member...');
     // Add creator as first member
-    await prisma.teamMember.create({
-      data: {
-        teamId: newTeam.id,
-        userId: creator.id,
-        role: 'owner',
-        joinedAt: new Date(),
-      },
-    });
+    const ownerMember = {
+      id: `member-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      teamId: newTeam.id,
+      userId: creator.id,
+      role: 'owner',
+      joinedAt: new Date()
+    };
+    teamMembers.push(ownerMember);
     console.log('Team leader added as member');
 
     // Add other members
@@ -72,18 +76,17 @@ export async function POST(request: NextRequest) {
         if (email && email.trim() && email.includes('@')) {
           console.log('Processing email:', email);
           // Find or create user
-          let user = await prisma.user.findUnique({
-            where: { email: email.trim() },
-          });
+          let user = users.find(u => u.email === email.trim());
 
           if (!user) {
             console.log('Creating new user for email:', email);
-            user = await prisma.user.create({
-              data: {
-                email: email.trim(),
-                name: email.split('@')[0], // Use email prefix as name
-              },
-            });
+            user = {
+              id: `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+              email: email.trim(),
+              name: email.split('@')[0], // Use email prefix as name
+              createdAt: new Date()
+            };
+            users.push(user);
             console.log('New user created:', user.id);
           } else {
             console.log('Existing user found:', user.id);
@@ -91,20 +94,24 @@ export async function POST(request: NextRequest) {
 
           console.log('Adding member to team:', user.id);
           // Add member
-          await prisma.teamMember.create({
-            data: {
-              teamId: newTeam.id,
-              userId: user.id,
-              role: 'member',
-              joinedAt: new Date(),
-            },
-          });
+          const member = {
+            id: `member-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            teamId: newTeam.id,
+            userId: user.id,
+            role: 'member',
+            joinedAt: new Date()
+          };
+          teamMembers.push(member);
           console.log('Member added successfully');
         }
       }
     }
 
     console.log('Team creation completed successfully');
+    console.log('Current teams:', teams.length);
+    console.log('Current users:', users.length);
+    console.log('Current team members:', teamMembers.length);
+    
     return NextResponse.json({ 
       success: true, 
       team: {
