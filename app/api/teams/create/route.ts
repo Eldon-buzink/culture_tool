@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Generate unique team code
-    let teamCode: string;
+    let teamCode = '';
     let isUnique = false;
     
     while (!isUnique) {
