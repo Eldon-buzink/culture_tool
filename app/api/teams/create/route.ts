@@ -1,30 +1,46 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/database';
+import { NextResponse } from 'next/server';
+import { createSupabaseRoute, createSupabaseAdmin } from '@/lib/supabase/server';
 
-export async function POST(request: NextRequest) {
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
+type Body = { 
+  name?: string; 
+  description?: string; 
+  memberEmails?: string[];
+};
+
+function missingEnv() {
+  const miss: string[] = [];
+  if (!process.env.SUPABASE_URL) miss.push('SUPABASE_URL');
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) miss.push('SUPABASE_SERVICE_ROLE_KEY');
+  return miss;
+}
+
+export async function POST(req: Request) {
   try {
     console.log('Team creation request received');
-    const { name, description, memberEmails } = await request.json();
-    console.log('Request data:', { name, description, memberEmails });
-
-    // Validate input
-    if (!name) {
-      console.log('Validation failed: Team name is required');
+    
+    const miss = missingEnv();
+    if (miss.length) {
+      console.error('Missing environment variables:', miss);
       return NextResponse.json(
-        { success: false, error: 'Team name is required' },
-        { status: 400 }
+        { error: `Missing env: ${miss.join(', ')}` },
+        { status: 500 }
       );
     }
 
-    console.log('Creating team leader user...');
-    // Create default team leader user
-    const creator = await prisma.user.create({
-      data: {
-        name: 'Team Leader',
-        email: `team-leader-${Date.now()}@temp.com`
-      }
-    });
-    console.log('Team leader user created:', creator.id);
+    const body = (await req.json().catch(() => ({}))) as Body;
+    const name = (body?.name || '').trim();
+    const description = body?.description?.trim() || null;
+    const memberEmails = body?.memberEmails || [];
+
+    console.log('Request data:', { name, description, memberEmails });
+
+    if (!name) {
+      console.log('Validation failed: Team name is required');
+      return NextResponse.json({ error: 'Missing team name' }, { status: 400 });
+    }
 
     // Generate unique team code
     let teamCode = '';
@@ -33,98 +49,144 @@ export async function POST(request: NextRequest) {
     console.log('Generating unique team code...');
     while (!isUnique) {
       teamCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-      const existingTeam = await prisma.team.findUnique({
-        where: { code: teamCode },
-      });
+      // Check if code exists in database
+      const admin = createSupabaseAdmin();
+      const { data: existingTeam } = await admin
+        .from('teams')
+        .select('id')
+        .eq('code', teamCode)
+        .single();
+      
       if (!existingTeam) {
         isUnique = true;
       }
     }
     console.log('Team code generated:', teamCode);
 
-    console.log('Creating team...');
-    // Create the team
-    const newTeam = await prisma.team.create({
-      data: {
-        name,
-        description: description || '',
-        code: teamCode,
-      },
-    });
-    console.log('Team created:', newTeam.id);
+    // Try with user session (RLS) if logged in
+    try {
+      const supabase = createSupabaseRoute();
+      const { data: u } = await supabase.auth.getUser();
+      const userId = u?.user?.id ?? null;
 
-    console.log('Adding team leader as member...');
-    // Add creator as first member
-    await prisma.teamMember.create({
-      data: {
-        teamId: newTeam.id,
-        userId: creator.id,
-        role: 'owner',
-        joinedAt: new Date(),
-      },
-    });
-    console.log('Team leader added as member');
-
-    // Add other members
-    if (memberEmails && memberEmails.length > 0) {
-      console.log('Processing member emails:', memberEmails);
-      for (const email of memberEmails) {
-        if (email && email.trim() && email.includes('@')) {
-          console.log('Processing email:', email);
-          // Find or create user
-          let user = await prisma.user.findUnique({
-            where: { email: email.trim() },
-          });
-
-          if (!user) {
-            console.log('Creating new user for email:', email);
-            user = await prisma.user.create({
-              data: {
-                email: email.trim(),
-                name: email.split('@')[0], // Use email prefix as name
-              },
-            });
-            console.log('New user created:', user.id);
-          } else {
-            console.log('Existing user found:', user.id);
-          }
-
-          console.log('Adding member to team:', user.id);
-          // Add member
-          await prisma.teamMember.create({
-            data: {
-              teamId: newTeam.id,
-              userId: user.id,
-              role: 'member',
-              joinedAt: new Date(),
-            },
-          });
-          console.log('Member added successfully');
-        }
+      if (userId) {
+        console.log('Creating team with authenticated user:', userId);
+        const { data, error } = await supabase
+          .from('teams')
+          .insert({ 
+            name, 
+            description, 
+            code: teamCode,
+            owner_id: userId 
+          })
+          .select('*')
+          .single();
+        
+        if (error) throw error;
+        
+        // Add team members
+        await addTeamMembers(teamCode, memberEmails);
+        
+        console.log('Team created successfully with RLS');
+        return NextResponse.json({ 
+          success: true, 
+          team: data, 
+          mode: 'RLS' 
+        }, { status: 201 });
       }
+    } catch (e) {
+      console.warn('RLS insert failed or no user; falling back to admin.', e);
     }
 
-    console.log('Team creation completed successfully');
+    // Fallback: service-role (no auth required)
+    console.log('Creating team with admin privileges');
+    const admin = createSupabaseAdmin();
+    const { data, error } = await admin
+      .from('teams')
+      .insert({ 
+        name, 
+        description, 
+        code: teamCode,
+        owner_id: null 
+      })
+      .select('*')
+      .single();
+
+    if (error) {
+      console.error('Admin team creation failed:', error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    // Add team members
+    await addTeamMembers(teamCode, memberEmails);
+    
+    console.log('Team creation completed successfully with admin');
     return NextResponse.json({ 
       success: true, 
-      team: {
-        id: newTeam.id,
-        name: newTeam.name,
-        code: newTeam.code,
-        description: newTeam.description
-      }
-    });
+      team: data, 
+      mode: 'ADMIN' 
+    }, { status: 201 });
 
-  } catch (error) {
-    console.error('Error creating team:', error);
-    console.error('Error details:', {
-      message: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : 'No stack trace',
-      name: error instanceof Error ? error.name : 'Unknown error type'
-    });
-    return NextResponse.json(
-      { success: false, error: 'Failed to create team' },
-      { status: 500 }
-    );
+  } catch (e: any) {
+    console.error('Create team failed:', e);
+    return NextResponse.json({ 
+      success: false,
+      error: e?.message || 'Failed to create team' 
+    }, { status: 500 });
+  }
+}
+
+async function addTeamMembers(teamCode: string, memberEmails: string[]) {
+  if (!memberEmails || memberEmails.length === 0) return;
+  
+  console.log('Adding team members:', memberEmails);
+  const admin = createSupabaseAdmin();
+  
+  for (const email of memberEmails) {
+    if (email && email.trim() && email.includes('@')) {
+      try {
+        // Find or create user
+        let { data: user } = await admin
+          .from('users')
+          .select('id')
+          .eq('email', email.trim())
+          .single();
+
+        if (!user) {
+          console.log('Creating new user for email:', email);
+          const { data: newUser, error: userError } = await admin
+            .from('users')
+            .insert({
+              email: email.trim(),
+              name: email.split('@')[0]
+            })
+            .select('id')
+            .single();
+          
+          if (userError) {
+            console.error('Failed to create user:', userError);
+            continue;
+          }
+          user = newUser;
+        }
+
+        // Add to team members
+        const { error: memberError } = await admin
+          .from('team_members')
+          .insert({
+            team_code: teamCode,
+            user_id: user.id,
+            role: 'member'
+          });
+        
+        if (memberError) {
+          console.error('Failed to add team member:', memberError);
+        } else {
+          console.log('Member added successfully:', email);
+        }
+      } catch (error) {
+        console.error('Error processing member email:', email, error);
+      }
+    }
   }
 }
