@@ -137,6 +137,26 @@ export async function POST(req: Request) {
   }
 }
 
+export async function GET() {
+  const debug = process.env.DEBUG_API === '1';
+  try {
+    // minimal check that envs are present
+    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      return NextResponse.json({ ok: false, error: 'Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY' }, { status: 500 });
+    }
+    // try a lightweight query
+    const admin = createSupabaseAdmin();
+    const { data, error } = await admin.from('teams').select('id').limit(1);
+    if (error) {
+      return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+    }
+    return NextResponse.json({ ok: true, sampleCount: data?.length ?? 0 });
+  } catch (e: any) {
+    if (debug) return NextResponse.json({ ok: false, error: e?.message, stack: e?.stack }, { status: 500 });
+    return NextResponse.json({ ok: false, error: 'Diagnostics failed' }, { status: 500 });
+  }
+}
+
 async function addTeamMembers(teamCode: string, memberEmails: string[], debug: boolean) {
   if (!memberEmails || memberEmails.length === 0) return;
 

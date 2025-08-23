@@ -47,38 +47,33 @@ export default function CreateTeamPage() {
     
     try {
       // Create the team directly - the API will handle user creation
-      const teamResponse = await fetch('/api/teams/create', {
+      const res = await fetch('/api/teams/create', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: teamName,
           description: teamDescription,
-          creatorId: null, // Let the API create the creator user
           memberEmails: emails.filter(email => email.trim() && email.includes('@'))
         }),
       });
-
-      if (!teamResponse.ok) {
-        throw new Error('Failed to create team');
+      
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        // 👇 show actual server error
+        throw new Error(data?.error || `HTTP ${res.status}`);
       }
-
-      const teamData = await teamResponse.json();
-      if (!teamData.success) {
-        throw new Error('Failed to create team: ' + teamData.error);
-      }
-
-      console.log('Team created successfully:', teamData.team);
-      setTeamCode(teamData.team.code);
+      
+      console.log('Team created successfully:', data.team);
+      setTeamCode(data.team.code);
       setTeamCreated(true);
 
       // Automatically send email invitations
-      await sendEmailInvitations(teamData.team.code, teamData.team.name);
+      await sendEmailInvitations(data.team.code, data.team.name);
 
-    } catch (error) {
-      console.error('Error creating team:', error);
-      alert('Failed to create team: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    } catch (e: any) {
+      const errorMessage = e?.message || 'Failed to create team';
+      console.error('Error creating team:', e);
+      alert('Failed to create team: ' + errorMessage);
     } finally {
       setIsCreating(false);
     }
