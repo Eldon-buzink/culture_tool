@@ -4,9 +4,8 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 function admin() {
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
+  const url = process.env.SUPABASE_URL!;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY!;
   return createClient(url, key, { auth: { persistSession: false } });
 }
 
@@ -14,12 +13,19 @@ export async function GET() {
   const dbg = process.env.DEBUG_API === '1';
   try {
     const c = admin();
-    const { data, error } = await c.from('teams').select('id').limit(1);
-    if (error) throw error;
-    return new Response(`OK teams readable; sampleCount=${data?.length ?? 0}`, {
-      status: 200,
-      headers: { 'content-type': 'text/plain' },
-    });
+
+    // Who am I?
+    const who = await c.rpc('debug_whoami');
+    if (who.error) throw new Error('whoami: ' + who.error.message);
+
+    // Can I read teams?
+    const q = await c.from('teams').select('id').limit(1);
+    if (q.error) throw new Error('teams: ' + q.error.message);
+
+    return new Response(
+      `OK\nwhoami=${JSON.stringify(who.data)}\nsampleCount=${q.data?.length ?? 0}`,
+      { status: 200, headers: { 'content-type': 'text/plain' } }
+    );
   } catch (e: any) {
     const msg = e?.message || String(e);
     const stack = dbg && e?.stack ? `\n${e.stack}` : '';
