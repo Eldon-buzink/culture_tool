@@ -10,28 +10,21 @@ function admin() {
 }
 
 export async function GET() {
-  const dbg = process.env.DEBUG_API === '1';
-  try {
-    const c = admin();
+  const c = admin();
+  const projectUrl = process.env.SUPABASE_URL || '';
+  const projectIdHint = projectUrl.replace('https://', '').split('.')[0]; // just a hint, not secret
 
-    // Who am I?
-    const who = await c.rpc('debug_whoami');
-    if (who.error) throw new Error('whoami: ' + who.error.message);
+  // 1) whoami
+  const who = await c.rpc('debug_whoami');
+  const whoMsg = who.error ? `whoami_error=${who.error.message}` : `whoami=${JSON.stringify(who.data)}`;
 
-    // Can I read teams?
-    const q = await c.from('teams').select('id').limit(1);
-    if (q.error) throw new Error('teams: ' + q.error.message);
+  // 2) try teams read, but DO NOT throw—print error text
+  const q = await c.from('teams').select('id').limit(1);
+  const teamsMsg = q.error ? `teams_error=${q.error.message}` : `teams_ok sampleCount=${q.data?.length ?? 0}`;
 
-    return new Response(
-      `OK\nwhoami=${JSON.stringify(who.data)}\nsampleCount=${q.data?.length ?? 0}`,
-      { status: 200, headers: { 'content-type': 'text/plain' } }
-    );
-  } catch (e: any) {
-    const msg = e?.message || String(e);
-    const stack = dbg && e?.stack ? `\n${e.stack}` : '';
-    return new Response(`ERROR: ${msg}${stack}`, {
-      status: 500,
-      headers: { 'content-type': 'text/plain' },
-    });
-  }
+  // 3) echo which project URL we're hitting (safe prefix only)
+  return new Response(
+    `project=${projectIdHint}\n${whoMsg}\n${teamsMsg}`,
+    { status: 200, headers: { 'content-type': 'text/plain' } }
+  );
 }
