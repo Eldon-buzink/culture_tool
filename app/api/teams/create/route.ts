@@ -6,23 +6,34 @@ export async function POST(request: NextRequest) {
     const { name, description, creatorId, memberEmails } = await request.json();
 
     // Validate input
-    if (!name || !creatorId) {
+    if (!name) {
       return NextResponse.json(
-        { success: false, error: 'Team name and creator ID are required' },
+        { success: false, error: 'Team name is required' },
         { status: 400 }
       );
     }
 
-    // Verify creator exists
-    const creator = await prisma.user.findUnique({
-      where: { id: creatorId }
-    });
-
-    if (!creator) {
-      return NextResponse.json(
-        { success: false, error: 'Creator not found' },
-        { status: 404 }
-      );
+    // Handle creator - create default team leader if none provided
+    let creator;
+    if (creatorId) {
+      // Verify existing creator
+      creator = await prisma.user.findUnique({
+        where: { id: creatorId }
+      });
+      if (!creator) {
+        return NextResponse.json(
+          { success: false, error: 'Creator not found' },
+          { status: 404 }
+        );
+      }
+    } else {
+      // Create default team leader user
+      creator = await prisma.user.create({
+        data: {
+          name: 'Team Leader',
+          email: `team-leader-${Date.now()}@temp.com`
+        }
+      });
     }
 
     // Generate unique team code
@@ -54,7 +65,7 @@ export async function POST(request: NextRequest) {
       await tx.teamMember.create({
         data: {
           teamId: newTeam.id,
-          userId: creatorId,
+          userId: creator.id,
           role: 'owner',
           joinedAt: new Date(),
         },

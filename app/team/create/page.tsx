@@ -46,28 +46,7 @@ export default function CreateTeamPage() {
     setIsCreating(true);
     
     try {
-      // First, create a user for the team creator
-      const userResponse = await fetch('/api/create-test-user', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: 'Team Leader',
-          email: `team-leader-${Date.now()}@temp.com`
-        }),
-      });
-
-      if (!userResponse.ok) {
-        throw new Error('Failed to create user');
-      }
-
-      const userData = await userResponse.json();
-      if (!userData.success) {
-        throw new Error('Failed to create user: ' + userData.error);
-      }
-
-      // Now create the team using the real API
+      // Create the team directly - the API will handle user creation
       const teamResponse = await fetch('/api/teams/create', {
         method: 'POST',
         headers: {
@@ -76,7 +55,7 @@ export default function CreateTeamPage() {
         body: JSON.stringify({
           name: teamName,
           description: teamDescription,
-          creatorId: userData.user.id,
+          creatorId: null, // Let the API create the creator user
           memberEmails: emails.filter(email => email.trim() && email.includes('@'))
         }),
       });
