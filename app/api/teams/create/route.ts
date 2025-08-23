@@ -1,16 +1,12 @@
 import { NextResponse } from 'next/server';
-import { createSupabaseRoute, createSupabaseAdmin } from '@/lib/supabase/server';
+import { createSupabaseRoute, createSupabaseAdmin } from '../../../../lib/supabase/server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-type Body = { 
-  name?: string; 
-  description?: string; 
-  memberEmails?: string[];
-};
+type Body = { name?: string; description?: string; memberEmails?: string[] };
 
-function missingEnv() {
+function needEnv() {
   const miss: string[] = [];
   if (!process.env.SUPABASE_URL) miss.push('SUPABASE_URL');
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY) miss.push('SUPABASE_SERVICE_ROLE_KEY');
@@ -18,27 +14,25 @@ function missingEnv() {
 }
 
 export async function POST(req: Request) {
+  const debug = process.env.DEBUG_API === '1';
   try {
-    console.log('Team creation request received');
+    if (debug) console.log('Team creation request received');
     
-    const miss = missingEnv();
+    const miss = needEnv();
     if (miss.length) {
-      console.error('Missing environment variables:', miss);
-      return NextResponse.json(
-        { error: `Missing env: ${miss.join(', ')}` },
-        { status: 500 }
-      );
+      if (debug) console.error('Missing environment variables:', miss);
+      return NextResponse.json({ error: `Missing env: ${miss.join(', ')}` }, { status: 500 });
     }
 
     const body = (await req.json().catch(() => ({}))) as Body;
     const name = (body?.name || '').trim();
     const description = body?.description?.trim() || null;
     const memberEmails = body?.memberEmails || [];
-
-    console.log('Request data:', { name, description, memberEmails });
-
+    
+    if (debug) console.log('Request data:', { name, description, memberEmails });
+    
     if (!name) {
-      console.log('Validation failed: Team name is required');
+      if (debug) console.log('Validation failed: Team name is required');
       return NextResponse.json({ error: 'Missing team name' }, { status: 400 });
     }
 
@@ -46,10 +40,9 @@ export async function POST(req: Request) {
     let teamCode = '';
     let isUnique = false;
     
-    console.log('Generating unique team code...');
+    if (debug) console.log('Generating unique team code...');
     while (!isUnique) {
       teamCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-      // Check if code exists in database
       const admin = createSupabaseAdmin();
       const { data: existingTeam } = await admin
         .from('teams')
@@ -61,16 +54,17 @@ export async function POST(req: Request) {
         isUnique = true;
       }
     }
-    console.log('Team code generated:', teamCode);
+    if (debug) console.log('Team code generated:', teamCode);
 
-    // Try with user session (RLS) if logged in
+    // Try RLS path (only works if user is logged in via Supabase Auth)
     try {
       const supabase = createSupabaseRoute();
-      const { data: u } = await supabase.auth.getUser();
+      const { data: u, error: uErr } = await supabase.auth.getUser();
+      if (uErr) throw uErr;
       const userId = u?.user?.id ?? null;
-
+      
       if (userId) {
-        console.log('Creating team with authenticated user:', userId);
+        if (debug) console.log('Creating team with authenticated user:', userId);
         const { data, error } = await supabase
           .from('teams')
           .insert({ 
@@ -84,22 +78,24 @@ export async function POST(req: Request) {
         
         if (error) throw error;
         
-        // Add team members
-        await addTeamMembers(teamCode, memberEmails);
+        // Add team members if any
+        if (memberEmails.length > 0) {
+          await addTeamMembers(teamCode, memberEmails, debug);
+        }
         
-        console.log('Team created successfully with RLS');
+        if (debug) console.log('Team created successfully with RLS');
         return NextResponse.json({ 
-          success: true, 
+          ok: true, 
           team: data, 
           mode: 'RLS' 
         }, { status: 201 });
       }
-    } catch (e) {
-      console.warn('RLS insert failed or no user; falling back to admin.', e);
+    } catch (e: any) {
+      if (debug) console.error('RLS path failed (will fallback to admin):', e?.message || e);
     }
 
-    // Fallback: service-role (no auth required)
-    console.log('Creating team with admin privileges');
+    // Fallback admin (bypasses RLS). Only for setup/testing; lock down later.
+    if (debug) console.log('Creating team with admin privileges');
     const admin = createSupabaseAdmin();
     const { data, error } = await admin
       .from('teams')
@@ -111,37 +107,42 @@ export async function POST(req: Request) {
       })
       .select('*')
       .single();
-
+    
     if (error) {
-      console.error('Admin team creation failed:', error);
+      if (debug) console.error('Admin team creation failed:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
-
-    // Add team members
-    await addTeamMembers(teamCode, memberEmails);
     
-    console.log('Team creation completed successfully with admin');
+    // Add team members if any
+    if (memberEmails.length > 0) {
+      await addTeamMembers(teamCode, memberEmails, debug);
+    }
+    
+    if (debug) console.log('Team creation completed successfully with admin');
     return NextResponse.json({ 
-      success: true, 
+      ok: true, 
       team: data, 
       mode: 'ADMIN' 
     }, { status: 201 });
 
   } catch (e: any) {
-    console.error('Create team failed:', e);
-    return NextResponse.json({ 
-      success: false,
-      error: e?.message || 'Failed to create team' 
-    }, { status: 500 });
+    if (debug) {
+      console.error('Create team failed:', e);
+      return NextResponse.json({ 
+        error: e?.message || 'Failed to create team', 
+        stack: e?.stack 
+      }, { status: 500 });
+    }
+    return NextResponse.json({ error: 'Failed to create team' }, { status: 500 });
   }
 }
 
-async function addTeamMembers(teamCode: string, memberEmails: string[]) {
+async function addTeamMembers(teamCode: string, memberEmails: string[], debug: boolean) {
   if (!memberEmails || memberEmails.length === 0) return;
-  
-  console.log('Adding team members:', memberEmails);
+
+  if (debug) console.log('Adding team members:', memberEmails);
   const admin = createSupabaseAdmin();
-  
+
   for (const email of memberEmails) {
     if (email && email.trim() && email.includes('@')) {
       try {
@@ -153,7 +154,7 @@ async function addTeamMembers(teamCode: string, memberEmails: string[]) {
           .single();
 
         if (!user) {
-          console.log('Creating new user for email:', email);
+          if (debug) console.log('Creating new user for email:', email);
           const { data: newUser, error: userError } = await admin
             .from('users')
             .insert({
@@ -162,9 +163,9 @@ async function addTeamMembers(teamCode: string, memberEmails: string[]) {
             })
             .select('id')
             .single();
-          
+
           if (userError) {
-            console.error('Failed to create user:', userError);
+            if (debug) console.error('Failed to create user:', userError);
             continue;
           }
           user = newUser;
@@ -178,14 +179,14 @@ async function addTeamMembers(teamCode: string, memberEmails: string[]) {
             user_id: user.id,
             role: 'member'
           });
-        
+
         if (memberError) {
-          console.error('Failed to add team member:', memberError);
+          if (debug) console.error('Failed to add team member:', memberError);
         } else {
-          console.log('Member added successfully:', email);
+          if (debug) console.log('Member added successfully:', email);
         }
       } catch (error) {
-        console.error('Error processing member email:', email, error);
+        if (debug) console.error('Error processing member email:', email, error);
       }
     }
   }
