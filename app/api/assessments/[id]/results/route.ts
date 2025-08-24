@@ -1,16 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAssessmentResults, getAssessmentByUuid, saveAssessmentResults, updateAssessmentStatus } from '@/lib/data-service';
+import { createSupabaseAdmin } from '@/lib/supabase/server';
 import { AIService } from '@/lib/services/aiService';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const assessmentId = params.id;
     const { oceanScores, cultureScores, valuesScores, insights } = await request.json();
 
-    // Validate assessment exists
-    const assessment = await getAssessmentByUuid(assessmentId);
+    const admin = createSupabaseAdmin();
 
-    if (!assessment) {
+    // Validate assessment exists
+    const { data: assessment, error: assessmentError } = await admin
+      .from('assessments')
+      .select('id')
+      .eq('id', assessmentId)
+      .single();
+
+    if (assessmentError || !assessment) {
       return NextResponse.json(
         { success: false, error: 'Assessment not found' },
         { status: 404 }
@@ -36,17 +45,36 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     }
 
     // Save assessment results with AI-generated recommendations
-    const result = await saveAssessmentResults({
-      assessmentId,
-      oceanScores,
-      cultureScores,
-      valuesScores,
-      insights,
-      recommendations: aiRecommendations
-    });
+    const { data: result, error: resultError } = await admin
+      .from('assessment_results')
+      .insert({
+        assessment_id: assessmentId,
+        ocean_scores: oceanScores,
+        culture_scores: cultureScores,
+        values_scores: valuesScores,
+        insights: insights,
+        recommendations: aiRecommendations
+      })
+      .select('id')
+      .single();
+
+    if (resultError) {
+      console.error('Error saving assessment results:', resultError);
+      return NextResponse.json(
+        { success: false, error: 'Failed to save assessment results' },
+        { status: 500 }
+      );
+    }
 
     // Update assessment status to completed
-    await updateAssessmentStatus(assessmentId, 'completed');
+    const { error: updateError } = await admin
+      .from('assessments')
+      .update({ status: 'completed' })
+      .eq('id', assessmentId);
+
+    if (updateError) {
+      console.error('Error updating assessment status:', updateError);
+    }
 
     return NextResponse.json({ 
       success: true, 
@@ -76,10 +104,16 @@ export async function GET(
       );
     }
 
+    const admin = createSupabaseAdmin();
+
     // First check if the assessment exists
-    const assessment = await getAssessmentByUuid(id);
+    const { data: assessment, error: assessmentError } = await admin
+      .from('assessments')
+      .select('id')
+      .eq('id', id)
+      .single();
     
-    if (!assessment) {
+    if (assessmentError || !assessment) {
       return NextResponse.json(
         { success: false, error: 'Assessment not found' },
         { status: 404 }
@@ -87,9 +121,13 @@ export async function GET(
     }
 
     // Get the results
-    const results = await getAssessmentResults(id);
+    const { data: results, error: resultsError } = await admin
+      .from('assessment_results')
+      .select('*')
+      .eq('assessment_id', id)
+      .single();
     
-    if (!results) {
+    if (resultsError || !results) {
       return NextResponse.json(
         { success: false, error: 'Results not found for this assessment' },
         { status: 404 }
@@ -98,22 +136,22 @@ export async function GET(
 
     return NextResponse.json({
       success: true,
-      result: results,
-      assessment: {
-        id: assessment.id,
-        title: assessment.title,
-        description: assessment.description,
-        type: assessment.type,
-        status: assessment.status,
-        createdAt: assessment.createdAt,
-        createdBy: assessment.createdBy
+      results: {
+        id: results.id,
+        assessmentId: results.assessment_id,
+        oceanScores: results.ocean_scores,
+        cultureScores: results.culture_scores,
+        valuesScores: results.values_scores,
+        insights: results.insights,
+        recommendations: results.recommendations,
+        createdAt: results.created_at
       }
     });
 
   } catch (error) {
     console.error('Error fetching assessment results:', error);
     return NextResponse.json(
-      { success: false, error: 'Internal server error' },
+      { success: false, error: 'Failed to fetch assessment results' },
       { status: 500 }
     );
   }

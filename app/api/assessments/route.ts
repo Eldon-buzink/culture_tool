@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createAssessment, getAssessmentById } from '@/lib/data-service';
+import { createSupabaseAdmin } from '@/lib/supabase/server';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,13 +16,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const assessment = await createAssessment({
-      title,
-      description,
-      type,
-      createdBy,
-      teamId
-    });
+    const admin = createSupabaseAdmin();
+
+    const { data: assessment, error: assessmentError } = await admin
+      .from('assessments')
+      .insert({
+        title: title,
+        description: description || null,
+        type: type,
+        user_id: createdBy,
+        team_id: teamId || null,
+        status: 'draft'
+      })
+      .select('*')
+      .single();
+
+    if (assessmentError) {
+      console.error('Error creating assessment:', assessmentError);
+      return NextResponse.json(
+        { success: false, error: 'Failed to create assessment' },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({
       success: true,
@@ -29,7 +47,7 @@ export async function POST(request: NextRequest) {
         description: assessment.description,
         type: assessment.type,
         status: assessment.status,
-        createdAt: assessment.createdAt
+        createdAt: assessment.created_at
       }
     });
 
@@ -54,9 +72,19 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const assessment = await getAssessmentById(id);
+    const admin = createSupabaseAdmin();
+
+    const { data: assessment, error: assessmentError } = await admin
+      .from('assessments')
+      .select(`
+        *,
+        teams:team_id(id, name, code),
+        users:user_id(id, name, email)
+      `)
+      .eq('id', id)
+      .single();
     
-    if (!assessment) {
+    if (assessmentError || !assessment) {
       return NextResponse.json(
         { success: false, error: 'Assessment not found' },
         { status: 404 }
@@ -71,9 +99,9 @@ export async function GET(request: NextRequest) {
         description: assessment.description,
         type: assessment.type,
         status: assessment.status,
-        createdAt: assessment.createdAt,
-        team: assessment.team,
-        responses: assessment.responses
+        createdAt: assessment.created_at,
+        team: assessment.teams,
+        user: assessment.users
       }
     });
 

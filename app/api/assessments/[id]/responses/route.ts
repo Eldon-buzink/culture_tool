@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { saveResponse, getAssessmentResponses, getAssessmentById } from '@/lib/data-service';
+import { createSupabaseAdmin } from '@/lib/supabase/server';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 export async function POST(
   request: NextRequest,
@@ -17,9 +20,16 @@ export async function POST(
       );
     }
 
+    const admin = createSupabaseAdmin();
+
     // Validate assessment exists
-    const assessment = await getAssessmentById(id);
-    if (!assessment) {
+    const { data: assessment, error: assessmentError } = await admin
+      .from('assessments')
+      .select('id')
+      .eq('id', id)
+      .single();
+
+    if (assessmentError || !assessment) {
       return NextResponse.json(
         { success: false, error: 'Assessment not found' },
         { status: 404 }
@@ -27,13 +37,25 @@ export async function POST(
     }
 
     // Save the response
-    const savedResponse = await saveResponse({
-      assessmentId: id,
-      userId,
-      section,
-      questionId,
-      response
-    });
+    const { data: savedResponse, error: responseError } = await admin
+      .from('assessment_responses')
+      .upsert({
+        assessment_id: id,
+        user_id: userId,
+        section: section,
+        question_id: questionId,
+        response: response
+      })
+      .select('*')
+      .single();
+
+    if (responseError) {
+      console.error('Error saving response:', responseError);
+      return NextResponse.json(
+        { success: false, error: 'Failed to save response' },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({
       success: true,
@@ -65,11 +87,25 @@ export async function GET(
       );
     }
 
-    const responses = await getAssessmentResponses(id, userId);
+    const admin = createSupabaseAdmin();
+
+    const { data: responses, error: responsesError } = await admin
+      .from('assessment_responses')
+      .select('*')
+      .eq('assessment_id', id)
+      .eq('user_id', userId);
+
+    if (responsesError) {
+      console.error('Error fetching responses:', responsesError);
+      return NextResponse.json(
+        { success: false, error: 'Failed to fetch responses' },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({
       success: true,
-      responses
+      responses: responses || []
     });
 
   } catch (error) {

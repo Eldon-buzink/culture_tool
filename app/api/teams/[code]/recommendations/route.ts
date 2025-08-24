@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createSupabaseAdmin } from '../../../../lib/supabase/server';
-import { AIService } from '../../../../lib/services/aiService';
+import { createSupabaseAdmin } from '@/lib/supabase/server';
+import { AIService } from '@/lib/services/aiService';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAssessmentById } from '@/lib/data-service';
+import { createSupabaseAdmin } from '../../../../lib/supabase/server';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 export async function GET(
   request: NextRequest,
@@ -15,9 +18,19 @@ export async function GET(
       );
     }
 
-    const assessment = await getAssessmentById(id);
+    const admin = createSupabaseAdmin();
 
-    if (!assessment) {
+    const { data: assessment, error: assessmentError } = await admin
+      .from('assessments')
+      .select(`
+        *,
+        users:user_id(id, name, email),
+        teams:team_id(id, name, code)
+      `)
+      .eq('id', id)
+      .single();
+
+    if (assessmentError || !assessment) {
       return NextResponse.json(
         { success: false, error: 'Assessment not found' },
         { status: 404 }
@@ -28,12 +41,12 @@ export async function GET(
       success: true,
       assessment: {
         id: assessment.id,
-        title: assessment.title,
-        description: assessment.description,
-        type: assessment.type,
+        title: 'Assessment',
+        description: 'Team member assessment',
+        type: assessment.team_id ? 'team' : 'individual',
         status: assessment.status,
-        createdBy: assessment.createdBy,
-        createdAt: assessment.createdAt
+        createdBy: assessment.user_id,
+        createdAt: assessment.created_at
       }
     });
 

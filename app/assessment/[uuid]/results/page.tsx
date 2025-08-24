@@ -9,7 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { ChevronDown, ChevronUp, Brain, Users, Target, TrendingUp, TrendingDown, Minus, HelpCircle } from 'lucide-react';
 import RadarChart from '@/components/RadarChart';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { generateAssessmentPDF, PDFExportData } from '@/lib/pdf-export';
+
 import EmailResultsModal from '@/components/EmailResultsModal';
 import LoadingSpinner from '@/components/LoadingSpinner';
 
@@ -1140,64 +1140,7 @@ export default function ResultsPage() {
               <span>Print Results</span>
             </Button>
             
-            <Button 
-              onClick={async () => {
-                if (!results) return;
-                
-                try {
-                  const pdfData: PDFExportData = {
-                    name: 'Assessment User',
-                    date: new Date().toLocaleDateString(),
-                    oceanScores: results.oceanScores,
-                    cultureScores: results.cultureScores,
-                    valuesScores: results.valuesScores,
-                    insights: results.insights,
-                    recommendations: {
-                      ocean: results.recommendations.ocean.recommendations.map(rec => ({
-                        title: rec.title,
-                        description: rec.description,
-                        priority: 'medium',
-                        actionable: rec.nextSteps.join(' ')
-                      })),
-                      culture: results.recommendations.culture.recommendations.map(rec => ({
-                        title: rec.title,
-                        description: rec.description,
-                        priority: 'medium',
-                        actionable: rec.nextSteps.join(' ')
-                      })),
-                      values: results.recommendations.values.recommendations.map(rec => ({
-                        title: rec.title,
-                        description: rec.description,
-                        priority: 'medium',
-                        actionable: rec.nextSteps.join(' ')
-                      }))
-                    }
-                  };
-                  
-                  const blob = await generateAssessmentPDF(pdfData);
-                  const url = URL.createObjectURL(blob);
-                  const link = document.createElement('a');
-                  link.href = url;
-                  link.download = `assessment-results-${new Date().toISOString().split('T')[0]}.pdf`;
-                  document.body.appendChild(link);
-                  link.click();
-                  document.body.removeChild(link);
-                  URL.revokeObjectURL(url);
-                  
-                  alert('✅ PDF report generated successfully!');
-                } catch (error) {
-                  console.error('Error generating PDF:', error);
-                  alert('❌ Failed to generate PDF. Please try again.');
-                }
-              }} 
-              variant="outline" 
-              className="h-auto p-4 flex flex-col items-center gap-2"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              <span>Download PDF</span>
-            </Button>
+
             
             <Button 
               onClick={() => setShowEmailModal(true)}
