@@ -82,56 +82,92 @@ export default function ResultsPage() {
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [showEmailModal, setShowEmailModal] = useState(false);
   
+  // Get the uuid string (handle array case)
+  const uuidString = Array.isArray(uuid) ? uuid[0] : uuid;
+  
   // Check if user has completed all sections before allowing access
   useEffect(() => {
     const checkCompletion = async () => {
-      if (!uuid) return;
+      if (!uuidString) return;
       
-      const sessionUserId = localStorage.getItem(`assessment-user-${uuid}`);
-      if (!sessionUserId) {
-        console.log('No session user ID found, redirecting to overview');
-        window.location.href = `/assessment/${uuid}`;
-        return;
-      }
+      // Check if this is a session-based assessment (temp ID)
+      const isSessionBased = uuidString.startsWith('temp-');
       
-      try {
-        const progressResponse = await fetch(`/api/assessments/${uuid}/responses?userId=${sessionUserId}`);
-        if (progressResponse.ok) {
-          const progressData = await progressResponse.json();
-          if (progressData.success) {
-            const sectionCounts = { ocean: 0, culture: 0, values: 0 };
-            progressData.responses.forEach((resp: any) => {
-              if (sectionCounts[resp.section as keyof typeof sectionCounts] !== undefined) {
-                sectionCounts[resp.section as keyof typeof sectionCounts]++;
-              }
-            });
+      if (isSessionBased) {
+        // For session-based assessments, check localStorage for completion
+        const allResponses = localStorage.getItem(`assessment-responses-${uuidString}`);
+        
+        if (allResponses) {
+          try {
+            const responses = JSON.parse(allResponses);
             
-            const allSectionsComplete = Object.values(sectionCounts).every(count => count >= 5);
+            // Check if all sections have 5 responses
+            const oceanComplete = responses.ocean && Object.keys(responses.ocean).length >= 5;
+            const cultureComplete = responses.culture && Object.keys(responses.culture).length >= 5;
+            const valuesComplete = responses.values && Object.keys(responses.values).length >= 5;
             
-            if (allSectionsComplete) {
+            if (oceanComplete && cultureComplete && valuesComplete) {
               setIsAuthorized(true);
             } else {
               console.log('Not all sections complete, redirecting to overview');
-              window.location.href = `/assessment/${uuid}`;
+              window.location.href = `/assessment/${uuidString}`;
+            }
+          } catch (error) {
+            console.error('Error parsing session data:', error);
+            window.location.href = `/assessment/${uuidString}`;
+          }
+        } else {
+          console.log('Session data incomplete, redirecting to overview');
+          window.location.href = `/assessment/${uuidString}`;
+        }
+      } else {
+        // For database-based assessments, use the API
+        const sessionUserId = localStorage.getItem(`assessment-user-${uuidString}`);
+        if (!sessionUserId) {
+          console.log('No session user ID found, redirecting to overview');
+          window.location.href = `/assessment/${uuidString}`;
+          return;
+        }
+        
+        try {
+          const progressResponse = await fetch(`/api/assessments/${uuidString}/responses?userId=${sessionUserId}`);
+          if (progressResponse.ok) {
+            const progressData = await progressResponse.json();
+            if (progressData.success) {
+              const sectionCounts = { ocean: 0, culture: 0, values: 0 };
+              progressData.responses.forEach((resp: any) => {
+                if (sectionCounts[resp.section as keyof typeof sectionCounts] !== undefined) {
+                  sectionCounts[resp.section as keyof typeof sectionCounts]++;
+                }
+              });
+              
+              const allSectionsComplete = Object.values(sectionCounts).every(count => count >= 5);
+              
+              if (allSectionsComplete) {
+                setIsAuthorized(true);
+              } else {
+                console.log('Not all sections complete, redirecting to overview');
+                window.location.href = `/assessment/${uuidString}`;
+              }
+            } else {
+              console.log('Failed to get progress data, redirecting to overview');
+              window.location.href = `/assessment/${uuidString}`;
             }
           } else {
             console.log('Failed to get progress data, redirecting to overview');
-            window.location.href = `/assessment/${uuid}`;
+            window.location.href = `/assessment/${uuidString}`;
           }
-        } else {
-          console.log('Failed to get progress data, redirecting to overview');
-          window.location.href = `/assessment/${uuid}`;
+        } catch (error) {
+          console.error('Error checking completion:', error);
+          window.location.href = `/assessment/${uuidString}`;
         }
-      } catch (error) {
-        console.error('Error checking completion:', error);
-        window.location.href = `/assessment/${uuid}`;
-      } finally {
-        setCheckingAuth(false);
       }
+      
+      setCheckingAuth(false);
     };
     
     checkCompletion();
-  }, [uuid]);
+  }, [uuidString]);
   
   const getMockResults = (): AssessmentResults => ({
     oceanScores: {
@@ -256,7 +292,7 @@ export default function ResultsPage() {
 
   const generateResultsFromSession = async () => {
     // Get all responses from localStorage
-    const allResponses = localStorage.getItem(`assessment-responses-${uuid}`) || '{}';
+    const allResponses = localStorage.getItem(`assessment-responses-${uuidString}`) || '{}';
     const responses = JSON.parse(allResponses);
     
     // Calculate scores from responses
@@ -403,9 +439,9 @@ export default function ResultsPage() {
   const fetchResults = async () => {
     try {
       // Check if this is a session-based assessment
-      const sessionData = localStorage.getItem(`assessment-session-${uuid}`);
+      const allResponses = localStorage.getItem(`assessment-responses-${uuidString}`);
       
-      if (sessionData) {
+      if (allResponses) {
         // This is a session-based assessment - generate results from localStorage
         const results = await generateResultsFromSession();
         setResults(results);
