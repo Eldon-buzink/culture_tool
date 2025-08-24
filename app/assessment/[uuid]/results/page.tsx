@@ -436,6 +436,81 @@ export default function ResultsPage() {
     };
   };
 
+  const storeResultsInDatabase = async (results: AssessmentResults) => {
+    try {
+      // Create a unique assessment ID for this session-based assessment
+      const assessmentId = uuidString;
+      
+      // Store the assessment record
+      const assessmentResponse = await fetch('/api/assessments/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: 'Individual Assessment',
+          description: 'Personal assessment for individual insights',
+          type: 'individual',
+          createdBy: `session-${Date.now()}`, // Generate a session user ID
+          teamId: null // No team initially
+        })
+      });
+
+      if (!assessmentResponse.ok) {
+        throw new Error('Failed to create assessment record');
+      }
+
+      const assessmentData = await assessmentResponse.json();
+      const newAssessmentId = assessmentData.assessment.id;
+
+      // Store the assessment results
+      const resultsResponse = await fetch(`/api/assessments/${newAssessmentId}/results`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          oceanScores: results.oceanScores,
+          cultureScores: results.cultureScores,
+          valuesScores: results.valuesScores,
+          insights: results.insights,
+          recommendations: results.recommendations
+        })
+      });
+
+      if (!resultsResponse.ok) {
+        throw new Error('Failed to store assessment results');
+      }
+
+      // Store the individual responses for team linking
+      const allResponses = localStorage.getItem(`assessment-responses-${uuidString}`);
+      if (allResponses) {
+        const responses = JSON.parse(allResponses);
+        
+        // Store each section's responses
+        for (const [section, sectionResponses] of Object.entries(responses)) {
+          for (const [questionId, response] of Object.entries(sectionResponses as Record<string, number>)) {
+            await fetch(`/api/assessments/${newAssessmentId}/responses`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                userId: `session-${Date.now()}`,
+                section: section,
+                questionId: questionId,
+                response: response
+              })
+            });
+          }
+        }
+      }
+
+      console.log('Assessment results and responses stored in database with ID:', newAssessmentId);
+      
+      // Store the mapping from session UUID to database ID for future reference
+      localStorage.setItem(`assessment-db-id-${uuidString}`, newAssessmentId);
+      
+    } catch (error) {
+      console.error('Error storing results in database:', error);
+      throw error;
+    }
+  };
+
   const fetchResults = async () => {
     try {
       // Check if this is a session-based assessment
@@ -446,6 +521,15 @@ export default function ResultsPage() {
         const results = await generateResultsFromSession();
         setResults(results);
         setLoading(false);
+        
+        // Store results in database for persistence and team linking
+        try {
+          await storeResultsInDatabase(results);
+        } catch (error) {
+          console.error('Failed to store results in database:', error);
+          // Continue showing results even if database storage fails
+        }
+        
         return;
       }
       
