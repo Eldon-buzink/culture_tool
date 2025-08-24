@@ -70,8 +70,7 @@ export async function POST(req: Request) {
           .insert({ 
             name, 
             description, 
-            code: teamCode,
-            owner_id: userId 
+            code: teamCode
           })
           .select('*')
           .single();
@@ -102,8 +101,7 @@ export async function POST(req: Request) {
       .insert({ 
         name, 
         description, 
-        code: teamCode,
-        owner_id: null 
+        code: teamCode
       })
       .select('*')
       .single();

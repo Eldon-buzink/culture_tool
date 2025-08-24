@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/database';
-import { AIService } from '@/lib/services/aiService';
+import { createSupabaseAdmin } from '../../../../lib/supabase/server';
+import { AIService } from '../../../../lib/services/aiService';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 export async function POST(
   request: NextRequest,
@@ -17,12 +20,16 @@ export async function POST(
       );
     }
 
-    // Find the team
-    const team = await prisma.team.findUnique({
-      where: { code }
-    });
+    const admin = createSupabaseAdmin();
 
-    if (!team) {
+    // Find the team
+    const { data: team, error: teamError } = await admin
+      .from('teams')
+      .select('id')
+      .eq('code', code)
+      .single();
+
+    if (teamError || !team) {
       return NextResponse.json(
         { success: false, error: 'Team not found' },
         { status: 404 }
@@ -45,12 +52,16 @@ export async function POST(
     }
 
     // Store team recommendations in the database
-    await prisma.team.update({
-      where: { id: team.id },
-      data: {
-        teamRecommendations: JSON.stringify(teamRecommendations)
-      }
-    });
+    const { error: updateError } = await admin
+      .from('teams')
+      .update({
+        team_recommendations: JSON.stringify(teamRecommendations)
+      })
+      .eq('id', team.id);
+
+    if (updateError) {
+      console.error('Failed to update team recommendations:', updateError);
+    }
 
     return NextResponse.json({
       success: true,
@@ -72,34 +83,37 @@ export async function GET(
 ) {
   try {
     const { code } = params;
+    const admin = createSupabaseAdmin();
 
     // Find the team
-    const team = await prisma.team.findUnique({
-      where: { code },
-      include: {
-        members: {
-          include: {
-            user: true
-          }
-        },
-        assessments: {
-          include: {
-            results: true
-          }
-        }
-      }
-    });
+    const { data: team, error: teamError } = await admin
+      .from('teams')
+      .select('id, name, code, team_recommendations')
+      .eq('code', code)
+      .single();
 
-    if (!team) {
+    if (teamError || !team) {
       return NextResponse.json(
         { success: false, error: 'Team not found' },
         { status: 404 }
       );
     }
 
+    // Get team member count
+    const { count: memberCount } = await admin
+      .from('team_members')
+      .select('*', { count: 'exact', head: true })
+      .eq('team_id', team.id);
+
+    // Get assessment count
+    const { count: assessmentCount } = await admin
+      .from('assessments')
+      .select('*', { count: 'exact', head: true })
+      .eq('team_id', team.id);
+
     // Check if we have stored recommendations
-    if (team.teamRecommendations) {
-      const storedRecommendations = JSON.parse(team.teamRecommendations);
+    if (team.team_recommendations) {
+      const storedRecommendations = JSON.parse(team.team_recommendations);
       return NextResponse.json({
         success: true,
         recommendations: storedRecommendations,
@@ -107,8 +121,8 @@ export async function GET(
           id: team.id,
           name: team.name,
           code: team.code,
-          memberCount: team.members.length,
-          assessmentCount: team.assessments.length
+          memberCount: memberCount || 0,
+          assessmentCount: assessmentCount || 0
         }
       });
     } else {
@@ -119,8 +133,8 @@ export async function GET(
           id: team.id,
           name: team.name,
           code: team.code,
-          memberCount: team.members.length,
-          assessmentCount: team.assessments.length
+          memberCount: memberCount || 0,
+          assessmentCount: assessmentCount || 0
         }
       });
     }

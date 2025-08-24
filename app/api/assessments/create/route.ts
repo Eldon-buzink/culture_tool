@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/database';
+import { createSupabaseAdmin } from '../../../../lib/supabase/server';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,12 +16,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify user exists
-    const user = await prisma.user.findUnique({
-      where: { id: userId }
-    });
+    const admin = createSupabaseAdmin();
 
-    if (!user) {
+    // Verify user exists
+    const { data: user, error: userError } = await admin
+      .from('users')
+      .select('id')
+      .eq('id', userId)
+      .single();
+
+    if (userError || !user) {
       return NextResponse.json(
         { success: false, error: 'User not found' },
         { status: 404 }
@@ -27,11 +34,13 @@ export async function POST(request: NextRequest) {
 
     // Verify team exists if teamId is provided
     if (teamId) {
-      const team = await prisma.team.findUnique({
-        where: { id: teamId }
-      });
+      const { data: team, error: teamError } = await admin
+        .from('teams')
+        .select('id')
+        .eq('id', teamId)
+        .single();
 
-      if (!team) {
+      if (teamError || !team) {
         return NextResponse.json(
           { success: false, error: 'Team not found' },
           { status: 404 }
@@ -40,16 +49,23 @@ export async function POST(request: NextRequest) {
     }
 
     // Create new assessment
-    const assessment = await prisma.assessment.create({
-      data: {
-        title: 'Individual Assessment',
-        description: 'Personal assessment for team member',
-        type: 'individual',
-        createdBy: userId,
-        teamId: teamId || null,
-        status: 'draft'
-      }
-    });
+    const { data: assessment, error: assessmentError } = await admin
+      .from('assessments')
+      .insert({
+        user_id: userId,
+        team_id: teamId || null,
+        status: 'in_progress'
+      })
+      .select('id')
+      .single();
+
+    if (assessmentError) {
+      console.error('Error creating assessment:', assessmentError);
+      return NextResponse.json(
+        { success: false, error: 'Failed to create assessment' },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({ 
       success: true, 
