@@ -83,8 +83,11 @@ export default function CreateTeamPage() {
     const validEmails = emails.filter(email => email.trim() && email.includes('@'));
     
     if (validEmails.length === 0) {
+      console.log('No valid emails to send invitations to');
       return; // No emails to send
     }
+
+    console.log('Sending email invitations to:', validEmails);
 
     try {
       let successCount = 0;
@@ -92,25 +95,42 @@ export default function CreateTeamPage() {
 
       for (const email of validEmails) {
         try {
+          console.log(`Sending invitation to: ${email}`);
+          
+          const invitationData = {
+            recipientName: email.split('@')[0], // Use email prefix as name
+            recipientEmail: email.trim(),
+            teamName: name,
+            teamCode: code,
+            inviterName: 'Team Leader',
+            assessmentUrl: `${window.location.origin}/assessment/start-assessment?team=${code}`
+          };
+          
+          console.log('Invitation data:', invitationData);
+
           const response = await fetch('/api/email/send-invitation', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify({
-              recipientName: email.split('@')[0], // Use email prefix as name
-              recipientEmail: email.trim(),
-              teamName: name,
-              teamCode: code,
-              inviterName: 'Team Leader',
-              assessmentUrl: `${window.location.origin}/assessment/start-assessment?team=${code}`
-            }),
+            body: JSON.stringify(invitationData),
           });
 
+          console.log(`Response status for ${email}:`, response.status);
+          
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`HTTP error for ${email}:`, response.status, errorText);
+            errorCount++;
+            continue;
+          }
+
           const data = await response.json();
+          console.log(`Response data for ${email}:`, data);
           
           if (data.success) {
             successCount++;
+            console.log(`✅ Successfully sent invitation to ${email}`);
           } else {
             errorCount++;
             console.error(`Failed to send to ${email}:`, data.error);
@@ -126,6 +146,8 @@ export default function CreateTeamPage() {
         if (errorCount > 0) {
           console.log(`❌ Failed to send ${errorCount} invitation${errorCount > 1 ? 's' : ''}.`);
         }
+      } else {
+        console.error(`❌ Failed to send any invitations. ${errorCount} errors occurred.`);
       }
     } catch (error) {
       console.error('Error sending invitations:', error);

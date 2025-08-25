@@ -528,8 +528,25 @@ export default function ResultsPage() {
       const allResponses = localStorage.getItem(`assessment-responses-${uuidString}`);
       
       if (allResponses) {
+        console.log('Found session responses, generating results...');
+        const responses = JSON.parse(allResponses);
+        console.log('Session responses:', responses);
+        
+        // Check if all sections are completed
+        const sections = ['ocean', 'culture', 'values'];
+        const allSectionsCompleted = sections.every(section => 
+          responses[section] && Object.keys(responses[section]).length > 0
+        );
+        
+        if (!allSectionsCompleted) {
+          console.log('Not all sections completed, redirecting to overview');
+          window.location.href = `/assessment/${uuidString}`;
+          return;
+        }
+        
         // This is a session-based assessment - generate results from localStorage
         const results = await generateResultsFromSession();
+        console.log('Generated results from session:', results);
         setResults(results);
         setLoading(false);
         

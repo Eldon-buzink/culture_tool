@@ -44,11 +44,18 @@ export interface TeamInvitationEmailData {
 
 export async function sendEmail(emailData: EmailData) {
   try {
+    console.log('Email service - Starting email send to:', emailData.to);
+    
     const resendInstance = getResend();
     if (!resendInstance) {
-      console.warn('Resend not initialized - skipping email send');
+      console.error('Email service - Resend not initialized - missing API key');
       return { success: false, error: 'Resend not configured' };
     }
+
+    console.log('Email service - Resend instance created, sending email...');
+    console.log('Email service - From:', process.env.RESEND_FROM_EMAIL || 'noreply@culturemapping.com');
+    console.log('Email service - To:', emailData.to);
+    console.log('Email service - Subject:', emailData.subject);
 
     const result = await resendInstance.emails.send({
       from: emailData.from || process.env.RESEND_FROM_EMAIL || 'noreply@culturemapping.com',
@@ -57,10 +64,10 @@ export async function sendEmail(emailData: EmailData) {
       html: emailData.html,
     });
 
-    console.log('Email sent successfully:', result);
+    console.log('Email service - Email sent successfully:', result);
     return { success: true, data: result };
   } catch (error) {
-    console.error('Failed to send email:', error);
+    console.error('Email service - Failed to send email:', error);
     return { success: false, error };
   }
 }
