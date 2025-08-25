@@ -5,11 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import RadarChart from '@/components/RadarChart';
 import { 
   Users, 
   Mail, 
   Copy, 
   Share2,
+  Download,
   TrendingUp,
   AlertCircle,
   CheckCircle,
@@ -25,13 +27,7 @@ import {
   Award,
   ChevronDown,
   Lightbulb,
-  AlertTriangle,
-  Heart,
-  Star,
-  Target as TargetIcon,
-  Users as UsersIcon,
-  BarChart3,
-  PieChart
+  AlertTriangle
 } from 'lucide-react';
 import { TermGlossary } from '@/components/TermExplanation';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -48,8 +44,6 @@ interface TeamMember {
   oceanScores?: Record<string, number>;
   cultureScores?: Record<string, number>;
   valuesScores?: Record<string, number>;
-  role?: string;
-  joinedAt?: string;
 }
 
 interface TeamData {
@@ -70,15 +64,6 @@ interface TeamData {
   };
 }
 
-interface PersonalityConflict {
-  type: string;
-  description: string;
-  members: TeamMember[];
-  explanation: string;
-  implications: string[];
-  recommendations: string[];
-}
-
 // Demo data for a fully populated team
 const demoTeamData: TeamData = {
   code: 'DEMO123',
@@ -92,8 +77,6 @@ const demoTeamData: TeamData = {
       email: 'sarah.chen@company.com',
       status: 'completed',
       completedAt: '2024-01-16T10:30:00Z',
-      role: 'Product Manager',
-      joinedAt: '2024-01-15T09:00:00Z',
       oceanScores: { openness: 85, conscientiousness: 72, extraversion: 78, agreeableness: 65, neuroticism: 35 },
       cultureScores: { powerDistance: 25, individualism: 70, masculinity: 45, uncertaintyAvoidance: 30, longTermOrientation: 80, indulgence: 60 },
       valuesScores: { innovation: 90, collaboration: 75, autonomy: 65, quality: 85, customerFocus: 80 }
@@ -104,8 +87,6 @@ const demoTeamData: TeamData = {
       email: 'marcus.rodriguez@company.com',
       status: 'completed',
       completedAt: '2024-01-16T14:15:00Z',
-      role: 'Senior Developer',
-      joinedAt: '2024-01-15T09:00:00Z',
       oceanScores: { openness: 70, conscientiousness: 88, extraversion: 45, agreeableness: 75, neuroticism: 40 },
       cultureScores: { powerDistance: 35, individualism: 80, masculinity: 55, uncertaintyAvoidance: 60, longTermOrientation: 70, indulgence: 45 },
       valuesScores: { innovation: 75, collaboration: 60, autonomy: 85, quality: 90, customerFocus: 70 }
@@ -116,8 +97,6 @@ const demoTeamData: TeamData = {
       email: 'aisha.patel@company.com',
       status: 'completed',
       completedAt: '2024-01-17T11:45:00Z',
-      role: 'UX Designer',
-      joinedAt: '2024-01-15T09:00:00Z',
       oceanScores: { openness: 90, conscientiousness: 65, extraversion: 60, agreeableness: 85, neuroticism: 50 },
       cultureScores: { powerDistance: 20, individualism: 60, masculinity: 35, uncertaintyAvoidance: 25, longTermOrientation: 75, indulgence: 70 },
       valuesScores: { innovation: 85, collaboration: 80, autonomy: 70, quality: 75, customerFocus: 90 }
@@ -128,8 +107,6 @@ const demoTeamData: TeamData = {
       email: 'david.kim@company.com',
       status: 'completed',
       completedAt: '2024-01-17T16:20:00Z',
-      role: 'Data Analyst',
-      joinedAt: '2024-01-15T09:00:00Z',
       oceanScores: { openness: 65, conscientiousness: 95, extraversion: 35, agreeableness: 70, neuroticism: 45 },
       cultureScores: { powerDistance: 40, individualism: 75, masculinity: 60, uncertaintyAvoidance: 70, longTermOrientation: 85, indulgence: 40 },
       valuesScores: { innovation: 70, collaboration: 65, autonomy: 80, quality: 95, customerFocus: 75 }
@@ -140,8 +117,6 @@ const demoTeamData: TeamData = {
       email: 'emma.thompson@company.com',
       status: 'completed',
       completedAt: '2024-01-18T13:30:00Z',
-      role: 'Marketing Specialist',
-      joinedAt: '2024-01-15T09:00:00Z',
       oceanScores: { openness: 75, conscientiousness: 70, extraversion: 85, agreeableness: 80, neuroticism: 30 },
       cultureScores: { powerDistance: 30, individualism: 65, masculinity: 40, uncertaintyAvoidance: 35, longTermOrientation: 70, indulgence: 75 },
       valuesScores: { innovation: 80, collaboration: 85, autonomy: 60, quality: 70, customerFocus: 85 }
@@ -172,163 +147,70 @@ const demoTeamData: TeamData = {
   }
 };
 
-// Demo personality conflicts
-const demoConflicts: PersonalityConflict[] = [
-  {
-    type: "Communication Style Conflict",
-    description: "Team has mixed communication preferences - some prefer immediate discussion while others need processing time",
-    members: [demoTeamData.members[0], demoTeamData.members[1]], // Sarah (high extravert) vs Marcus (low extravert)
-    explanation: "Sarah's high extraversion (78) means she prefers spontaneous, interactive communication while Marcus's lower extraversion (45) means he prefers structured, thoughtful discussions. This can lead to meetings where Sarah dominates while Marcus feels unheard.",
-    implications: [
-      "Sarah may dominate discussions and make quick decisions",
-      "Marcus may feel overwhelmed and need time to process information",
-      "Team meetings may not be equally productive for all members",
-      "Important perspectives from quieter members may be missed"
-    ],
-    recommendations: [
-      "Send meeting agendas 24 hours in advance",
-      "Use both synchronous and asynchronous communication channels",
-      "Allow quiet time during brainstorming sessions",
-      "Follow up written decisions with quick video calls",
-      "Assign meeting roles (facilitator, note-taker, time-keeper)"
-    ]
-  },
-  {
-    type: "Work Style Conflict",
-    description: "Team has conflicting preferences for structure vs flexibility in work processes",
-    members: [demoTeamData.members[1], demoTeamData.members[2]], // Marcus (high conscientiousness) vs Aisha (high openness)
-    explanation: "Marcus's high conscientiousness (88) means he prefers structured, planned approaches while Aisha's high openness (90) means she prefers flexible, innovative methods. This can create tension around processes and decision-making.",
-    implications: [
-      "Process-oriented members may resist changes and new approaches",
-      "Innovation-focused members may find structured processes limiting",
-      "Project planning may be contentious between planners and adapters",
-      "Quality standards may conflict with speed and experimentation"
-    ],
-    recommendations: [
-      "Establish clear project phases with flexibility within each phase",
-      "Create innovation time within structured processes",
-      "Use design thinking methodologies that balance structure and creativity",
-      "Assign roles based on strengths (planner vs innovator)",
-      "Regularly review and adapt processes based on team feedback"
-    ]
-  }
-];
-
 // Demo team recommendations
 const demoRecommendations = {
-  communication: {
-    title: "Optimize Communication for Diverse Styles",
-    description: "Your team has a healthy mix of communication preferences, but needs structured approaches to ensure everyone's voice is heard.",
-    recommendations: [
-      {
-        title: "Implement Structured Meeting Formats",
-        description: "Use meeting agendas, time limits, and role assignments to balance participation.",
-        impact: "High",
-        effort: "Medium"
-      },
-      {
-        title: "Create Multiple Communication Channels",
-        description: "Offer both real-time and asynchronous communication options for different preferences.",
-        impact: "High",
-        effort: "Low"
-      },
-      {
-        title: "Regular One-on-One Check-ins",
-        description: "Provide individual attention to team members who prefer quieter communication styles.",
-        impact: "Medium",
-        effort: "Medium"
-      }
-    ]
-  },
-  innovation: {
-    title: "Leverage High Innovation Potential",
-    description: "Your team has exceptional innovation scores. Create processes that channel this creativity effectively.",
-    recommendations: [
-      {
-        title: "Dedicated Innovation Time",
-        description: "Allocate 20% of work time for creative exploration and experimentation.",
-        impact: "High",
-        effort: "Medium"
-      },
-      {
-        title: "Cross-functional Brainstorming Sessions",
-        description: "Regular sessions where different perspectives can spark new ideas.",
-        impact: "High",
-        effort: "Low"
-      },
-      {
-        title: "Innovation Metrics and Recognition",
-        description: "Track and celebrate innovative contributions and successful experiments.",
-        impact: "Medium",
-        effort: "Low"
-      }
-    ]
-  },
-  quality: {
-    title: "Maintain High Quality Standards",
-    description: "Your team values quality highly. Ensure processes support this while maintaining efficiency.",
-    recommendations: [
-      {
-        title: "Quality Gates and Reviews",
-        description: "Implement structured review processes that don't slow down innovation.",
-        impact: "High",
-        effort: "Medium"
-      },
-      {
-        title: "Automated Quality Checks",
-        description: "Use tools and processes that maintain quality without manual overhead.",
-        impact: "High",
-        effort: "High"
-      },
-      {
-        title: "Quality vs Speed Trade-off Discussions",
-        description: "Regular team discussions about when to prioritize quality vs delivery speed.",
-        impact: "Medium",
-        effort: "Low"
-      }
-    ]
-  }
+  summary: "Your team shows excellent potential for innovation and quality-focused work, with a healthy balance of personality types that can drive comprehensive solutions.",
+  keyStrengths: [
+    "High innovation scores across all team members",
+    "Strong quality focus and attention to detail",
+    "Diverse communication styles for different situations"
+  ],
+  developmentAreas: [
+    "Communication protocols for mixed extraversion levels",
+    "Process flexibility to accommodate different work styles",
+    "Stress management strategies for varying tolerance levels"
+  ],
+  recommendations: [
+    {
+      title: "Implement Structured Communication Protocols",
+      description: "Create meeting formats that balance participation between high and low extraverts.",
+      impact: "High",
+      effort: "Medium"
+    },
+    {
+      title: "Establish Innovation Time",
+      description: "Allocate dedicated time for creative exploration and experimentation.",
+      impact: "High",
+      effort: "Low"
+    },
+    {
+      title: "Quality Review Processes",
+      description: "Implement structured review processes that maintain quality without slowing innovation.",
+      impact: "High",
+      effort: "Medium"
+    }
+  ]
 };
 
 export default function DemoTeamDashboardPage() {
   const [showShareModal, setShowShareModal] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
-  const [expandedRecommendations, setExpandedRecommendations] = useState({
-    communication: false,
-    innovation: false,
-    quality: false,
-  });
-  const [expandedConflicts, setExpandedConflicts] = useState<{ [key: number]: boolean }>({});
 
-  const copyInviteLink = () => {
-    const inviteLink = `${window.location.origin}/team/join/${demoTeamData.code}`;
-    navigator.clipboard.writeText(inviteLink);
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'completed': return <CheckCircle className="h-4 w-4 text-green-600" />;
+      case 'in_progress': return <Clock className="h-4 w-4 text-yellow-600" />;
+      case 'invited': return <Mail className="h-4 w-4 text-gray-400" />;
+      default: return <AlertCircle className="h-4 w-4 text-red-600" />;
+    }
   };
 
-  const getScoreBadgeColor = (score: number) => {
-    if (score >= 70) return 'bg-green-100 text-green-800';
-    if (score >= 40) return 'bg-yellow-100 text-yellow-800';
-    return 'bg-red-100 text-red-800';
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed': return 'bg-green-100 text-green-800 border-green-200';
+      case 'in_progress': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'invited': return 'bg-gray-100 text-gray-800 border-gray-200';
+      default: return 'bg-red-100 text-red-800 border-red-200';
+    }
   };
 
-  const getScoreLabel = (score: number) => {
-    if (score >= 70) return 'High';
-    if (score >= 40) return 'Moderate';
-    return 'Low';
-  };
-
-  const toggleRecommendation = (section: string) => {
-    setExpandedRecommendations(prev => ({
-      ...prev,
-      [section]: !prev[section as keyof typeof prev]
-    }));
-  };
-
-  const toggleConflict = (index: number) => {
-    setExpandedConflicts(prev => ({
-      ...prev,
-      [index]: !prev[index]
-    }));
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'completed': return 'Completed';
+      case 'in_progress': return 'In Progress';
+      case 'invited': return 'Invited';
+      default: return 'Error';
+    }
   };
 
   const completedMembers = demoTeamData.members.filter(m => m.status === 'completed');
@@ -338,51 +220,171 @@ export default function DemoTeamDashboardPage() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8">
       <div className="max-w-7xl mx-auto px-4">
         {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                {demoTeamData.name} Dashboard
-              </h1>
-              <p className="text-gray-600">{demoTeamData.description}</p>
-            </div>
-            <div className="flex gap-3">
-              <Button variant="outline" onClick={() => setShowInviteModal(true)}>
-                <UserPlus className="h-4 w-4 mr-2" />
-                Invite Members
-              </Button>
-              <Button variant="outline" onClick={() => setShowShareModal(true)}>
-                <Share2 className="h-4 w-4 mr-2" />
-                Share Results
-              </Button>
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">{demoTeamData.name}</h1>
+            <p className="text-gray-600">{demoTeamData.description}</p>
+            <div className="flex items-center gap-4 mt-2">
+              <Badge variant="outline" className="font-mono">{demoTeamData.code}</Badge>
+              <span className="text-sm text-gray-500">
+                Created {new Date(demoTeamData.createdAt).toLocaleDateString()}
+              </span>
             </div>
           </div>
-          
-          <div className="bg-white rounded-lg p-6 shadow-sm">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-blue-600 mb-1">{demoTeamData.members.length}</div>
-                <div className="text-sm text-gray-600">Team Members</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-green-600 mb-1">{completedMembers.length}</div>
-                <div className="text-sm text-gray-600">Completed Assessments</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-purple-600 mb-1">{Math.round(completionRate)}%</div>
-                <div className="text-sm text-gray-600">Completion Rate</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-orange-600 mb-1">{demoConflicts.length}</div>
-                <div className="text-sm text-gray-600">Potential Conflicts</div>
-              </div>
-            </div>
+          <div className="flex gap-3">
+            <Button variant="outline" onClick={() => setShowShareModal(true)}>
+              <Share2 className="h-4 w-4 mr-2" />
+              Share
+            </Button>
+            <Button onClick={() => setShowInviteModal(true)}>
+              <UserPlus className="h-4 w-4 mr-2" />
+              Invite Members
+            </Button>
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Team Members */}
-          <div className="lg:col-span-1">
+          {/* Main Content */}
+          <div className="lg:col-span-2 space-y-8">
+            {/* Team Overview */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  Team Overview
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="text-center">
+                    <div className="text-3xl font-bold text-blue-600 mb-2">{demoTeamData.members.length}</div>
+                    <div className="text-sm text-gray-600">Total Members</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-3xl font-bold text-green-600 mb-2">{completedMembers.length}</div>
+                    <div className="text-sm text-gray-600">Completed</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-3xl font-bold text-yellow-600 mb-2">{Math.round(completionRate)}%</div>
+                    <div className="text-sm text-gray-600">Completion Rate</div>
+                  </div>
+                </div>
+                
+                <div className="mt-6">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm font-medium text-gray-700">Assessment Progress</span>
+                    <span className="text-sm text-gray-500">{completedMembers.length}/{demoTeamData.members.length} completed</span>
+                  </div>
+                  <Progress value={completionRate} className="h-3" />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Team Aggregate Results */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5" />
+                  Team Aggregate Results
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  {/* OCEAN Aggregate */}
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                      <Brain className="h-4 w-4" />
+                      Team Personality Profile
+                    </h4>
+                    <RadarChart 
+                      data={demoTeamData.aggregateScores.ocean} 
+                      title="Team OCEAN Profile"
+                      color="#3B82F6"
+                    />
+                  </div>
+
+                  {/* Culture Aggregate */}
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                      <Globe className="h-4 w-4" />
+                      Team Cultural Preferences
+                    </h4>
+                    <RadarChart 
+                      data={demoTeamData.aggregateScores.culture} 
+                      title="Team Cultural Profile"
+                      color="#10B981"
+                    />
+                  </div>
+
+                  {/* Values Aggregate */}
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                      <Target className="h-4 w-4" />
+                      Team Values Profile
+                    </h4>
+                    <RadarChart 
+                      data={demoTeamData.aggregateScores.values} 
+                      title="Team Values Profile"
+                      color="#F59E0B"
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Team Insights */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5" />
+                  Team Insights
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  <div>
+                    <h4 className="font-semibold text-green-900 mb-3">Team Strengths</h4>
+                    <div className="space-y-2">
+                      {demoTeamData.insights.strengths.map((strength, index) => (
+                        <div key={index} className="flex items-start gap-3 p-3 bg-green-50 rounded-lg">
+                          <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
+                          <p className="text-gray-700 text-sm">{strength}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="font-semibold text-yellow-900 mb-3">Areas for Attention</h4>
+                    <div className="space-y-2">
+                      {demoTeamData.insights.challenges.map((challenge, index) => (
+                        <div key={index} className="flex items-start gap-3 p-3 bg-yellow-50 rounded-lg">
+                          <div className="w-2 h-2 bg-yellow-500 rounded-full mt-2 flex-shrink-0"></div>
+                          <p className="text-gray-700 text-sm">{challenge}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="font-semibold text-blue-900 mb-3">Opportunities</h4>
+                    <div className="space-y-2">
+                      {demoTeamData.insights.opportunities.map((opportunity, index) => (
+                        <div key={index} className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg">
+                          <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                          <p className="text-gray-700 text-sm">{opportunity}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Sidebar */}
+          <div className="space-y-6">
+            {/* Team Members */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -391,270 +393,177 @@ export default function DemoTeamDashboardPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="bg-blue-50 rounded-lg p-4 mb-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Lightbulb className="h-4 w-4 text-blue-600" />
-                    <span className="text-sm font-medium text-blue-900">Quick Tip</span>
-                  </div>
-                  <p className="text-sm text-blue-700">
-                    Click on completed members to view their individual assessment results and compare with team averages.
-                  </p>
-                </div>
-                
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {demoTeamData.members.map((member) => (
-                    <div key={member.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                          <span className="text-sm font-medium text-blue-600">
+                    <div 
+                      key={member.id} 
+                      className="p-5 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-all duration-200 hover:shadow-sm"
+                      onClick={() => {
+                        if (member.status === 'completed') {
+                          // Navigate to individual results
+                          window.open(`/assessment/${member.id}/results`, '_blank');
+                        } else {
+                          // Show status message
+                          alert(`${member.name} hasn't completed the assessment yet.`);
+                        }
+                      }}
+                    >
+                      <div className="flex items-start gap-4">
+                        <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-blue-200 rounded-full flex items-center justify-center shadow-sm flex-shrink-0">
+                          <span className="text-sm font-bold text-blue-700">
                             {member.name.split(' ').map(n => n[0]).join('')}
                           </span>
                         </div>
-                        <div>
-                          <div className="font-medium text-gray-900">{member.name}</div>
-                          <div className="text-sm text-gray-500">{member.role}</div>
+                        
+                        <div className="flex-1 min-w-0">
+                          <div className="mb-3">
+                            <div className="font-semibold text-gray-900 text-base truncate">{member.name}</div>
+                            <div className="text-sm text-gray-500 truncate">{member.email}</div>
+                          </div>
+                          
+                          <div className="flex items-center justify-between">
+                            <Badge className={`${getStatusColor(member.status)} px-2 py-1 text-xs`}>
+                              {getStatusIcon(member.status)}
+                              <span className="ml-1 font-medium">{getStatusText(member.status)}</span>
+                            </Badge>
+                            
+                            {member.status === 'completed' && (
+                              <div className="flex items-center gap-1 text-blue-600 text-sm font-medium hover:text-blue-700 transition-colors">
+                                <span>View Results</span>
+                                <ArrowRight className="h-3 w-3" />
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {member.status === 'completed' ? (
-                          <Badge className="bg-green-100 text-green-800">
-                            <CheckCircle className="h-3 w-3 mr-1" />
-                            Completed
-                          </Badge>
-                        ) : member.status === 'in_progress' ? (
-                          <Badge className="bg-yellow-100 text-yellow-800">
-                            <Clock className="h-3 w-3 mr-1" />
-                            In Progress
-                          </Badge>
-                        ) : (
-                          <Badge className="bg-gray-100 text-gray-800">
-                            <Mail className="h-3 w-3 mr-1" />
-                            Invited
-                          </Badge>
-                        )}
                       </div>
                     </div>
                   ))}
                 </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Team Culture Radar Chart */}
-            <Card>
-              <CardHeader>
-                                 <CardTitle className="flex items-center gap-2">
-                   <BarChart3 className="h-5 w-5" />
-                   Team Culture Profile
-                 </CardTitle>
-              </CardHeader>
-                             <CardContent>
-                 <div className="h-80 flex items-center justify-center bg-gray-50 rounded-lg">
-                   <div className="text-center">
-                     <BarChart3 className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                     <h3 className="text-lg font-medium text-gray-900 mb-2">Team Culture Profile</h3>
-                     <p className="text-gray-600 mb-4">Interactive radar chart showing team personality distribution</p>
-                     <div className="grid grid-cols-5 gap-4 text-sm">
-                       <div className="text-center">
-                         <div className="font-medium text-blue-600">{demoTeamData.aggregateScores.ocean.openness}</div>
-                         <div className="text-gray-500">Openness</div>
-                       </div>
-                       <div className="text-center">
-                         <div className="font-medium text-blue-600">{demoTeamData.aggregateScores.ocean.conscientiousness}</div>
-                         <div className="text-gray-500">Conscientiousness</div>
-                       </div>
-                       <div className="text-center">
-                         <div className="font-medium text-blue-600">{demoTeamData.aggregateScores.ocean.extraversion}</div>
-                         <div className="text-gray-500">Extraversion</div>
-                       </div>
-                       <div className="text-center">
-                         <div className="font-medium text-blue-600">{demoTeamData.aggregateScores.ocean.agreeableness}</div>
-                         <div className="text-gray-500">Agreeableness</div>
-                       </div>
-                       <div className="text-center">
-                         <div className="font-medium text-blue-600">{demoTeamData.aggregateScores.ocean.neuroticism}</div>
-                         <div className="text-gray-500">Neuroticism</div>
-                       </div>
-                     </div>
-                   </div>
-                 </div>
-               </CardContent>
-            </Card>
-
-            {/* Team Insights */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Brain className="h-5 w-5" />
-                  Team Insights
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div>
-                    <h4 className="font-semibold text-green-700 mb-3 flex items-center gap-2">
-                      <Star className="h-4 w-4" />
-                      Strengths
-                    </h4>
-                    <ul className="space-y-2">
-                      {demoTeamData.insights.strengths.map((strength, index) => (
-                        <li key={index} className="text-sm text-gray-700 flex items-start gap-2">
-                          <div className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
-                          {strength}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                  
-                  <div>
-                    <h4 className="font-semibold text-orange-700 mb-3 flex items-center gap-2">
-                      <AlertTriangle className="h-4 w-4" />
-                      Challenges
-                    </h4>
-                    <ul className="space-y-2">
-                      {demoTeamData.insights.challenges.map((challenge, index) => (
-                        <li key={index} className="text-sm text-gray-700 flex items-start gap-2">
-                          <div className="w-1.5 h-1.5 bg-orange-500 rounded-full mt-2 flex-shrink-0"></div>
-                          {challenge}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                  
-                  <div>
-                    <h4 className="font-semibold text-blue-700 mb-3 flex items-center gap-2">
-                      <Target className="h-4 w-4" />
-                      Opportunities
-                    </h4>
-                    <ul className="space-y-2">
-                      {demoTeamData.insights.opportunities.map((opportunity, index) => (
-                        <li key={index} className="text-sm text-gray-700 flex items-start gap-2">
-                          <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-                          {opportunity}
-                        </li>
-                      ))}
-                    </ul>
+                
+                <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="flex items-start gap-3">
+                    <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <span className="text-blue-600 text-xs">💡</span>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-blue-900 mb-1">Quick Tip</p>
+                      <p className="text-sm text-blue-700">
+                        Click on completed members to view their individual assessment results and compare with team averages.
+                      </p>
+                    </div>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* AI Recommendations */}
+            {/* Term Glossary */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Zap className="h-5 w-5" />
-                  AI-Powered Recommendations
+                  <BookOpen className="h-5 w-5" />
+                  Understanding Your Results
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-6">
-                  {Object.entries(demoRecommendations).map(([key, section]) => (
-                    <div key={key} className="border rounded-lg p-4">
-                      <div 
-                        className="flex items-center justify-between cursor-pointer"
-                        onClick={() => toggleRecommendation(key)}
-                      >
-                        <div>
-                          <h4 className="font-semibold text-gray-900">{section.title}</h4>
-                          <p className="text-sm text-gray-600 mt-1">{section.description}</p>
-                        </div>
-                        <ChevronDown 
-                          className={`h-5 w-5 text-gray-500 transition-transform ${
-                            expandedRecommendations[key as keyof typeof expandedRecommendations] ? 'rotate-180' : ''
-                          }`}
-                        />
-                      </div>
-                      
-                      {expandedRecommendations[key as keyof typeof expandedRecommendations] && (
-                        <div className="mt-4 space-y-3">
-                          {section.recommendations.map((rec, index) => (
-                            <div key={index} className="bg-gray-50 rounded-lg p-3">
-                              <div className="flex items-start justify-between mb-2">
-                                <h5 className="font-medium text-gray-900">{rec.title}</h5>
-                                <div className="flex gap-2">
-                                  <Badge variant="outline" className="text-xs">
-                                    Impact: {rec.impact}
-                                  </Badge>
-                                  <Badge variant="outline" className="text-xs">
-                                    Effort: {rec.effort}
-                                  </Badge>
-                                </div>
-                              </div>
-                              <p className="text-sm text-gray-700">{rec.description}</p>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                  <TermGlossary category="ocean" />
+                  <TermGlossary category="culture" />
+                  <TermGlossary category="values" />
                 </div>
               </CardContent>
             </Card>
 
-            {/* Personality Conflicts */}
+            {/* Quick Actions */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <AlertCircle className="h-5 w-5" />
-                  Potential Team Conflicts
-                </CardTitle>
+                <CardTitle className="text-lg">Quick Actions</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <Button variant="outline" className="w-full">
+                    <Mail className="h-4 w-4 mr-2" />
+                    Send Reminders
+                  </Button>
+                  <Button variant="outline" className="w-full">
+                    <Download className="h-4 w-4 mr-2" />
+                    Export Report
+                  </Button>
+                  <Button variant="outline" className="w-full">
+                    <Copy className="h-4 w-4 mr-2" />
+                    Copy Invite Link
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Team Recommendations */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Team Recommendations</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {demoConflicts.map((conflict, index) => (
-                    <div key={index} className="border border-orange-200 rounded-lg p-4 bg-orange-50">
-                      <div 
-                        className="flex items-center justify-between cursor-pointer"
-                        onClick={() => toggleConflict(index)}
-                      >
-                        <div>
-                          <h4 className="font-semibold text-orange-900">{conflict.type}</h4>
-                          <p className="text-sm text-orange-700 mt-1">{conflict.description}</p>
-                        </div>
-                        <ChevronDown 
-                          className={`h-5 w-5 text-orange-500 transition-transform ${
-                            expandedConflicts[index] ? 'rotate-180' : ''
-                          }`}
-                        />
+                  {/* Team Summary */}
+                  <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <div className="flex items-start gap-3">
+                      <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <Lightbulb className="h-4 w-4 text-blue-600" />
                       </div>
-                      
-                      {expandedConflicts[index] && (
-                        <div className="mt-4 space-y-4">
-                          <div>
-                            <h5 className="font-medium text-orange-900 mb-2">Explanation</h5>
-                            <p className="text-sm text-orange-800">{conflict.explanation}</p>
-                          </div>
-                          
-                          <div>
-                            <h5 className="font-medium text-orange-900 mb-2">Implications</h5>
-                            <ul className="space-y-1">
-                              {conflict.implications.map((implication, impIndex) => (
-                                <li key={impIndex} className="text-sm text-orange-800 flex items-start gap-2">
-                                  <div className="w-1 h-1 bg-orange-500 rounded-full mt-2 flex-shrink-0"></div>
-                                  {implication}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                          
-                          <div>
-                            <h5 className="font-medium text-orange-900 mb-2">Recommendations</h5>
-                            <ul className="space-y-1">
-                              {conflict.recommendations.map((recommendation, recIndex) => (
-                                <li key={recIndex} className="text-sm text-orange-800 flex items-start gap-2">
-                                  <div className="w-1 h-1 bg-orange-500 rounded-full mt-2 flex-shrink-0"></div>
-                                  {recommendation}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        </div>
-                      )}
+                      <div>
+                        <p className="text-sm font-medium text-blue-900 mb-1">AI Summary</p>
+                        <p className="text-sm text-blue-700">{demoRecommendations.summary}</p>
+                      </div>
                     </div>
-                  ))}
+                  </div>
+
+                  {/* Key Strengths */}
+                  <div>
+                    <h4 className="font-semibold text-green-900 mb-2 text-sm">Key Strengths</h4>
+                    <div className="space-y-2">
+                      {demoRecommendations.keyStrengths.map((strength, index) => (
+                        <div key={index} className="flex items-start gap-2 p-2 bg-green-50 rounded">
+                          <div className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
+                          <p className="text-xs text-green-800">{strength}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Development Areas */}
+                  <div>
+                    <h4 className="font-semibold text-orange-900 mb-2 text-sm">Development Areas</h4>
+                    <div className="space-y-2">
+                      {demoRecommendations.developmentAreas.map((area, index) => (
+                        <div key={index} className="flex items-start gap-2 p-2 bg-orange-50 rounded">
+                          <div className="w-1.5 h-1.5 bg-orange-500 rounded-full mt-2 flex-shrink-0"></div>
+                          <p className="text-xs text-orange-800">{area}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Recommendations */}
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-2 text-sm">Top Recommendations</h4>
+                    <div className="space-y-3">
+                      {demoRecommendations.recommendations.map((rec, index) => (
+                        <div key={index} className="p-3 bg-gray-50 rounded-lg border">
+                          <div className="flex items-start justify-between mb-2">
+                            <h5 className="font-medium text-gray-900 text-sm">{rec.title}</h5>
+                            <div className="flex gap-1">
+                              <Badge variant="outline" className="text-xs">
+                                Impact: {rec.impact}
+                              </Badge>
+                              <Badge variant="outline" className="text-xs">
+                                Effort: {rec.effort}
+                              </Badge>
+                            </div>
+                          </div>
+                          <p className="text-xs text-gray-600">{rec.description}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
