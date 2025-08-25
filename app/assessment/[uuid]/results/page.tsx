@@ -438,8 +438,7 @@ export default function ResultsPage() {
 
   const storeResultsInDatabase = async (results: AssessmentResults) => {
     try {
-      // Create a unique assessment ID for this session-based assessment
-      const assessmentId = uuidString;
+      console.log('Starting to store results in database...');
       
       // Store the assessment record
       const assessmentResponse = await fetch('/api/assessments/create', {
@@ -455,10 +454,13 @@ export default function ResultsPage() {
       });
 
       if (!assessmentResponse.ok) {
-        throw new Error('Failed to create assessment record');
+        const errorText = await assessmentResponse.text();
+        console.error('Assessment creation failed:', assessmentResponse.status, errorText);
+        throw new Error(`Failed to create assessment record: ${assessmentResponse.status}`);
       }
 
       const assessmentData = await assessmentResponse.json();
+      console.log('Assessment created successfully:', assessmentData);
       const newAssessmentId = assessmentData.assessment.id;
 
       // Store the assessment results
@@ -482,20 +484,29 @@ export default function ResultsPage() {
       const allResponses = localStorage.getItem(`assessment-responses-${uuidString}`);
       if (allResponses) {
         const responses = JSON.parse(allResponses);
+        console.log('Storing responses:', responses);
         
         // Store each section's responses
         for (const [section, sectionResponses] of Object.entries(responses)) {
           for (const [questionId, response] of Object.entries(sectionResponses as Record<string, number>)) {
-            await fetch(`/api/assessments/${newAssessmentId}/responses`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                userId: `session-${Date.now()}`,
-                section: section,
-                questionId: questionId,
-                response: response
-              })
-            });
+            try {
+              const responseResult = await fetch(`/api/assessments/${newAssessmentId}/responses`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  userId: `session-${Date.now()}`,
+                  section: section,
+                  questionId: questionId,
+                  response: response
+                })
+              });
+              
+              if (!responseResult.ok) {
+                console.error(`Failed to store response for ${section}/${questionId}:`, responseResult.status);
+              }
+            } catch (error) {
+              console.error(`Error storing response for ${section}/${questionId}:`, error);
+            }
           }
         }
       }

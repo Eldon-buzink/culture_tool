@@ -6,30 +6,53 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId, teamId } = await request.json();
+    const { title, description, type, createdBy, teamId } = await request.json();
     
     // Validate input
-    if (!userId) {
+    if (!createdBy) {
       return NextResponse.json(
-        { success: false, error: 'User ID is required' },
+        { success: false, error: 'Created by field is required' },
         { status: 400 }
       );
     }
 
     const admin = createSupabaseAdmin();
 
-    // Verify user exists
-    const { data: user, error: userError } = await admin
-      .from('users')
-      .select('id')
-      .eq('id', userId)
-      .single();
+    // For individual assessments, create a user if it's a session ID
+    let userId = createdBy;
+    if (createdBy.startsWith('session-')) {
+      // This is a session-based user, create a temporary user record
+      const { data: newUser, error: userError } = await admin
+        .from('users')
+        .insert({
+          email: `${createdBy}@temp.local`,
+          name: 'Individual Assessment User'
+        })
+        .select('id')
+        .single();
 
-    if (userError || !user) {
-      return NextResponse.json(
-        { success: false, error: 'User not found' },
-        { status: 404 }
-      );
+      if (userError) {
+        console.error('Error creating session user:', userError);
+        return NextResponse.json(
+          { success: false, error: 'Failed to create session user' },
+          { status: 500 }
+        );
+      }
+      userId = newUser.id;
+    } else {
+      // Verify existing user exists
+      const { data: user, error: userError } = await admin
+        .from('users')
+        .select('id')
+        .eq('id', createdBy)
+        .single();
+
+      if (userError || !user) {
+        return NextResponse.json(
+          { success: false, error: 'User not found' },
+          { status: 404 }
+        );
+      }
     }
 
     // Verify team exists if teamId is provided
@@ -52,11 +75,14 @@ export async function POST(request: NextRequest) {
     const { data: assessment, error: assessmentError } = await admin
       .from('assessments')
       .insert({
+        title: title || 'Individual Assessment',
+        description: description || 'Personal assessment for individual insights',
+        type: type || 'individual',
         user_id: userId,
         team_id: teamId || null,
-        status: 'in_progress'
+        status: 'completed'
       })
-      .select('id')
+      .select('*')
       .single();
 
     if (assessmentError) {
@@ -69,7 +95,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ 
       success: true, 
-      assessmentId: assessment.id 
+      assessment: assessment
     });
   } catch (error) {
     console.error('Error creating assessment:', error);
