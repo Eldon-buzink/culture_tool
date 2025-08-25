@@ -77,10 +77,10 @@ export async function POST(req: Request) {
         
         if (error) throw error;
         
-        // Add team members if any
-        if (memberEmails.length > 0) {
-          await addTeamMembers(teamCode, memberEmails, debug);
-        }
+            // Add team members if any
+    if (memberEmails.length > 0) {
+      await addTeamMembers(teamCode, data.id, memberEmails, debug);
+    }
         
         if (debug) console.log('Team created successfully with RLS');
         return NextResponse.json({ 
@@ -113,7 +113,7 @@ export async function POST(req: Request) {
     
     // Add team members if any
     if (memberEmails.length > 0) {
-      await addTeamMembers(teamCode, memberEmails, debug);
+      await addTeamMembers(teamCode, data.id, memberEmails, debug);
     }
     
     if (debug) console.log('Team creation completed successfully with admin');
@@ -155,7 +155,7 @@ export async function GET() {
   }
 }
 
-async function addTeamMembers(teamCode: string, memberEmails: string[], debug: boolean) {
+async function addTeamMembers(teamCode: string, teamId: string, memberEmails: string[], debug: boolean) {
   if (!memberEmails || memberEmails.length === 0) return;
 
   if (debug) console.log('Adding team members:', memberEmails);
@@ -193,7 +193,7 @@ async function addTeamMembers(teamCode: string, memberEmails: string[], debug: b
         const { error: memberError } = await admin
           .from('team_members')
           .insert({
-            team_code: teamCode,
+            team_id: teamId, // Use the passed team ID
             user_id: user.id,
             role: 'member'
           });

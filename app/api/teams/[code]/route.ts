@@ -55,7 +55,7 @@ export async function GET(
     // Check completion status for each member
     const membersWithStatus = await Promise.all(
       teamMembers.map(async (member) => {
-        // Check if this user has any assessments
+        // Check if this user has any assessments (individual or team)
         const { data: userAssessment } = await admin
           .from('assessments')
           .select(`
@@ -63,7 +63,7 @@ export async function GET(
             assessment_results(id)
           `)
           .eq('user_id', member.user_id)
-          .eq('team_id', team.id)
+          .or(`team_id.eq.${team.id},team_id.is.null`)
           .single();
 
         let status: 'invited' | 'completed' | 'in_progress' = 'invited';
