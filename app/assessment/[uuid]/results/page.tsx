@@ -298,10 +298,14 @@ export default function ResultsPage() {
     const allResponses = localStorage.getItem(`assessment-responses-${uuidString}`) || '{}';
     const responses = JSON.parse(allResponses);
     
+    console.log('Raw responses from localStorage:', responses);
+    
     // Calculate scores from responses
     const oceanScores = calculateOceanScores(responses.ocean || {});
     const cultureScores = calculateCultureScores(responses.culture || {});
     const valuesScores = calculateValuesScores(responses.values || {});
+    
+    console.log('Calculated scores:', { oceanScores, cultureScores, valuesScores });
     
     // Generate insights based on scores
     const insights = generateInsights(oceanScores, cultureScores, valuesScores);
@@ -331,23 +335,26 @@ export default function ResultsPage() {
       recommendations = generateFallbackRecommendations(oceanScores, cultureScores, valuesScores);
     }
     
-    return {
+    const result = {
       oceanScores,
       cultureScores,
       valuesScores,
       insights,
       recommendations
     };
+    
+    console.log('Generated result:', result);
+    return result;
   };
 
   const calculateOceanScores = (responses: Record<string, number>) => {
-    // Map question IDs to OCEAN dimensions
+    // Map question IDs to OCEAN dimensions based on the actual question structure
     const oceanMapping: Record<string, 'openness' | 'conscientiousness' | 'extraversion' | 'agreeableness' | 'neuroticism'> = {
-      'openness': 'openness',
-      'conscientiousness': 'conscientiousness', 
-      'extraversion': 'extraversion',
-      'agreeableness': 'agreeableness',
-      'neuroticism': 'neuroticism'
+      'ocean_1': 'extraversion',      // 'I am the life of the party'
+      'ocean_2': 'agreeableness',     // 'I sympathize with others\' feelings'
+      'ocean_3': 'conscientiousness', // 'I get chores done right away'
+      'ocean_4': 'neuroticism',       // 'I have frequent mood swings'
+      'ocean_5': 'openness'           // 'I have a vivid imagination'
     };
     
     const scores = { openness: 0, conscientiousness: 0, extraversion: 0, agreeableness: 0, neuroticism: 0 };
@@ -363,6 +370,15 @@ export default function ResultsPage() {
   };
 
   const calculateCultureScores = (responses: Record<string, number>) => {
+    // Map question IDs to culture dimensions based on the actual question structure
+    const cultureMapping: Record<string, 'powerDistance' | 'individualism' | 'masculinity' | 'uncertaintyAvoidance' | 'longTermOrientation' | 'indulgence'> = {
+      'culture_1': 'powerDistance',      // 'I prefer clear hierarchies and respect for authority'
+      'culture_2': 'powerDistance',      // 'I believe everyone should have equal say'
+      'culture_3': 'individualism',      // 'I work best when I can focus on my individual tasks'
+      'culture_4': 'individualism',      // 'I prefer working as part of a team'
+      'culture_5': 'masculinity'         // 'I enjoy competitive environments'
+    };
+    
     const scores = { 
       powerDistance: 0, 
       individualism: 0, 
@@ -373,8 +389,9 @@ export default function ResultsPage() {
     };
     
     Object.entries(responses).forEach(([questionId, response]) => {
-      if (questionId in scores) {
-        (scores as any)[questionId] = response;
+      const dimension = cultureMapping[questionId];
+      if (dimension) {
+        scores[dimension] = response;
       }
     });
     
@@ -382,11 +399,21 @@ export default function ResultsPage() {
   };
 
   const calculateValuesScores = (responses: Record<string, number>) => {
+    // Map question IDs to values dimensions based on the actual question structure
+    const valuesMapping: Record<string, 'innovation' | 'collaboration' | 'autonomy' | 'quality' | 'customerFocus'> = {
+      'values_1': 'innovation',      // 'I prefer trying new approaches and innovative solutions'
+      'values_2': 'innovation',      // 'I prefer proven methods and stable, reliable processes'
+      'values_3': 'collaboration',   // 'I believe success comes from working together as a team'
+      'values_4': 'collaboration',   // 'I believe success comes from individual excellence'
+      'values_5': 'autonomy'         // 'I prefer having freedom to work in my own way'
+    };
+    
     const scores = { innovation: 0, collaboration: 0, autonomy: 0, quality: 0, customerFocus: 0 };
     
     Object.entries(responses).forEach(([questionId, response]) => {
-      if (questionId in scores) {
-        scores[questionId as keyof typeof scores] = response;
+      const dimension = valuesMapping[questionId];
+      if (dimension) {
+        scores[dimension] = response;
       }
     });
     
