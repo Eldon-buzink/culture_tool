@@ -87,7 +87,20 @@ export default function SectionPage() {
   const isFirstQuestion = currentQuestionIndex === 0;
 
   useEffect(() => {
-    // Get the user ID from the assessment creation
+    // Check if this is a temporary assessment (starts with 'temp-')
+    const isTemporaryAssessment = uuid.startsWith('temp-');
+    
+    if (isTemporaryAssessment) {
+      // For temporary assessments, just load from localStorage
+      console.log('Temporary assessment - loading from localStorage only');
+      const savedResponses = localStorage.getItem(`section-responses-${uuid}-${sectionId}`);
+      if (savedResponses) {
+        setResponses(JSON.parse(savedResponses));
+      }
+      return;
+    }
+    
+    // For database assessments, get the user ID from the assessment creation
     let userId = localStorage.getItem(`assessment-user-${uuid}`);
     
     // If no user ID exists, we need to get it from the assessment
@@ -101,7 +114,6 @@ export default function SectionPage() {
             if (data.success && data.assessment.createdBy) {
               const retrievedUserId = data.assessment.createdBy;
               localStorage.setItem(`assessment-user-${uuid}`, retrievedUserId);
-  
             }
           }
         } catch (error) {
@@ -129,7 +141,20 @@ export default function SectionPage() {
     // Save to localStorage for immediate UI update
     localStorage.setItem(`section-responses-${uuid}-${sectionId}`, JSON.stringify(newResponses));
     
-    // Save to database
+    // Check if this is a temporary assessment (starts with 'temp-')
+    const isTemporaryAssessment = uuid.startsWith('temp-');
+    
+    if (isTemporaryAssessment) {
+      // For temporary assessments, only save to localStorage
+      console.log('Temporary assessment - saving to localStorage only');
+      
+      // Trigger storage event to update progress on overview page
+      const event = new Event('storage');
+      window.dispatchEvent(event);
+      return;
+    }
+    
+    // For database assessments, save to database
     try {
       const userId = localStorage.getItem(`assessment-user-${uuid}`);
       if (!userId) {

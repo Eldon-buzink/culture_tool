@@ -527,44 +527,49 @@ export default function ResultsPage() {
 
   const fetchResults = async () => {
     try {
-      // Check if this is a session-based assessment
-      const allResponses = localStorage.getItem(`assessment-responses-${uuidString}`);
+      // Check if this is a temporary assessment (starts with 'temp-')
+      const isTemporaryAssessment = uuidString.startsWith('temp-');
       
-      if (allResponses) {
-        console.log('Found session responses, generating results...');
-        const responses = JSON.parse(allResponses);
-        console.log('Session responses:', responses);
+      if (isTemporaryAssessment) {
+        console.log('Temporary assessment - generating results from localStorage...');
         
-        // Check if all sections are completed
-        const sections = ['ocean', 'culture', 'values'];
-        const allSectionsCompleted = sections.every(section => 
-          responses[section] && Object.keys(responses[section]).length > 0
-        );
+        // Check if this is a session-based assessment
+        const allResponses = localStorage.getItem(`assessment-responses-${uuidString}`);
         
-        if (!allSectionsCompleted) {
-          console.log('Not all sections completed, redirecting to overview');
+        if (allResponses) {
+          console.log('Found session responses, generating results...');
+          const responses = JSON.parse(allResponses);
+          console.log('Session responses:', responses);
+          
+          // Check if all sections are completed
+          const sections = ['ocean', 'culture', 'values'];
+          const allSectionsCompleted = sections.every(section => 
+            responses[section] && Object.keys(responses[section]).length >= 5
+          );
+          
+          if (!allSectionsCompleted) {
+            console.log('Not all sections completed, redirecting to overview');
+            window.location.href = `/assessment/${uuidString}`;
+            return;
+          }
+          
+          // This is a session-based assessment - generate results from localStorage
+          const results = await generateResultsFromSession();
+          console.log('Generated results from session:', results);
+          setResults(results);
+          setLoading(false);
+          
+          // For temporary assessments, don't try to store in database
+          console.log('Temporary assessment - results generated successfully');
+          return;
+        } else {
+          console.log('No session responses found, redirecting to overview');
           window.location.href = `/assessment/${uuidString}`;
           return;
         }
-        
-        // This is a session-based assessment - generate results from localStorage
-        const results = await generateResultsFromSession();
-        console.log('Generated results from session:', results);
-        setResults(results);
-        setLoading(false);
-        
-        // Store results in database for persistence and team linking
-        try {
-          await storeResultsInDatabase(results);
-        } catch (error) {
-          console.error('Failed to store results in database:', error);
-          // Continue showing results even if database storage fails
-        }
-        
-        return;
       }
       
-      // Try to fetch from database for existing assessments
+      // For database-based assessments, try to fetch from database
       const response = await fetch(`/api/assessments/${uuid}/results`);
       
       if (!response.ok) {
