@@ -83,7 +83,7 @@ const RawScoresSection: React.FC<RawScoresSectionProps> = ({
 
   const renderScoreSection = (
     title: string,
-    icon: React.ComponentType<any>,
+    Icon: React.ComponentType<any>,
     scores: Record<string, number>,
     sectionKey: string
   ) => (
@@ -95,7 +95,7 @@ const RawScoresSection: React.FC<RawScoresSectionProps> = ({
         >
           <div className="flex items-center gap-3">
             <div className="p-2 bg-gray-100 rounded-lg">
-              <icon className="h-5 w-5 text-gray-600" />
+              <Icon className="h-5 w-5 text-gray-600" />
             </div>
             <CardTitle className="text-lg">{title}</CardTitle>
             <Badge variant="outline" className="text-xs">
