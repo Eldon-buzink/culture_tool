@@ -6,12 +6,15 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
-import { ChevronDown, ChevronUp, Brain, Users, Target, TrendingUp, TrendingDown, Minus, HelpCircle } from 'lucide-react';
+import { ChevronDown, ChevronUp, Brain, Users, Target, TrendingUp, TrendingDown, Minus, HelpCircle, Download, Mail, Share2, Plus } from 'lucide-react';
 import RadarChart from '@/components/RadarChart';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 import EmailResultsModal from '@/components/EmailResultsModal';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import PersonalityCompass from '@/components/PersonalityCompass';
+import RawScoresSection from '@/components/RawScoresSection';
+import ActionableRecommendations from '@/components/ActionableRecommendations';
 
 interface AssessmentResults {
   oceanScores: {
@@ -724,400 +727,41 @@ export default function ResultsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8">
       <div className="container mx-auto px-4 max-w-6xl">
         {/* Header */}
         <div className="text-center mb-8 px-4">
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Your Assessment Results</h1>
+          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+            Your Personality Compass
+          </h1>
           <p className="text-lg md:text-xl text-gray-600 max-w-3xl mx-auto">
-            Discover your complete work profile across personality, culture, and values
+            Discover your unique strengths, growth opportunities, and how you can thrive in teams
           </p>
         </div>
 
-        {/* OCEAN Section */}
-        <Card className="mb-8">
-          <CardHeader>
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Brain className="h-6 w-6 text-blue-600" />
-              </div>
-              <div>
-                <CardTitle className="text-2xl">OCEAN Personality Profile</CardTitle>
-                <p className="text-gray-600">{getSectionContext('ocean')}</p>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* Radar Chart */}
-              <div>
-                <h3 className="text-lg font-semibold mb-4">Your Personality Dimensions</h3>
-                <div className="w-full h-80">
-                  <RadarChart
-                    data={{
-                      'Openness': results.oceanScores.openness,
-                      'Conscientiousness': results.oceanScores.conscientiousness,
-                      'Extraversion': results.oceanScores.extraversion,
-                      'Agreeableness': results.oceanScores.agreeableness,
-                      'Neuroticism': results.oceanScores.neuroticism
-                    }}
-                    title="OCEAN Personality Profile"
-                  />
-                </div>
-              </div>
+        {/* Personality Compass - Main Hero */}
+        <PersonalityCompass 
+          oceanScores={results.oceanScores}
+          cultureScores={results.cultureScores}
+          valuesScores={results.valuesScores}
+        />
 
-              {/* Scores and Insights */}
-              <div>
-                <h3 className="text-lg font-semibold mb-4">Detailed Scores</h3>
-                <div className="space-y-4">
-                  {Object.entries(results.oceanScores).map(([trait, score]) => (
-                    <div key={trait} className="space-y-2">
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium capitalize">{trait}</span>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <HelpCircle className="h-4 w-4 text-gray-400 hover:text-gray-600 cursor-help" />
-                            </TooltipTrigger>
-                            <TooltipContent className="max-w-xs">
-                              <p>{getTermTooltip(trait)}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </div>
-                        <Badge className={getScoreBadgeColor(score)}>
-                          {getScoreLabel(score)} ({score})
-                        </Badge>
-                      </div>
-                      <Progress value={score} className="h-2" />
-                    </div>
-                  ))}
-                </div>
+        {/* Actionable Recommendations */}
+        <div className="mt-12">
+          <ActionableRecommendations recommendations={results.recommendations} />
+        </div>
 
-                <div className="mt-6">
-                  <h4 className="font-semibold mb-3">Key Insights</h4>
-                  <ul className="space-y-2">
-                    {results.insights.ocean.map((insight, index) => (
-                      <li key={index} className="text-sm text-gray-700 flex items-start gap-2">
-                        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-                        {insight}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            </div>
-
-            {/* Recommendations */}
-            <div className="mt-8">
-              <h3 className="text-lg font-semibold mb-4">Recommendations</h3>
-              <p className="text-gray-600 mb-4">{results.recommendations.ocean.context}</p>
-              {results.recommendations.ocean.recommendations.map((rec, index) => (
-                <Card key={index} className="mb-4">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between cursor-pointer hover:bg-gray-50 p-2 rounded-lg transition-colors" onClick={() => toggleRecommendation('ocean', index)}>
-                      <div className="flex items-center gap-3">
-                        <CardTitle className="text-lg">{rec.title}</CardTitle>
-                        <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-                          {expandedRecommendations[`ocean-${index}`] ? 'Click to collapse' : 'Click to expand'}
-                        </span>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="hover:bg-gray-200"
-                      >
-                        {expandedRecommendations[`ocean-${index}`] ? (
-                          <ChevronUp className="h-4 w-4" />
-                        ) : (
-                          <ChevronDown className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-gray-700 mb-4">{rec.description}</p>
-                    {expandedRecommendations[`ocean-${index}`] && (
-                      <div>
-                        <h5 className="font-semibold mb-2">Next Steps:</h5>
-                        <ul className="space-y-1">
-                          {rec.nextSteps.map((step, stepIndex) => (
-                            <li key={stepIndex} className="text-sm text-gray-600 flex items-start gap-2">
-                              <div className="w-1 h-1 bg-gray-400 rounded-full mt-2 flex-shrink-0"></div>
-                              {step}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-
-            {/* Section Summary */}
-            <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-              <p className="text-sm text-blue-800">{getSectionSummary('ocean')}</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Culture Section */}
-        <Card className="mb-8">
-          <CardHeader>
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <Users className="h-6 w-6 text-green-600" />
-              </div>
-              <div>
-                <CardTitle className="text-2xl">Cultural Dimensions</CardTitle>
-                <p className="text-gray-600">{getSectionContext('culture')}</p>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* Radar Chart */}
-              <div>
-                <h3 className="text-lg font-semibold mb-4">Your Cultural Preferences</h3>
-                <div className="w-full h-80">
-                  <RadarChart
-                    data={{
-                      'Power Distance': results.cultureScores.powerDistance,
-                      'Individualism': results.cultureScores.individualism,
-                      'Masculinity': results.cultureScores.masculinity,
-                      'Uncertainty Avoidance': results.cultureScores.uncertaintyAvoidance,
-                      'Long-term Orientation': results.cultureScores.longTermOrientation,
-                      'Indulgence': results.cultureScores.indulgence
-                    }}
-                    title="Cultural Dimensions"
-                  />
-                </div>
-              </div>
-
-              {/* Scores and Insights */}
-              <div>
-                <h3 className="text-lg font-semibold mb-4">Detailed Scores</h3>
-                <div className="space-y-4">
-                  {Object.entries(results.cultureScores).map(([dimension, score]) => (
-                    <div key={dimension} className="space-y-2">
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium capitalize">{dimension.replace(/([A-Z])/g, ' $1').trim()}</span>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <HelpCircle className="h-4 w-4 text-gray-400 hover:text-gray-600 cursor-help" />
-                            </TooltipTrigger>
-                            <TooltipContent className="max-w-xs">
-                              <p>{getTermTooltip(dimension)}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </div>
-                        <Badge className={getScoreBadgeColor(score)}>
-                          {getScoreLabel(score)} ({score})
-                        </Badge>
-                      </div>
-                      <Progress value={score} className="h-2" />
-                    </div>
-                  ))}
-                </div>
-
-                <div className="mt-6">
-                  <h4 className="font-semibold mb-3">Key Insights</h4>
-                  <ul className="space-y-2">
-                    {results.insights.culture.map((insight, index) => (
-                      <li key={index} className="text-sm text-gray-700 flex items-start gap-2">
-                        <div className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
-                        {insight}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            </div>
-
-            {/* Recommendations */}
-            <div className="mt-8">
-              <h3 className="text-lg font-semibold mb-4">Recommendations</h3>
-              <p className="text-gray-600 mb-4">{results.recommendations.culture.context}</p>
-              {results.recommendations.culture.recommendations.map((rec, index) => (
-                <Card key={index} className="mb-4">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between cursor-pointer hover:bg-gray-50 p-2 rounded-lg transition-colors" onClick={() => toggleRecommendation('culture', index)}>
-                      <div className="flex items-center gap-3">
-                        <CardTitle className="text-lg">{rec.title}</CardTitle>
-                        <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-                          {expandedRecommendations[`culture-${index}`] ? 'Click to collapse' : 'Click to expand'}
-                        </span>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="hover:bg-gray-200"
-                      >
-                        {expandedRecommendations[`culture-${index}`] ? (
-                          <ChevronUp className="h-4 w-4" />
-                        ) : (
-                          <ChevronDown className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-gray-700 mb-4">{rec.description}</p>
-                    {expandedRecommendations[`culture-${index}`] && (
-                      <div>
-                        <h5 className="font-semibold mb-2">Next Steps:</h5>
-                        <ul className="space-y-1">
-                          {rec.nextSteps.map((step, stepIndex) => (
-                            <li key={stepIndex} className="text-sm text-gray-600 flex items-start gap-2">
-                              <div className="w-1 h-1 bg-gray-400 rounded-full mt-2 flex-shrink-0"></div>
-                              {step}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-
-            {/* Section Summary */}
-            <div className="mt-6 p-4 bg-green-50 rounded-lg">
-              <p className="text-sm text-green-800">{getSectionSummary('culture')}</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Values Section */}
-        <Card className="mb-8">
-          <CardHeader>
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <Target className="h-6 w-6 text-purple-600" />
-              </div>
-              <div>
-                <CardTitle className="text-2xl">Work Values</CardTitle>
-                <p className="text-gray-600">{getSectionContext('values')}</p>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* Radar Chart */}
-              <div>
-                <h3 className="text-lg font-semibold mb-4">Your Work Values</h3>
-                <div className="w-full h-80">
-                  <RadarChart
-                    data={{
-                      'Innovation': results.valuesScores.innovation,
-                      'Collaboration': results.valuesScores.collaboration,
-                      'Autonomy': results.valuesScores.autonomy,
-                      'Quality': results.valuesScores.quality,
-                      'Customer Focus': results.valuesScores.customerFocus
-                    }}
-                    title="Work Values"
-                  />
-                </div>
-              </div>
-
-              {/* Scores and Insights */}
-              <div>
-                <h3 className="text-lg font-semibold mb-4">Detailed Scores</h3>
-                <div className="space-y-4">
-                  {Object.entries(results.valuesScores).map(([value, score]) => (
-                    <div key={value} className="space-y-2">
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium capitalize">{value.replace(/([A-Z])/g, ' $1').trim()}</span>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <HelpCircle className="h-4 w-4 text-gray-400 hover:text-gray-600 cursor-help" />
-                            </TooltipTrigger>
-                            <TooltipContent className="max-w-xs">
-                              <p>{getTermTooltip(value)}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </div>
-                        <Badge className={getScoreBadgeColor(score)}>
-                          {getScoreLabel(score)} ({score})
-                        </Badge>
-                      </div>
-                      <Progress value={score} className="h-2" />
-                    </div>
-                  ))}
-                </div>
-
-                <div className="mt-6">
-                  <h4 className="font-semibold mb-3">Key Insights</h4>
-                  <ul className="space-y-2">
-                    {results.insights.values.map((insight, index) => (
-                      <li key={index} className="text-sm text-gray-700 flex items-start gap-2">
-                        <div className="w-1.5 h-1.5 bg-purple-500 rounded-full mt-2 flex-shrink-0"></div>
-                        {insight}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            </div>
-
-            {/* Recommendations */}
-            <div className="mt-8">
-              <h3 className="text-lg font-semibold mb-4">Recommendations</h3>
-              <p className="text-gray-600 mb-4">{results.recommendations.values.context}</p>
-              {results.recommendations.values.recommendations.map((rec, index) => (
-                <Card key={index} className="mb-4">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between cursor-pointer hover:bg-gray-50 p-2 rounded-lg transition-colors" onClick={() => toggleRecommendation('values', index)}>
-                      <div className="flex items-center gap-3">
-                        <CardTitle className="text-lg">{rec.title}</CardTitle>
-                        <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-                          {expandedRecommendations[`values-${index}`] ? 'Click to collapse' : 'Click to expand'}
-                        </span>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="hover:bg-gray-200"
-                      >
-                        {expandedRecommendations[`values-${index}`] ? (
-                          <ChevronUp className="h-4 w-4" />
-                        ) : (
-                          <ChevronDown className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-gray-700 mb-4">{rec.description}</p>
-                    {expandedRecommendations[`values-${index}`] && (
-                      <div>
-                        <h5 className="font-semibold mb-2">Next Steps:</h5>
-                        <ul className="space-y-1">
-                          {rec.nextSteps.map((step, stepIndex) => (
-                            <li key={stepIndex} className="text-sm text-gray-600 flex items-start gap-2">
-                              <div className="w-1 h-1 bg-gray-400 rounded-full mt-2 flex-shrink-0"></div>
-                              {step}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-
-            {/* Section Summary */}
-            <div className="mt-6 p-4 bg-purple-50 rounded-lg">
-              <p className="text-sm text-purple-800">{getSectionSummary('values')}</p>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Raw Scores Section - Collapsible */}
+        <div className="mt-12">
+          <RawScoresSection 
+            oceanScores={results.oceanScores}
+            cultureScores={results.cultureScores}
+            valuesScores={results.valuesScores}
+          />
+        </div>
 
         {/* Team Comparison Section */}
-        <Card className="mb-8">
+        <Card className="mt-8">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -1270,58 +914,81 @@ export default function ResultsPage() {
 
 
         {/* Action Buttons */}
-        <div className="mt-8">
-          <div className="text-center mb-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Save Your Results</h3>
-            <p className="text-gray-600">Keep your results for future reference</p>
-          </div>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            <Button 
-              onClick={() => window.print()} 
-              variant="outline" 
-              className="h-auto p-4 flex flex-col items-center gap-2"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-              </svg>
-              <span>Print Results</span>
-            </Button>
-            
+        <div className="mt-12">
+          <Card className="bg-gradient-to-br from-green-50 to-emerald-100 border-0 shadow-lg">
+            <CardContent className="p-8">
+              <div className="text-center mb-8">
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">What's Next?</h3>
+                <p className="text-gray-600">Save your results and continue your growth journey</p>
+              </div>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                <Button 
+                  onClick={() => window.print()} 
+                  variant="outline" 
+                  className="h-auto p-6 flex flex-col items-center gap-3 bg-white hover:bg-gray-50 transition-all duration-200 hover:scale-105"
+                >
+                  <Download className="w-8 h-8 text-blue-600" />
+                  <div>
+                    <div className="font-semibold text-gray-900">Print Results</div>
+                    <div className="text-xs text-gray-500">Save as PDF</div>
+                  </div>
+                </Button>
+                
+                <Button 
+                  onClick={() => setShowEmailModal(true)}
+                  variant="outline" 
+                  className="h-auto p-6 flex flex-col items-center gap-3 bg-white hover:bg-gray-50 transition-all duration-200 hover:scale-105"
+                >
+                  <Mail className="w-8 h-8 text-green-600" />
+                  <div>
+                    <div className="font-semibold text-gray-900">Email Results</div>
+                    <div className="text-xs text-gray-500">Send to yourself</div>
+                  </div>
+                </Button>
+                
+                <Button 
+                  onClick={() => {
+                    const url = window.location.href;
+                    navigator.clipboard.writeText(url);
+                    alert('Results link copied to clipboard! You can share this link to access your results later.');
+                  }} 
+                  variant="outline" 
+                  className="h-auto p-6 flex flex-col items-center gap-3 bg-white hover:bg-gray-50 transition-all duration-200 hover:scale-105"
+                >
+                  <Share2 className="w-8 h-8 text-purple-600" />
+                  <div>
+                    <div className="font-semibold text-gray-900">Share Link</div>
+                    <div className="text-xs text-gray-500">Copy to clipboard</div>
+                  </div>
+                </Button>
 
-            
-            <Button 
-              onClick={() => setShowEmailModal(true)}
-              variant="outline" 
-              className="h-auto p-4 flex flex-col items-center gap-2"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
-              <span>Email Results</span>
-            </Button>
-            
-            <Button 
-              onClick={() => {
-                const url = window.location.href;
-                navigator.clipboard.writeText(url);
-                alert('Results link copied to clipboard! You can share this link to access your results later.');
-              }} 
-              variant="outline" 
-              className="h-auto p-4 flex flex-col items-center gap-2"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
-              </svg>
-              <span>Copy Link</span>
-            </Button>
-          </div>
-          
-          <div className="text-center">
-            <Button onClick={() => window.location.href = '/'} className="bg-blue-600 hover:bg-blue-700">
-              Take Another Assessment
-            </Button>
-          </div>
+                <Button 
+                  onClick={() => window.location.href = '/'}
+                  variant="outline" 
+                  className="h-auto p-6 flex flex-col items-center gap-3 bg-white hover:bg-gray-50 transition-all duration-200 hover:scale-105"
+                >
+                  <Plus className="w-8 h-8 text-orange-600" />
+                  <div>
+                    <div className="font-semibold text-gray-900">New Assessment</div>
+                    <div className="text-xs text-gray-500">Start fresh</div>
+                  </div>
+                </Button>
+              </div>
+              
+              <div className="text-center">
+                <p className="text-sm text-gray-600 mb-4">
+                  Your results are automatically saved and accessible via the link above for 30+ days
+                </p>
+                <Button 
+                  onClick={() => window.location.href = '/demo-team-dashboard'} 
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-3 rounded-lg font-semibold transition-all duration-200 hover:scale-105"
+                >
+                  See Team Dashboard Demo
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
       
