@@ -96,8 +96,10 @@ export async function GET(
 ) {
   try {
     const { id } = params;
+    console.log('GET /api/assessments/[id]/results - Assessment ID:', id);
     
     if (!id) {
+      console.log('No assessment ID provided');
       return NextResponse.json(
         { success: false, error: 'Assessment ID is required' },
         { status: 400 }
@@ -105,20 +107,27 @@ export async function GET(
     }
 
     const admin = createSupabaseAdmin();
+    console.log('Supabase admin client created');
 
     // First check if the assessment exists
+    console.log('Checking if assessment exists...');
     const { data: assessment, error: assessmentError } = await admin
       .from('assessments')
       .select('id')
       .eq('id', id)
       .single();
     
+    console.log('Assessment query result:', { assessment, assessmentError });
+    
     if (assessmentError || !assessment) {
+      console.log('Assessment not found:', assessmentError);
       return NextResponse.json(
         { success: false, error: 'Assessment not found' },
         { status: 404 }
       );
     }
+
+    console.log('Assessment found, looking for results...');
 
     // Get the results
     const { data: results, error: resultsError } = await admin
@@ -127,7 +136,10 @@ export async function GET(
       .eq('assessment_id', id)
       .single();
     
+    console.log('Results query result:', { results, resultsError });
+    
     if (resultsError || !results) {
+      console.log('Results not found:', resultsError);
       return NextResponse.json(
         { success: false, error: 'Results not found for this assessment' },
         { status: 404 }
@@ -151,7 +163,7 @@ export async function GET(
   } catch (error) {
     console.error('Error fetching assessment results:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch assessment results' },
+      { success: false, error: `Failed to fetch assessment results: ${error instanceof Error ? error.message : 'Unknown error'}` },
       { status: 500 }
     );
   }

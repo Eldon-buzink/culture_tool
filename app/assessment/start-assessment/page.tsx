@@ -69,26 +69,48 @@ export default function StartAssessmentPage() {
         }
       }
 
-      // Fallback to individual assessment
-      console.log('Creating individual assessment');
+      // Create individual assessment in database
+      console.log('Creating individual assessment in database');
       
-      // Generate a unique session ID for this assessment
-      const sessionId = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      
-      // Create a temporary assessment ID
-      const assessmentId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      
-      // Store session data in localStorage for this assessment
-      localStorage.setItem(`assessment-session-${assessmentId}`, JSON.stringify({
-        sessionId,
-        assessmentId,
-        createdAt: new Date().toISOString(),
-        type: 'individual',
-        status: 'in_progress'
-      }));
+      // Create assessment in database
+      const response = await fetch('/api/assessments/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: 'Individual Assessment',
+          description: 'Personal assessment for individual insights',
+          type: 'individual',
+          createdBy: `individual-${Date.now()}`,
+          teamId: null
+        }),
+      });
 
-      // Redirect to the assessment overview page
-      router.push(`/assessment/${assessmentId}`);
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Individual assessment creation failed:', response.status, errorText);
+        throw new Error(`Failed to create individual assessment: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('Individual assessment created:', data);
+
+      if (data.success && data.assessment) {
+        // Store assessment info in localStorage for tracking progress
+        localStorage.setItem(`assessment-session-${data.assessment.id}`, JSON.stringify({
+          assessmentId: data.assessment.id,
+          createdAt: new Date().toISOString(),
+          type: 'individual',
+          status: 'in_progress'
+        }));
+
+        // Redirect to the assessment overview page
+        router.push(`/assessment/${data.assessment.id}`);
+        return;
+      } else {
+        throw new Error('Failed to create individual assessment: Invalid response');
+      }
     } catch (error) {
       console.error('Error starting assessment:', error);
       setError('Failed to start assessment: ' + (error instanceof Error ? error.message : 'Unknown error'));

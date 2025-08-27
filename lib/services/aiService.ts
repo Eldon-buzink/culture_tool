@@ -41,25 +41,28 @@ export interface AssessmentScores {
 
 export interface AIRecommendations {
   ocean: {
-    insights: string[];
-    recommendations: string[];
-    nextSteps: string[];
+    context: string;
+    recommendations: Array<{
+      title: string;
+      description: string;
+      nextSteps: string[];
+    }>;
   };
   culture: {
-    insights: string[];
-    recommendations: string[];
-    nextSteps: string[];
+    context: string;
+    recommendations: Array<{
+      title: string;
+      description: string;
+      nextSteps: string[];
+    }>;
   };
   values: {
-    insights: string[];
-    recommendations: string[];
-    nextSteps: string[];
-  };
-  overall: {
-    summary: string;
-    keyStrengths: string[];
-    developmentAreas: string[];
-    careerSuggestions: string[];
+    context: string;
+    recommendations: Array<{
+      title: string;
+      description: string;
+      nextSteps: string[];
+    }>;
   };
 }
 
@@ -173,30 +176,51 @@ Make the recommendations specific, actionable, and tailored to their scores. Foc
     // Validate and provide fallbacks for missing data
     return {
       ocean: {
-        insights: Array.isArray(data.ocean?.insights) ? data.ocean.insights : [],
-        recommendations: Array.isArray(data.ocean?.recommendations) ? data.ocean.recommendations : [],
-        nextSteps: Array.isArray(data.ocean?.nextSteps) ? data.ocean.nextSteps : [],
+        context: data.ocean?.context || 'Based on your OCEAN personality profile, you have unique traits that influence how you work and interact with others.',
+        recommendations: Array.isArray(data.ocean?.recommendations) ? data.ocean.recommendations : [
+          {
+            title: "Leverage Your Personality Strengths",
+            description: "Your personality traits show specific strengths that can guide your career choices and work style preferences.",
+            nextSteps: [
+              "Reflect on how your personality traits show up in your daily work",
+              "Identify work environments that align with your natural tendencies",
+              "Practice using your strengths in team situations"
+            ]
+          }
+        ],
       },
       culture: {
-        insights: Array.isArray(data.culture?.insights) ? data.culture.insights : [],
-        recommendations: Array.isArray(data.culture?.recommendations) ? data.culture.recommendations : [],
-        nextSteps: Array.isArray(data.culture?.nextSteps) ? data.culture.nextSteps : [],
+        context: data.culture?.context || 'Your cultural preferences indicate specific work environments where you\'ll thrive and feel most productive.',
+        recommendations: Array.isArray(data.culture?.recommendations) ? data.culture.recommendations : [
+          {
+            title: "Find Your Cultural Fit",
+            description: "Look for organizations and teams that match your cultural preferences and work style.",
+            nextSteps: [
+              "Research company cultures before applying to jobs",
+              "Ask about organizational structure in interviews",
+              "Seek out teams that align with your work preferences"
+            ]
+          }
+        ],
       },
       values: {
-        insights: Array.isArray(data.values?.insights) ? data.values.insights : [],
-        recommendations: Array.isArray(data.values?.recommendations) ? data.values.recommendations : [],
-        nextSteps: Array.isArray(data.values?.nextSteps) ? data.values.nextSteps : [],
-      },
-      overall: {
-        summary: data.overall?.summary || 'Based on your assessment results, you have a unique combination of personality traits, work preferences, and values.',
-        keyStrengths: Array.isArray(data.overall?.keyStrengths) ? data.overall.keyStrengths : [],
-        developmentAreas: Array.isArray(data.overall?.developmentAreas) ? data.overall.developmentAreas : [],
-        careerSuggestions: Array.isArray(data.overall?.careerSuggestions) ? data.overall.careerSuggestions : [],
+        context: data.values?.context || 'Your work values represent what truly motivates and drives you professionally.',
+        recommendations: Array.isArray(data.values?.recommendations) ? data.values.recommendations : [
+          {
+            title: "Align Work with Your Values",
+            description: "Focus on roles and organizations that align with your highest work values.",
+            nextSteps: [
+              "Identify specific job opportunities that match your values",
+              "Evaluate potential employers based on your values",
+              "Communicate your values in job interviews"
+            ]
+          }
+        ],
       },
     };
   }
 
-  public static getFallbackRecommendations(scores: AssessmentScores): AIRecommendations {
+  static getFallbackRecommendations(scores: AssessmentScores): AIRecommendations {
     // Provide basic fallback recommendations based on scores
     const getScoreLevel = (score: number) => {
       if (score >= 70) return 'high';
@@ -206,74 +230,74 @@ Make the recommendations specific, actionable, and tailored to their scores. Foc
 
     return {
       ocean: {
-        insights: [
-          `Your openness score of ${scores.ocean.openness} indicates a ${getScoreLevel(scores.ocean.openness)} level of curiosity and willingness to try new things.`,
-          `With a conscientiousness score of ${scores.ocean.conscientiousness}, you show a ${getScoreLevel(scores.ocean.conscientiousness)} level of organization and reliability.`,
-          `Your extraversion score of ${scores.ocean.extraversion} suggests you prefer ${getScoreLevel(scores.ocean.extraversion)} levels of social interaction.`
-        ],
+        context: `Based on your OCEAN personality profile, you show ${getScoreLevel(scores.ocean.openness)} openness, ${getScoreLevel(scores.ocean.conscientiousness)} conscientiousness, ${getScoreLevel(scores.ocean.extraversion)} extraversion, ${getScoreLevel(scores.ocean.agreeableness)} agreeableness, and ${getScoreLevel(scores.ocean.neuroticism)} neuroticism.`,
         recommendations: [
-          'Consider how your personality traits influence your work preferences and communication style.',
-          'Look for work environments that align with your natural tendencies.',
-          'Develop strategies to work effectively with people who have different personality profiles.'
-        ],
-        nextSteps: [
-          'Reflect on how these traits show up in your daily work.',
-          'Identify specific situations where your personality strengths are most valuable.',
-          'Consider taking additional assessments to deepen your self-awareness.'
-        ],
+          {
+            title: "Leverage Your Personality Strengths",
+            description: "Your personality traits show specific strengths that can guide your career choices and work style preferences.",
+            nextSteps: [
+              "Reflect on how your personality traits show up in your daily work",
+              "Identify work environments that align with your natural tendencies",
+              "Practice using your strengths in team situations"
+            ]
+          },
+          {
+            title: "Develop Complementary Skills",
+            description: "Consider developing skills that complement your natural personality traits for better balance.",
+            nextSteps: [
+              "Seek feedback on areas where you can grow",
+              "Practice skills that don't come naturally to you",
+              "Find mentors who can help you develop new approaches"
+            ]
+          }
+        ]
       },
       culture: {
-        insights: [
-          `Your power distance preference of ${scores.culture.powerDistance} indicates how you prefer ${getScoreLevel(scores.culture.powerDistance)} levels of hierarchy in the workplace.`,
-          `With an individualism score of ${scores.culture.individualism}, you prefer ${getScoreLevel(scores.culture.individualism)} levels of independent work.`,
-          `Your uncertainty avoidance score of ${scores.culture.uncertaintyAvoidance} shows you prefer ${getScoreLevel(scores.culture.uncertaintyAvoidance)} levels of structure and predictability.`
-        ],
+        context: `Your cultural preferences show ${getScoreLevel(scores.culture.powerDistance)} power distance, ${getScoreLevel(scores.culture.individualism)} individualism, and ${getScoreLevel(scores.culture.uncertaintyAvoidance)} uncertainty avoidance preferences.`,
         recommendations: [
-          'Seek out work environments that match your cultural preferences.',
-          'Communicate your work style preferences to your team and manager.',
-          'Develop strategies to work effectively in diverse cultural environments.'
-        ],
-        nextSteps: [
-          'Research companies and teams that align with your cultural preferences.',
-          'Practice adapting your communication style to different work cultures.',
-          'Consider how your preferences might evolve over time.'
-        ],
+          {
+            title: "Find Your Cultural Fit",
+            description: "Look for organizations and teams that match your cultural preferences and work style.",
+            nextSteps: [
+              "Research company cultures before applying to jobs",
+              "Ask about organizational structure in interviews",
+              "Seek out teams that align with your work preferences"
+            ]
+          },
+          {
+            title: "Adapt to Different Cultures",
+            description: "Learn to work effectively in different cultural environments while staying true to your values.",
+            nextSteps: [
+              "Practice flexibility in different work environments",
+              "Learn about different organizational cultures",
+              "Develop cross-cultural communication skills"
+            ]
+          }
+        ]
       },
       values: {
-        insights: [
-          `Your innovation score of ${scores.values.innovation} indicates a ${getScoreLevel(scores.values.innovation)} preference for creative problem-solving.`,
-          `With a collaboration score of ${scores.values.collaboration}, you prefer ${getScoreLevel(scores.values.collaboration)} levels of teamwork.`,
-          `Your quality focus score of ${scores.values.quality} shows you prioritize ${getScoreLevel(scores.values.quality)} levels of excellence in your work.`
-        ],
+        context: `Your work values show ${getScoreLevel(scores.values.innovation)} innovation, ${getScoreLevel(scores.values.collaboration)} collaboration, and ${getScoreLevel(scores.values.quality)} quality focus preferences.`,
         recommendations: [
-          'Look for roles that align with your highest-value areas.',
-          'Communicate your values to potential employers and team members.',
-          'Seek out projects that allow you to work in your areas of strength.'
-        ],
-        nextSteps: [
-          'Identify specific job opportunities that match your values.',
-          'Develop skills that support your highest-value areas.',
-          'Create a personal mission statement based on your values.'
-        ],
-      },
-      overall: {
-        summary: 'Your assessment results reveal a unique combination of personality traits, work preferences, and values that can guide your career decisions and help you find fulfilling work environments.',
-        keyStrengths: [
-          'Self-awareness and willingness to understand your preferences',
-          'Unique combination of traits that can be valuable in the right context',
-          'Potential for growth and development in multiple areas'
-        ],
-        developmentAreas: [
-          'Understanding how to leverage your strengths effectively',
-          'Developing strategies to work with different personality types',
-          'Finding environments that align with your preferences'
-        ],
-        careerSuggestions: [
-          'Consider roles that align with your highest scores',
-          'Look for companies with cultures that match your preferences',
-          'Explore opportunities that allow you to develop your lower-scoring areas'
-        ],
-      },
+          {
+            title: "Align Work with Your Values",
+            description: "Focus on roles and organizations that align with your highest work values.",
+            nextSteps: [
+              "Identify specific job opportunities that match your values",
+              "Evaluate potential employers based on your values",
+              "Communicate your values in job interviews"
+            ]
+          },
+          {
+            title: "Balance Multiple Values",
+            description: "Learn to balance different work values and find roles that satisfy multiple priorities.",
+            nextSteps: [
+              "Prioritize your values for different career stages",
+              "Look for roles that can satisfy multiple values",
+              "Be willing to compromise on lower-priority values"
+            ]
+          }
+        ]
+      }
     };
   }
 

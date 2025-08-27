@@ -18,23 +18,23 @@ export async function POST(request: NextRequest) {
 
     const admin = createSupabaseAdmin();
 
-    // For individual assessments, create a user if it's a session ID
+    // For individual assessments, create a user if it's a session ID or individual ID
     let userId = createdBy;
-    if (createdBy.startsWith('session-')) {
-      // This is a session-based user, create a temporary user record
+    if (createdBy.startsWith('session-') || createdBy.startsWith('individual-')) {
+      // This is a session-based or individual user, create a temporary user record
       const { data: newUser, error: userError } = await admin
         .from('users')
         .insert({
-          email: `${createdBy}@temp.local`,
+          email: `${createdBy}-${Date.now()}@temp.local`,
           name: 'Individual Assessment User'
         })
         .select('id')
         .single();
 
       if (userError) {
-        console.error('Error creating session user:', userError);
+        console.error('Error creating individual user:', userError);
         return NextResponse.json(
-          { success: false, error: 'Failed to create session user' },
+          { success: false, error: 'Failed to create individual user' },
           { status: 500 }
         );
       }
@@ -113,23 +113,25 @@ export async function POST(request: NextRequest) {
     }
 
     // Create new assessment
+    const assessmentData = {
+      user_id: userId,
+      team_id: actualTeamId || null,
+      status: 'in_progress'
+    };
+    
+    console.log('Attempting to create assessment with data:', assessmentData);
+    
     const { data: assessment, error: assessmentError } = await admin
       .from('assessments')
-      .insert({
-        title: title || 'Individual Assessment',
-        description: description || 'Personal assessment for individual insights',
-        type: type || 'individual',
-        user_id: userId,
-        team_id: actualTeamId || null,
-        status: 'in_progress'
-      })
+      .insert(assessmentData)
       .select('*')
       .single();
 
     if (assessmentError) {
       console.error('Error creating assessment:', assessmentError);
+      console.error('Assessment data that failed:', assessmentData);
       return NextResponse.json(
-        { success: false, error: 'Failed to create assessment' },
+        { success: false, error: 'Failed to create assessment: ' + assessmentError.message },
         { status: 500 }
       );
     }

@@ -56,14 +56,20 @@ interface ActionableRecommendationsProps {
 const ActionableRecommendations: React.FC<ActionableRecommendationsProps> = ({
   recommendations
 }) => {
+  console.log('ActionableRecommendations received:', recommendations);
   const [expandedRecommendations, setExpandedRecommendations] = useState<Record<string, boolean>>({});
 
   const toggleRecommendation = (section: string, index: number) => {
     const key = `${section}-${index}`;
-    setExpandedRecommendations(prev => ({
-      ...prev,
-      [key]: !prev[key]
-    }));
+    console.log('Toggling recommendation:', key, 'Current state:', expandedRecommendations[key]);
+    setExpandedRecommendations(prev => {
+      const newState = {
+        ...prev,
+        [key]: !prev[key]
+      };
+      console.log('New expanded state:', newState);
+      return newState;
+    });
   };
 
   const getPriorityIcon = (priority: string) => {
@@ -109,41 +115,52 @@ const ActionableRecommendations: React.FC<ActionableRecommendationsProps> = ({
 
   // Transform recommendations into actionable format
   const transformRecommendations = (): Recommendation[] => {
+    console.log('Transforming recommendations:', recommendations);
     const allRecommendations: Recommendation[] = [];
     
     // Add OCEAN recommendations
-    recommendations.ocean.recommendations.forEach((rec, index) => {
-      allRecommendations.push({
-        title: rec.title,
-        description: rec.description,
-        nextSteps: rec.nextSteps,
-        priority: index === 0 ? 'high' : 'medium',
-        category: 'personal'
+    if (recommendations.ocean?.recommendations) {
+      recommendations.ocean.recommendations.forEach((rec, index) => {
+        console.log('Processing OCEAN recommendation:', rec);
+        allRecommendations.push({
+          title: rec.title,
+          description: rec.description,
+          nextSteps: rec.nextSteps,
+          priority: index === 0 ? 'high' : 'medium',
+          category: 'personal'
+        });
       });
-    });
+    }
 
     // Add culture recommendations
-    recommendations.culture.recommendations.forEach((rec, index) => {
-      allRecommendations.push({
-        title: rec.title,
-        description: rec.description,
-        nextSteps: rec.nextSteps,
-        priority: index === 0 ? 'high' : 'medium',
-        category: 'teamwork'
+    if (recommendations.culture?.recommendations) {
+      recommendations.culture.recommendations.forEach((rec, index) => {
+        console.log('Processing culture recommendation:', rec);
+        allRecommendations.push({
+          title: rec.title,
+          description: rec.description,
+          nextSteps: rec.nextSteps,
+          priority: index === 0 ? 'high' : 'medium',
+          category: 'teamwork'
+        });
       });
-    });
+    }
 
     // Add values recommendations
-    recommendations.values.recommendations.forEach((rec, index) => {
-      allRecommendations.push({
-        title: rec.title,
-        description: rec.description,
-        nextSteps: rec.nextSteps,
-        priority: index === 0 ? 'high' : 'medium',
-        category: 'career'
+    if (recommendations.values?.recommendations) {
+      recommendations.values.recommendations.forEach((rec, index) => {
+        console.log('Processing values recommendation:', rec);
+        allRecommendations.push({
+          title: rec.title,
+          description: rec.description,
+          nextSteps: rec.nextSteps,
+          priority: index === 0 ? 'high' : 'medium',
+          category: 'career'
+        });
       });
-    });
+    }
 
+    console.log('Final transformed recommendations:', allRecommendations);
     return allRecommendations;
   };
 
@@ -213,12 +230,16 @@ const ActionableRecommendations: React.FC<ActionableRecommendationsProps> = ({
                       Next Steps
                     </h5>
                     <ul className="space-y-2">
-                      {rec.nextSteps.map((step, stepIndex) => (
-                        <li key={stepIndex} className="text-sm text-gray-600 flex items-start gap-2">
-                          <div className="w-1.5 h-1.5 bg-purple-500 rounded-full mt-2 flex-shrink-0"></div>
-                          {step}
-                        </li>
-                      ))}
+                      {rec.nextSteps && Array.isArray(rec.nextSteps) ? (
+                        rec.nextSteps.map((step, stepIndex) => (
+                          <li key={stepIndex} className="text-sm text-gray-600 flex items-start gap-2">
+                            <div className="w-1.5 h-1.5 bg-purple-500 rounded-full mt-2 flex-shrink-0"></div>
+                            {step}
+                          </li>
+                        ))
+                      ) : (
+                        <li className="text-sm text-gray-500 italic">No specific next steps available</li>
+                      )}
                     </ul>
                   </div>
                   

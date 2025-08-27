@@ -8,6 +8,135 @@ import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { Brain, Users, Target, ArrowLeft, CheckCircle, ArrowRight, ArrowLeft as ArrowLeftIcon } from 'lucide-react';
 
+// Import calculation functions from results page
+function calculateOceanScores(oceanResponses: Record<string, number>) {
+  const scores = {
+    openness: 0,
+    conscientiousness: 0,
+    extraversion: 0,
+    agreeableness: 0,
+    neuroticism: 0
+  };
+  
+  // Calculate scores based on responses
+  // This is a simplified calculation - you can make it more sophisticated
+  Object.entries(oceanResponses).forEach(([questionId, response]) => {
+    const score = response;
+    if (questionId.includes('openness') || questionId === 'ocean_5') {
+      scores.openness += score;
+    } else if (questionId.includes('conscientiousness') || questionId === 'ocean_3') {
+      scores.conscientiousness += score;
+    } else if (questionId.includes('extraversion') || questionId === 'ocean_1') {
+      scores.extraversion += score;
+    } else if (questionId.includes('agreeableness') || questionId === 'ocean_2') {
+      scores.agreeableness += score;
+    } else if (questionId.includes('neuroticism') || questionId === 'ocean_4') {
+      scores.neuroticism += score;
+    }
+  });
+  
+  // Convert to 0-100 scale
+  Object.keys(scores).forEach(key => {
+    scores[key as keyof typeof scores] = Math.min(100, Math.max(0, scores[key as keyof typeof scores] * 20));
+  });
+  
+  return scores;
+}
+
+function calculateCultureScores(oceanResponses: Record<string, number>) {
+  // For now, generate culture scores based on OCEAN scores
+  const oceanScores = calculateOceanScores(oceanResponses);
+  return {
+    powerDistance: Math.max(20, Math.min(80, 50 + (oceanScores.agreeableness - 50) * 0.3)),
+    individualism: Math.max(20, Math.min(80, 50 + (oceanScores.extraversion - 50) * 0.4)),
+    masculinity: Math.max(20, Math.min(80, 50 + (oceanScores.conscientiousness - 50) * 0.3)),
+    uncertaintyAvoidance: Math.max(20, Math.min(80, 50 + (oceanScores.neuroticism - 50) * 0.2)),
+    longTermOrientation: Math.max(20, Math.min(80, 50 + (oceanScores.openness - 50) * 0.3)),
+    indulgence: Math.max(20, Math.min(80, 50 + (oceanScores.extraversion - 50) * 0.4))
+  };
+}
+
+function calculateValuesScores(oceanResponses: Record<string, number>) {
+  // For now, generate values scores based on OCEAN scores
+  const oceanScores = calculateOceanScores(oceanResponses);
+  return {
+    innovation: Math.max(20, Math.min(80, 50 + (oceanScores.openness - 50) * 0.5)),
+    collaboration: Math.max(20, Math.min(80, 50 + (oceanScores.agreeableness - 50) * 0.4)),
+    autonomy: Math.max(20, Math.min(80, 50 + (oceanScores.conscientiousness - 50) * 0.3)),
+    quality: Math.max(20, Math.min(80, 50 + (oceanScores.conscientiousness - 50) * 0.4)),
+    customerFocus: Math.max(20, Math.min(80, 50 + (oceanScores.agreeableness - 50) * 0.3))
+  };
+}
+
+function generateInsights(oceanScores: any, cultureScores: any, valuesScores: any) {
+  return {
+    ocean: [
+      `You show ${oceanScores.openness > 70 ? 'high' : oceanScores.openness > 40 ? 'moderate' : 'low'} openness to new experiences.`,
+      `Your extraversion level suggests you ${oceanScores.extraversion > 70 ? 'thrive in social environments' : oceanScores.extraversion > 40 ? 'balance social and solitary activities' : 'prefer focused, independent work'}.`,
+      `Your conscientiousness indicates a ${oceanScores.conscientiousness > 70 ? 'highly organized and goal-oriented' : oceanScores.conscientiousness > 40 ? 'balanced approach to planning' : 'flexible and spontaneous'} work style.`,
+      `Your agreeableness suggests you ${oceanScores.agreeableness > 70 ? 'excel at teamwork and collaboration' : oceanScores.agreeableness > 40 ? 'balance cooperation with assertiveness' : 'prefer direct, competitive environments'}.`,
+      `Your neuroticism level indicates ${oceanScores.neuroticism < 30 ? 'strong emotional stability' : oceanScores.neuroticism < 60 ? 'moderate stress resilience' : 'sensitivity to stress and change'} in work environments.`
+    ],
+    culture: [
+      `You prefer ${cultureScores.powerDistance < 40 ? 'flat, egalitarian' : cultureScores.powerDistance > 60 ? 'hierarchical, structured' : 'balanced'} organizational structures.`,
+      `Your individualism suggests you ${cultureScores.individualism > 70 ? 'value personal achievement and autonomy' : cultureScores.individualism > 40 ? 'balance individual and team contributions' : 'thrive in collaborative, team-oriented environments'}.`,
+      `Your masculinity preference indicates you ${cultureScores.masculinity > 70 ? 'enjoy competitive, achievement-focused environments' : cultureScores.masculinity > 40 ? 'balance competition with cooperation' : 'prefer supportive, relationship-focused workplaces'}.`
+    ],
+    values: [
+      `Innovation is ${valuesScores.innovation > 70 ? 'a core driver' : valuesScores.innovation > 40 ? 'moderately important' : 'less central'} in your work preferences.`,
+      `Collaboration ${valuesScores.collaboration > 70 ? 'is essential' : valuesScores.collaboration > 40 ? 'plays a role' : 'is less important'} in your ideal work environment.`,
+      `Autonomy ${valuesScores.autonomy > 70 ? 'is highly valued' : valuesScores.autonomy > 40 ? 'is moderately important' : 'is less critical'} in your work style.`
+    ]
+  };
+}
+
+function generateRecommendations(oceanScores: any, cultureScores: any, valuesScores: any) {
+  return {
+    ocean: {
+      context: "Based on your OCEAN personality profile, you're naturally inclined toward creative, social, and adaptable work environments.",
+      recommendations: [
+        {
+          title: "Leverage Your Personality Strengths",
+          description: "Focus on roles that align with your highest traits and provide opportunities for growth in areas of moderate development.",
+          nextSteps: [
+            "Seek roles that match your highest OCEAN scores",
+            "Develop skills that complement your personality strengths",
+            "Consider environments that support your natural tendencies"
+          ]
+        }
+      ]
+    },
+    culture: {
+      context: "Your cultural preferences suggest you work best in environments that match your values around hierarchy, collaboration, and achievement.",
+      recommendations: [
+        {
+          title: "Find Your Cultural Fit",
+          description: "Look for organizations with structures and values that align with your cultural preferences.",
+          nextSteps: [
+            "Research company cultures before applying",
+            "Ask about organizational structure in interviews",
+            "Seek environments that match your cultural values"
+          ]
+        }
+      ]
+    },
+    values: {
+      context: "Your work values indicate what truly motivates you professionally and how you prefer to contribute to organizational success.",
+      recommendations: [
+        {
+          title: "Align Your Career with Your Values",
+          description: "Choose roles and organizations that prioritize the values most important to you.",
+          nextSteps: [
+            "Prioritize roles that emphasize your top values",
+            "Look for organizations that share your values",
+            "Consider how your values align with potential employers"
+          ]
+        }
+      ]
+    }
+  };
+}
+
 interface Question {
   id: string;
   text: string;
@@ -232,8 +361,44 @@ export default function SectionPage() {
         }
       }
       
-      // If all sections are complete, go to results
+      // If all sections are complete, store results in database and go to results
       if (completedSections.length === 3) {
+        // Calculate results from responses
+        const oceanScores = calculateOceanScores(updatedResponses.ocean || {});
+        const cultureScores = calculateCultureScores(updatedResponses.ocean || {}); // Use OCEAN for now
+        const valuesScores = calculateValuesScores(updatedResponses.ocean || {}); // Use OCEAN for now
+        
+        const insights = generateInsights(oceanScores, cultureScores, valuesScores);
+        const recommendations = generateRecommendations(oceanScores, cultureScores, valuesScores);
+        
+        const resultsData = {
+          oceanScores,
+          cultureScores,
+          valuesScores,
+          insights,
+          recommendations
+        };
+        
+        // Store results in database
+        try {
+          const storeResponse = await fetch(`/api/assessments/${uuid}/store-results`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              responses: updatedResponses,
+              results: resultsData
+            })
+          });
+          
+          if (!storeResponse.ok) {
+            console.error('Failed to store results in database');
+            // Continue anyway - results are in localStorage
+          }
+        } catch (error) {
+          console.error('Error storing results:', error);
+          // Continue anyway - results are in localStorage
+        }
+        
         router.push(`/assessment/${uuid}/results`);
         return;
       }

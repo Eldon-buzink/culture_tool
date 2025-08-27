@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 
 interface RadarChartProps {
   data: Record<string, number>;
-  title: string;
+  title?: string;
   size?: number;
   color?: string;
 }
@@ -29,7 +29,7 @@ const termDefinitions = {
 export default function RadarChart({ data, title, size = 400, color = '#3B82F6' }: RadarChartProps) {
   const centerX = size / 2;
   const centerY = size / 2;
-  const radius = (size * 0.22); // Further reduced radius to make more room for labels
+  const radius = (size * 0.18); // Reduced radius to make more room for labels
   
   const labels = Object.keys(data);
   const values = Object.values(data);
@@ -82,7 +82,7 @@ export default function RadarChart({ data, title, size = 400, color = '#3B82F6' 
   // Create labels with better positioning and text wrapping
   const labelElements = points.map((point, index) => {
     const angle = (index * 2 * Math.PI) / labels.length - Math.PI / 2;
-    const labelRadius = radius + 60; // Increased radius for labels
+    const labelRadius = radius + 80; // Increased radius for labels
     const x = centerX + Math.cos(angle) * labelRadius;
     const y = centerY + Math.sin(angle) * labelRadius;
     
@@ -157,7 +157,7 @@ export default function RadarChart({ data, title, size = 400, color = '#3B82F6' 
 
   return (
     <div className="bg-white rounded-lg p-4 shadow-sm">
-      <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center">{title}</h3>
+      {title && <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center">{title}</h3>}
       <div className="flex justify-center">
         <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
           {/* Grid circles */}
