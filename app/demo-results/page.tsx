@@ -7,10 +7,11 @@ import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { ChevronDown, ChevronUp, Brain, Users, Target, TrendingUp, TrendingDown, Minus, HelpCircle, Lightbulb, Award, AlertTriangle } from 'lucide-react';
 import RadarChart from '@/components/RadarChart';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useState as useStateTooltip } from 'react';
 
 export default function DemoResultsPage() {
   const [expandedRecommendations, setExpandedRecommendations] = useState<Record<string, boolean>>({});
+  const [activeTooltip, setActiveTooltip] = useState<string | null>(null);
 
   // Demo data showing what users will get
   const demoResults = {
@@ -186,6 +187,10 @@ export default function DemoResultsPage() {
     return tooltips[term.toLowerCase()] || 'No explanation available for this term.';
   };
 
+  const toggleTooltip = (term: string) => {
+    setActiveTooltip(activeTooltip === term ? null : term);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="container mx-auto px-4 max-w-6xl">
@@ -225,52 +230,75 @@ export default function DemoResultsPage() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* Radar Chart */}
-              <div>
-                <h3 className="text-lg font-semibold mb-4">Your Personality Dimensions</h3>
-                <div className="w-full h-80">
-                  <RadarChart
-                    data={{
-                      'Openness': demoResults.oceanScores.openness,
-                      'Conscientiousness': demoResults.oceanScores.conscientiousness,
-                      'Extraversion': demoResults.oceanScores.extraversion,
-                      'Agreeableness': demoResults.oceanScores.agreeableness,
-                      'Neuroticism': demoResults.oceanScores.neuroticism
-                    }}
-                    title="OCEAN Personality Profile"
-                  />
+              {/* Left Column: Radar Chart + Detailed Scores */}
+              <div className="space-y-8">
+                {/* Radar Chart */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Your Personality Dimensions</h3>
+                  <div className="w-full h-72">
+                    <RadarChart
+                      data={{
+                        'Openness': demoResults.oceanScores.openness,
+                        'Conscientiousness': demoResults.oceanScores.conscientiousness,
+                        'Extraversion': demoResults.oceanScores.extraversion,
+                        'Agreeableness': demoResults.oceanScores.agreeableness,
+                        'Neuroticism': demoResults.oceanScores.neuroticism
+                      }}
+                      size={350}
+                    />
+                  </div>
+                </div>
+
+                {/* Detailed Scores */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Detailed Scores</h3>
+                  <div className="space-y-4">
+                    {Object.entries(demoResults.oceanScores).map(([trait, score]) => (
+                      <div key={trait} className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium capitalize">{trait}</span>
+                            <div className="relative">
+                              <button
+                                onClick={() => toggleTooltip(trait)}
+                                className="text-gray-400 hover:text-gray-600 transition-colors"
+                              >
+                                <HelpCircle className="h-4 w-4" />
+                              </button>
+                              {activeTooltip === trait && (
+                                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 p-3 bg-white border border-gray-200 rounded-lg shadow-lg z-10 max-w-xs">
+                                  <div className="text-sm text-gray-700 leading-relaxed">
+                                    {getTermTooltip(trait)}
+                                  </div>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setActiveTooltip(null);
+                                    }}
+                                    className="absolute top-1 right-1 text-gray-400 hover:text-gray-600"
+                                  >
+                                    ×
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <Badge className={getScoreBadgeColor(score)}>
+                            {getScoreLabel(score)} ({score})
+                          </Badge>
+                        </div>
+                        <Progress value={score} className="h-2" />
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
 
-              {/* Scores and Insights */}
-              <div>
-                <h3 className="text-lg font-semibold mb-4">Detailed Scores</h3>
-                <div className="space-y-4">
-                  {Object.entries(demoResults.oceanScores).map(([trait, score]) => (
-                    <div key={trait} className="space-y-2">
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium capitalize">{trait}</span>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <HelpCircle className="h-4 w-4 text-gray-400 hover:text-gray-600 cursor-help" />
-                            </TooltipTrigger>
-                            <TooltipContent className="max-w-xs">
-                              <p>{getTermTooltip(trait)}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </div>
-                        <Badge className={getScoreBadgeColor(score)}>
-                          {getScoreLabel(score)} ({score})
-                        </Badge>
-                      </div>
-                      <Progress value={score} className="h-2" />
-                    </div>
-                  ))}
-                </div>
-
-                <div className="mt-6">
-                  <h4 className="font-semibold mb-3">Key Insights</h4>
+              {/* Right Column: Key Insights + AI Recommendations + Section Summary */}
+              <div className="space-y-6">
+                {/* Key Insights */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Key Insights</h3>
                   <ul className="space-y-2">
                     {demoResults.insights.ocean.map((insight, index) => (
                       <li key={index} className="text-sm text-gray-700 flex items-start gap-2">
@@ -281,8 +309,63 @@ export default function DemoResultsPage() {
                   </ul>
                 </div>
 
-                <div className="mt-6">
-                  <h4 className="font-semibold mb-3">Section Summary</h4>
+                {/* AI Recommendations */}
+                <div className="border border-gray-200 rounded-lg overflow-hidden">
+                  <div 
+                    className="p-4 bg-blue-50 cursor-pointer hover:bg-blue-100 transition-colors"
+                    onClick={() => toggleRecommendation('ocean', 0)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                          <Brain className="h-4 w-4 text-blue-600" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-blue-900">AI Recommendations</h4>
+                          <p className="text-sm text-blue-700">Personalized recommendations based on your personality profile</p>
+                        </div>
+                      </div>
+                      {expandedRecommendations['ocean-0'] ? (
+                        <ChevronUp className="h-5 w-5 text-blue-600" />
+                      ) : (
+                        <ChevronDown className="h-5 w-5 text-blue-600" />
+                      )}
+                    </div>
+                  </div>
+                  
+                  {expandedRecommendations['ocean-0'] && (
+                    <div className="p-4 bg-white border-t border-gray-200">
+                      <div className="space-y-4">
+                        <div>
+                          <h5 className="font-medium text-gray-900 mb-2">Context</h5>
+                          <p className="text-gray-700 text-sm">{demoResults.recommendations.ocean.context}</p>
+                        </div>
+                        
+                        {demoResults.recommendations.ocean.recommendations.map((rec, index) => (
+                          <div key={index} className="border-l-4 border-blue-200 pl-4">
+                            <h6 className="font-medium text-gray-900 mb-2">{rec.title}</h6>
+                            <p className="text-gray-700 text-sm mb-3">{rec.description}</p>
+                            <div>
+                              <h6 className="font-medium text-gray-900 text-sm mb-2">Next Steps:</h6>
+                              <ul className="text-sm text-gray-600 space-y-1 ml-4">
+                                {rec.nextSteps.map((step, stepIndex) => (
+                                  <li key={stepIndex} className="flex items-start gap-2">
+                                    <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                                    {step}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Section Summary */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Section Summary</h3>
                   <p className="text-sm text-gray-600">{getSectionSummary('ocean')}</p>
                 </div>
               </div>
@@ -305,53 +388,76 @@ export default function DemoResultsPage() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* Radar Chart */}
-              <div>
-                <h3 className="text-lg font-semibold mb-4">Your Cultural Dimensions</h3>
-                <div className="w-full h-80">
-                  <RadarChart
-                    data={{
-                      'Power Distance': demoResults.cultureScores.powerDistance,
-                      'Individualism': demoResults.cultureScores.individualism,
-                      'Masculinity': demoResults.cultureScores.masculinity,
-                      'Uncertainty Avoidance': demoResults.cultureScores.uncertaintyAvoidance,
-                      'Long-term Orientation': demoResults.cultureScores.longTermOrientation,
-                      'Indulgence': demoResults.cultureScores.indulgence
-                    }}
-                    title="Cultural Work Preferences"
-                  />
+              {/* Left Column: Radar Chart + Detailed Scores */}
+              <div className="space-y-8">
+                {/* Radar Chart */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Your Cultural Dimensions</h3>
+                  <div className="w-full h-72">
+                    <RadarChart
+                      data={{
+                        'Power Distance': demoResults.cultureScores.powerDistance,
+                        'Individualism': demoResults.cultureScores.individualism,
+                        'Masculinity': demoResults.cultureScores.masculinity,
+                        'Uncertainty Avoidance': demoResults.cultureScores.uncertaintyAvoidance,
+                        'Long-term Orientation': demoResults.cultureScores.longTermOrientation,
+                        'Indulgence': demoResults.cultureScores.indulgence
+                      }}
+                      size={350}
+                    />
+                  </div>
+                </div>
+
+                {/* Detailed Scores */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Detailed Scores</h3>
+                  <div className="space-y-4">
+                    {Object.entries(demoResults.cultureScores).map(([dimension, score]) => (
+                      <div key={dimension} className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium capitalize">{dimension.replace(/([A-Z])/g, ' $1').trim()}</span>
+                            <div className="relative">
+                              <button
+                                onClick={() => toggleTooltip(dimension)}
+                                className="text-gray-400 hover:text-gray-600 transition-colors"
+                              >
+                                <HelpCircle className="h-4 w-4" />
+                              </button>
+                              {activeTooltip === dimension && (
+                                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 p-3 bg-white border border-gray-200 rounded-lg shadow-lg z-10 max-w-xs">
+                                  <div className="text-sm text-gray-700 leading-relaxed">
+                                    {getTermTooltip(dimension)}
+                                  </div>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setActiveTooltip(null);
+                                    }}
+                                    className="absolute top-1 right-1 text-gray-400 hover:text-gray-600"
+                                  >
+                                    ×
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <Badge className={getScoreBadgeColor(score)}>
+                            {getScoreLabel(score)} ({score})
+                          </Badge>
+                        </div>
+                        <Progress value={score} className="h-2" />
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
 
-              {/* Scores and Insights */}
-              <div>
-                <h3 className="text-lg font-semibold mb-4">Detailed Scores</h3>
-                <div className="space-y-4">
-                  {Object.entries(demoResults.cultureScores).map(([dimension, score]) => (
-                    <div key={dimension} className="space-y-2">
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium capitalize">{dimension.replace(/([A-Z])/g, ' $1').trim()}</span>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <HelpCircle className="h-4 w-4 text-gray-400 hover:text-gray-600 cursor-help" />
-                            </TooltipTrigger>
-                            <TooltipContent className="max-w-xs">
-                              <p>{getTermTooltip(dimension)}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </div>
-                        <Badge className={getScoreBadgeColor(score)}>
-                          {getScoreLabel(score)} ({score})
-                        </Badge>
-                      </div>
-                      <Progress value={score} className="h-2" />
-                    </div>
-                  ))}
-                </div>
-
-                <div className="mt-6">
-                  <h4 className="font-semibold mb-3">Key Insights</h4>
+              {/* Right Column: Key Insights + AI Recommendations + Section Summary */}
+              <div className="space-y-6">
+                {/* Key Insights */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Key Insights</h3>
                   <ul className="space-y-2">
                     {demoResults.insights.culture.map((insight, index) => (
                       <li key={index} className="text-sm text-gray-700 flex items-start gap-2">
@@ -362,8 +468,63 @@ export default function DemoResultsPage() {
                   </ul>
                 </div>
 
-                <div className="mt-6">
-                  <h4 className="font-semibold mb-3">Section Summary</h4>
+                {/* AI Recommendations */}
+                <div className="border border-gray-200 rounded-lg overflow-hidden">
+                  <div 
+                    className="p-4 bg-green-50 cursor-pointer hover:bg-green-100 transition-colors"
+                    onClick={() => toggleRecommendation('culture', 0)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                          <Users className="h-4 w-4 text-green-600" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-green-900">AI Recommendations</h4>
+                          <p className="text-sm text-green-700">Find your ideal work environment and organizational culture</p>
+                        </div>
+                      </div>
+                      {expandedRecommendations['culture-0'] ? (
+                        <ChevronUp className="h-5 w-5 text-green-600" />
+                      ) : (
+                        <ChevronDown className="h-5 w-5 text-green-600" />
+                      )}
+                    </div>
+                  </div>
+                  
+                  {expandedRecommendations['culture-0'] && (
+                    <div className="p-4 bg-white border-t border-gray-200">
+                      <div className="space-y-4">
+                        <div>
+                          <h5 className="font-medium text-gray-900 mb-2">Context</h5>
+                          <p className="text-gray-700 text-sm">{demoResults.recommendations.culture.context}</p>
+                        </div>
+                        
+                        {demoResults.recommendations.culture.recommendations.map((rec, index) => (
+                          <div key={index} className="border-l-4 border-green-200 pl-4">
+                            <h6 className="font-medium text-gray-900 mb-2">{rec.title}</h6>
+                            <p className="text-gray-700 text-sm mb-3">{rec.description}</p>
+                            <div>
+                              <h6 className="font-medium text-gray-900 text-sm mb-2">Next Steps:</h6>
+                              <ul className="text-sm text-gray-600 space-y-1 ml-4">
+                                {rec.nextSteps.map((step, stepIndex) => (
+                                  <li key={stepIndex} className="flex items-start gap-2">
+                                    <div className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
+                                    {step}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Section Summary */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Section Summary</h3>
                   <p className="text-sm text-gray-600">{getSectionSummary('culture')}</p>
                 </div>
               </div>
@@ -386,52 +547,75 @@ export default function DemoResultsPage() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* Radar Chart */}
-              <div>
-                <h3 className="text-lg font-semibold mb-4">Your Work Values</h3>
-                <div className="w-full h-80">
-                  <RadarChart
-                    data={{
-                      'Innovation': demoResults.valuesScores.innovation,
-                      'Collaboration': demoResults.valuesScores.collaboration,
-                      'Autonomy': demoResults.valuesScores.autonomy,
-                      'Quality': demoResults.valuesScores.quality,
-                      'Customer Focus': demoResults.valuesScores.customerFocus
-                    }}
-                    title="Work Values Profile"
-                  />
+              {/* Left Column: Radar Chart + Detailed Scores */}
+              <div className="space-y-8">
+                {/* Radar Chart */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Your Work Values</h3>
+                  <div className="w-full h-72">
+                    <RadarChart
+                      data={{
+                        'Innovation': demoResults.valuesScores.innovation,
+                        'Collaboration': demoResults.valuesScores.collaboration,
+                        'Autonomy': demoResults.valuesScores.autonomy,
+                        'Quality': demoResults.valuesScores.quality,
+                        'Customer Focus': demoResults.valuesScores.customerFocus
+                      }}
+                      size={350}
+                    />
+                  </div>
+                </div>
+
+                {/* Detailed Scores */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Detailed Scores</h3>
+                  <div className="space-y-4">
+                    {Object.entries(demoResults.valuesScores).map(([value, score]) => (
+                      <div key={value} className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium capitalize">{value.replace(/([A-Z])/g, ' $1').trim()}</span>
+                            <div className="relative">
+                              <button
+                                onClick={() => toggleTooltip(value)}
+                                className="text-gray-400 hover:text-gray-600 transition-colors"
+                              >
+                                <HelpCircle className="h-4 w-4" />
+                              </button>
+                              {activeTooltip === value && (
+                                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 p-3 bg-white border border-gray-200 rounded-lg shadow-lg z-10 max-w-xs">
+                                  <div className="text-sm text-gray-700 leading-relaxed">
+                                    {getTermTooltip(value)}
+                                  </div>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setActiveTooltip(null);
+                                    }}
+                                    className="absolute top-1 right-1 text-gray-400 hover:text-gray-600"
+                                  >
+                                    ×
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <Badge className={getScoreBadgeColor(score)}>
+                            {getScoreLabel(score)} ({score})
+                          </Badge>
+                        </div>
+                        <Progress value={score} className="h-2" />
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
 
-              {/* Scores and Insights */}
-              <div>
-                <h3 className="text-lg font-semibold mb-4">Detailed Scores</h3>
-                <div className="space-y-4">
-                  {Object.entries(demoResults.valuesScores).map(([value, score]) => (
-                    <div key={value} className="space-y-2">
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium capitalize">{value.replace(/([A-Z])/g, ' $1').trim()}</span>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <HelpCircle className="h-4 w-4 text-gray-400 hover:text-gray-600 cursor-help" />
-                            </TooltipTrigger>
-                            <TooltipContent className="max-w-xs">
-                              <p>{getTermTooltip(value)}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </div>
-                        <Badge className={getScoreBadgeColor(score)}>
-                          {getScoreLabel(score)} ({score})
-                        </Badge>
-                      </div>
-                      <Progress value={score} className="h-2" />
-                    </div>
-                  ))}
-                </div>
-
-                <div className="mt-6">
-                  <h4 className="font-semibold mb-3">Key Insights</h4>
+              {/* Right Column: Key Insights + AI Recommendations + Section Summary */}
+              <div className="space-y-6">
+                {/* Key Insights */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Key Insights</h3>
                   <ul className="space-y-2">
                     {demoResults.insights.values.map((insight, index) => (
                       <li key={index} className="text-sm text-gray-700 flex items-start gap-2">
@@ -442,8 +626,63 @@ export default function DemoResultsPage() {
                   </ul>
                 </div>
 
-                <div className="mt-6">
-                  <h4 className="font-semibold mb-3">Section Summary</h4>
+                {/* AI Recommendations */}
+                <div className="border border-gray-200 rounded-lg overflow-hidden">
+                  <div 
+                    className="p-4 bg-purple-50 cursor-pointer hover:bg-purple-100 transition-colors"
+                    onClick={() => toggleRecommendation('values', 0)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                          <Target className="h-4 w-4 text-purple-600" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-purple-900">AI Recommendations</h4>
+                          <p className="text-sm text-purple-700">Align your career choices with what truly matters to you</p>
+                        </div>
+                      </div>
+                      {expandedRecommendations['values-0'] ? (
+                        <ChevronUp className="h-5 w-5 text-purple-600" />
+                      ) : (
+                        <ChevronDown className="h-5 w-5 text-purple-600" />
+                      )}
+                    </div>
+                  </div>
+                  
+                  {expandedRecommendations['values-0'] && (
+                    <div className="p-4 bg-white border-t border-gray-200">
+                      <div className="space-y-4">
+                        <div>
+                          <h5 className="font-medium text-gray-900 mb-2">Context</h5>
+                          <p className="text-gray-700 text-sm">{demoResults.recommendations.values.context}</p>
+                        </div>
+                        
+                        {demoResults.recommendations.values.recommendations.map((rec, index) => (
+                          <div key={index} className="border-l-4 border-purple-200 pl-4">
+                            <h6 className="font-medium text-gray-900 mb-2">{rec.title}</h6>
+                            <p className="text-gray-700 text-sm mb-3">{rec.description}</p>
+                            <div>
+                              <h6 className="font-medium text-gray-900 text-sm mb-2">Next Steps:</h6>
+                              <ul className="text-sm text-gray-600 space-y-1 ml-4">
+                                {rec.nextSteps.map((step, stepIndex) => (
+                                  <li key={stepIndex} className="flex items-start gap-2">
+                                    <div className="w-1.5 h-1.5 bg-purple-500 rounded-full mt-2 flex-shrink-0"></div>
+                                    {step}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Section Summary */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Section Summary</h3>
                   <p className="text-sm text-gray-600">{getSectionSummary('values')}</p>
                 </div>
               </div>
@@ -451,187 +690,7 @@ export default function DemoResultsPage() {
           </CardContent>
         </Card>
 
-        {/* AI-Powered Recommendations */}
-        <Card className="mb-8">
-          <CardHeader>
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 bg-orange-100 rounded-lg">
-                <Lightbulb className="h-6 w-6 text-orange-600" />
-              </div>
-              <div>
-                <CardTitle className="text-2xl">AI-Powered Recommendations</CardTitle>
-                <p className="text-gray-600">
-                  Get personalized, actionable insights and career guidance based on your unique assessment results
-                </p>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-6">
-              {/* OCEAN Recommendations */}
-              <div className="border border-gray-200 rounded-lg overflow-hidden">
-                <div 
-                  className="p-4 bg-blue-50 cursor-pointer hover:bg-blue-100 transition-colors"
-                  onClick={() => toggleRecommendation('ocean', 0)}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                        <Brain className="h-4 w-4 text-blue-600" />
-                      </div>
-                      <div>
-                        <h4 className="font-semibold text-blue-900">OCEAN Personality Insights</h4>
-                        <p className="text-sm text-blue-700">Personalized recommendations based on your personality profile</p>
-                      </div>
-                    </div>
-                    {expandedRecommendations['ocean-0'] ? (
-                      <ChevronUp className="h-5 w-5 text-blue-600" />
-                    ) : (
-                      <ChevronDown className="h-5 w-5 text-blue-600" />
-                    )}
-                  </div>
-                </div>
-                
-                {expandedRecommendations['ocean-0'] && (
-                  <div className="p-4 bg-white border-t border-gray-200">
-                    <div className="space-y-4">
-                      <div>
-                        <h5 className="font-medium text-gray-900 mb-2">Context</h5>
-                        <p className="text-gray-700 text-sm">{demoResults.recommendations.ocean.context}</p>
-                      </div>
-                      
-                      {demoResults.recommendations.ocean.recommendations.map((rec, index) => (
-                        <div key={index} className="border-l-4 border-blue-200 pl-4">
-                          <h6 className="font-medium text-gray-900 mb-2">{rec.title}</h6>
-                          <p className="text-gray-700 text-sm mb-3">{rec.description}</p>
-                          <div>
-                            <h6 className="font-medium text-gray-900 text-sm mb-2">Next Steps:</h6>
-                            <ul className="text-sm text-gray-600 space-y-1 ml-4">
-                              {rec.nextSteps.map((step, stepIndex) => (
-                                <li key={stepIndex} className="flex items-start gap-2">
-                                  <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-                                  {step}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
 
-              {/* Culture Recommendations */}
-              <div className="border border-gray-200 rounded-lg overflow-hidden">
-                <div 
-                  className="p-4 bg-green-50 cursor-pointer hover:bg-green-100 transition-colors"
-                  onClick={() => toggleRecommendation('culture', 0)}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                        <Users className="h-4 w-4 text-green-600" />
-                      </div>
-                      <div>
-                        <h4 className="font-semibold text-green-900">Cultural Work Preferences</h4>
-                        <p className="text-sm text-green-700">Find your ideal work environment and organizational culture</p>
-                      </div>
-                    </div>
-                    {expandedRecommendations['culture-0'] ? (
-                      <ChevronUp className="h-5 w-5 text-green-600" />
-                    ) : (
-                      <ChevronDown className="h-5 w-5 text-green-600" />
-                    )}
-                  </div>
-                </div>
-                
-                {expandedRecommendations['culture-0'] && (
-                  <div className="p-4 bg-white border-t border-gray-200">
-                    <div className="space-y-4">
-                      <div>
-                        <h5 className="font-medium text-gray-900 mb-2">Context</h5>
-                        <p className="text-gray-700 text-sm">{demoResults.recommendations.culture.context}</p>
-                      </div>
-                      
-                      {demoResults.recommendations.culture.recommendations.map((rec, index) => (
-                        <div key={index} className="border-l-4 border-green-200 pl-4">
-                          <h6 className="font-medium text-gray-900 mb-2">{rec.title}</h6>
-                          <p className="text-gray-700 text-sm mb-3">{rec.description}</p>
-                          <div>
-                            <h6 className="font-medium text-gray-900 text-sm mb-2">Next Steps:</h6>
-                            <ul className="text-sm text-gray-600 space-y-1 ml-4">
-                              {rec.nextSteps.map((step, stepIndex) => (
-                                <li key={stepIndex} className="flex items-start gap-2">
-                                  <div className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
-                                  {step}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Values Recommendations */}
-              <div className="border border-gray-200 rounded-lg overflow-hidden">
-                <div 
-                  className="p-4 bg-purple-50 cursor-pointer hover:bg-purple-100 transition-colors"
-                  onClick={() => toggleRecommendation('values', 0)}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
-                        <Target className="h-4 w-4 text-purple-600" />
-                      </div>
-                      <div>
-                        <h4 className="font-semibold text-purple-900">Work Values Alignment</h4>
-                        <p className="text-sm text-purple-700">Align your career choices with what truly matters to you</p>
-                      </div>
-                    </div>
-                    {expandedRecommendations['values-0'] ? (
-                      <ChevronUp className="h-5 w-5 text-purple-600" />
-                    ) : (
-                      <ChevronDown className="h-5 w-5 text-purple-600" />
-                    )}
-                  </div>
-                </div>
-                
-                {expandedRecommendations['values-0'] && (
-                  <div className="p-4 bg-white border-t border-gray-200">
-                    <div className="space-y-4">
-                      <div>
-                        <h5 className="font-medium text-gray-900 mb-2">Context</h5>
-                        <p className="text-gray-700 text-sm">{demoResults.recommendations.values.context}</p>
-                      </div>
-                      
-                      {demoResults.recommendations.values.recommendations.map((rec, index) => (
-                        <div key={index} className="border-l-4 border-purple-200 pl-4">
-                          <h6 className="font-medium text-gray-900 mb-2">{rec.title}</h6>
-                          <p className="text-gray-700 text-sm mb-3">{rec.description}</p>
-                          <div>
-                            <h6 className="font-medium text-gray-900 text-sm mb-2">Next Steps:</h6>
-                            <ul className="text-sm text-gray-600 space-y-1 ml-4">
-                              {rec.nextSteps.map((step, stepIndex) => (
-                                <li key={stepIndex} className="flex items-start gap-2">
-                                  <div className="w-1.5 h-1.5 bg-purple-500 rounded-full mt-2 flex-shrink-0"></div>
-                                  {step}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
 
         {/* Call to Action */}
         <Card className="text-center">
