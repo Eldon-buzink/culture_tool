@@ -765,47 +765,6 @@ export default function TeamDashboardPage() {
               </CardContent>
             </Card>
 
-            {/* Potential New Hires */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <UserPlus className="h-5 w-5" />
-                  Potential New Hires
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="text-center py-6">
-                    <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                      <UserPlus className="h-6 w-6 text-gray-400" />
-                    </div>
-                    <h3 className="text-sm font-medium text-gray-900 mb-2">No Candidates Yet</h3>
-                    <p className="text-xs text-gray-500 mb-4">
-                      Invite potential new hires to take the assessment and see how they match with your team.
-                    </p>
-                    <Button size="sm" className="w-full">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Invite Candidate
-                    </Button>
-                  </div>
-                  
-                  <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-                    <div className="flex items-start gap-3">
-                      <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <span className="text-green-600 text-xs">🎯</span>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-green-900 mb-1">Candidate Matching</p>
-                        <p className="text-sm text-green-700">
-                          Compare candidate profiles with your team to make informed hiring decisions and ensure cultural fit.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
             {/* Term Glossary */}
             <Card>
               <CardHeader>
@@ -1020,6 +979,47 @@ export default function TeamDashboardPage() {
                       </div>
                     ));
                   })()}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Potential New Hires */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <UserPlus className="h-5 w-5" />
+                  Potential New Hires
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="text-center py-6">
+                    <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <UserPlus className="h-6 w-6 text-gray-400" />
+                    </div>
+                    <h3 className="text-sm font-medium text-gray-900 mb-2">No Candidates Yet</h3>
+                    <p className="text-xs text-gray-500 mb-4">
+                      Invite potential new hires to take the assessment and see how they match with your team.
+                    </p>
+                    <Button size="sm" className="w-full">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Invite Candidate
+                    </Button>
+                  </div>
+                  
+                  <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                    <div className="flex items-start gap-3">
+                      <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <span className="text-green-600 text-xs">🎯</span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-green-900 mb-1">Candidate Matching</p>
+                        <p className="text-sm text-green-700">
+                          Compare candidate profiles with your team to make informed hiring decisions and ensure cultural fit.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
