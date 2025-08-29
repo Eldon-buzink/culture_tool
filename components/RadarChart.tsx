@@ -29,7 +29,7 @@ const termDefinitions = {
 export default function RadarChart({ data, title, size = 400, color = '#3B82F6' }: RadarChartProps) {
   const centerX = size / 2;
   const centerY = size / 2;
-  const radius = (size * 0.18); // Reduced radius to make more room for labels
+  const radius = (size * 0.15); // Further reduced radius to make more room for labels
   
   const labels = Object.keys(data);
   const values = Object.values(data);
@@ -82,7 +82,7 @@ export default function RadarChart({ data, title, size = 400, color = '#3B82F6' 
   // Create labels with better positioning and text wrapping
   const labelElements = points.map((point, index) => {
     const angle = (index * 2 * Math.PI) / labels.length - Math.PI / 2;
-    const labelRadius = radius + 80; // Increased radius for labels
+    const labelRadius = radius + 100; // Increased radius for labels to prevent cutoff
     const x = centerX + Math.cos(angle) * labelRadius;
     const y = centerY + Math.sin(angle) * labelRadius;
     
@@ -107,7 +107,7 @@ export default function RadarChart({ data, title, size = 400, color = '#3B82F6' 
       ).join(' ');
       
       // For very long words, add line breaks
-      if (formatted.length > 12) {
+      if (formatted.length > 10) {
         const words = formatted.split(' ');
         if (words.length > 1) {
           const mid = Math.ceil(words.length / 2);
@@ -126,11 +126,11 @@ export default function RadarChart({ data, title, size = 400, color = '#3B82F6' 
           <text
             key={lineIndex}
             x={x}
-            y={y + (lineIndex - (lines.length - 1) / 2) * 16}
+            y={y + (lineIndex - (lines.length - 1) / 2) * 18}
             textAnchor={textAnchor}
             dominantBaseline={dominantBaseline}
             className="text-xs font-medium fill-gray-600 cursor-help"
-            style={{ fontSize: '13px' }}
+            style={{ fontSize: '12px' }}
             data-tooltip={termDefinitions[point.label as keyof typeof termDefinitions] || formatLabel(point.label)}
           >
             {line}

@@ -28,7 +28,8 @@ import {
   Award,
   ChevronDown,
   Lightbulb,
-  AlertTriangle
+  AlertTriangle,
+  Plus
 } from 'lucide-react';
 import { TermGlossary } from '@/components/TermExplanation';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -366,7 +367,7 @@ export default function TeamDashboardPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <ModernSpinner text="Loading team dashboard..." />
       </div>
     );
@@ -374,7 +375,7 @@ export default function TeamDashboardPage() {
 
   if (!teamData) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <Card className="w-full max-w-2xl mx-4">
           <CardContent className="p-8 text-center">
             <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
@@ -400,7 +401,7 @@ export default function TeamDashboardPage() {
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8">
+    <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
@@ -472,23 +473,37 @@ export default function TeamDashboardPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-6">
+                <div className="space-y-8">
                   {/* OCEAN Aggregate */}
                   <div>
-                    <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
                       <Brain className="h-4 w-4" />
                       Team Personality Profile
                     </h4>
                     <RadarChart 
                       data={teamData.aggregateScores.ocean} 
-                      title="Team OCEAN Profile"
+                      title="Team Personality Profile"
                       color="#3B82F6"
                     />
+                    <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                      <div className="flex items-start gap-3">
+                        <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <Lightbulb className="h-4 w-4 text-blue-600" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-blue-900 mb-1">Key Insights</p>
+                          <p className="text-sm text-blue-700">
+                            Your team shows a balanced personality profile with strengths in collaboration and innovation. 
+                            The mix of personality types creates opportunities for diverse perspectives and comprehensive problem-solving.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
                   {/* Culture Aggregate */}
                   <div>
-                    <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
                       <Globe className="h-4 w-4" />
                       Team Cultural Preferences
                     </h4>
@@ -497,11 +512,25 @@ export default function TeamDashboardPage() {
                       title="Team Cultural Profile"
                       color="#10B981"
                     />
+                    <div className="mt-4 p-4 bg-green-50 rounded-lg border border-green-200">
+                      <div className="flex items-start gap-3">
+                        <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <Globe className="h-4 w-4 text-green-600" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-green-900 mb-1">Cultural Insights</p>
+                          <p className="text-sm text-green-700">
+                            Your team demonstrates a preference for collaborative work environments with balanced power dynamics. 
+                            This creates a foundation for inclusive decision-making and shared responsibility.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
                   {/* Values Aggregate */}
                   <div>
-                    <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
                       <Target className="h-4 w-4" />
                       Team Values Profile
                     </h4>
@@ -510,57 +539,154 @@ export default function TeamDashboardPage() {
                       title="Team Values Profile"
                       color="#F59E0B"
                     />
+                    <div className="mt-4 p-4 bg-orange-50 rounded-lg border border-orange-200">
+                      <div className="flex items-start gap-3">
+                        <div className="w-6 h-6 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <Target className="h-4 w-4 text-orange-600" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-orange-900 mb-1">Values Insights</p>
+                          <p className="text-sm text-orange-700">
+                            Your team prioritizes quality and customer focus while maintaining a strong drive for innovation. 
+                            This combination supports sustainable growth and customer satisfaction.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Team Insights */}
+            {/* Combined Team Insights & Recommendations */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5" />
-                  Team Insights
+                  <Lightbulb className="h-5 w-5" />
+                  Team Insights & Recommendations
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-6">
-                  <div>
-                    <h4 className="font-semibold text-green-900 mb-3">Team Strengths</h4>
-                    <div className="space-y-2">
-                      {teamData.insights.strengths.map((strength, index) => (
-                        <div key={index} className="flex items-start gap-3 p-3 bg-green-50 rounded-lg">
-                          <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
-                          <p className="text-gray-700 text-sm">{strength}</p>
-                        </div>
-                      ))}
-                    </div>
+                {recommendationsLoading ? (
+                  <div className="text-center py-8">
+                    <ModernSpinner />
+                    <p className="text-gray-600 mt-2">Generating AI-powered team insights...</p>
                   </div>
+                ) : teamRecommendations ? (
+                  <div className="space-y-6">
+                    {/* AI Summary */}
+                    {teamRecommendations.summary && (
+                      <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                        <div className="flex items-start gap-3">
+                          <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <Lightbulb className="h-4 w-4 text-blue-600" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-blue-900 mb-1">AI Team Analysis</p>
+                            <p className="text-sm text-blue-700">{teamRecommendations.summary}</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
-                  <div>
-                    <h4 className="font-semibold text-yellow-900 mb-3">Areas for Attention</h4>
-                    <div className="space-y-2">
-                      {teamData.insights.challenges.map((challenge, index) => (
-                        <div key={index} className="flex items-start gap-3 p-3 bg-yellow-50 rounded-lg">
-                          <div className="w-2 h-2 bg-yellow-500 rounded-full mt-2 flex-shrink-0"></div>
-                          <p className="text-gray-700 text-sm">{challenge}</p>
+                    {/* Team Strengths */}
+                    {teamRecommendations.strengths && teamRecommendations.strengths.length > 0 && (
+                      <div>
+                        <h4 className="font-semibold text-green-900 mb-3">Team Strengths</h4>
+                        <div className="space-y-2">
+                          {teamRecommendations.strengths.map((strength: string, index: number) => (
+                            <div key={index} className="flex items-start gap-3 p-3 bg-green-50 rounded-lg">
+                              <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
+                              <p className="text-gray-700 text-sm">{strength}</p>
+                            </div>
+                          ))}
                         </div>
-                      ))}
-                    </div>
-                  </div>
+                      </div>
+                    )}
 
-                  <div>
-                    <h4 className="font-semibold text-blue-900 mb-3">Opportunities</h4>
-                    <div className="space-y-2">
-                      {teamData.insights.opportunities.map((opportunity, index) => (
-                        <div key={index} className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg">
-                          <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-                          <p className="text-gray-700 text-sm">{opportunity}</p>
+                    {/* Development Areas (Combined from Areas for Attention and Development Areas) */}
+                    {((teamRecommendations.challenges && teamRecommendations.challenges.length > 0) || 
+                      (teamData.insights.challenges && teamData.insights.challenges.length > 0)) && (
+                      <div>
+                        <h4 className="font-semibold text-yellow-900 mb-3">Areas for Development</h4>
+                        <div className="space-y-2">
+                          {teamRecommendations.challenges?.map((challenge: string, index: number) => (
+                            <div key={`rec-${index}`} className="flex items-start gap-3 p-3 bg-yellow-50 rounded-lg">
+                              <div className="w-2 h-2 bg-yellow-500 rounded-full mt-2 flex-shrink-0"></div>
+                              <p className="text-gray-700 text-sm">{challenge}</p>
+                            </div>
+                          ))}
+                          {teamData.insights.challenges?.map((challenge: string, index: number) => (
+                            <div key={`insight-${index}`} className="flex items-start gap-3 p-3 bg-yellow-50 rounded-lg">
+                              <div className="w-2 h-2 bg-yellow-500 rounded-full mt-2 flex-shrink-0"></div>
+                              <p className="text-gray-700 text-sm">{challenge}</p>
+                            </div>
+                          ))}
                         </div>
-                      ))}
+                      </div>
+                    )}
+
+                    {/* Opportunities */}
+                    {((teamRecommendations.opportunities && teamRecommendations.opportunities.length > 0) || 
+                      (teamData.insights.opportunities && teamData.insights.opportunities.length > 0)) && (
+                      <div>
+                        <h4 className="font-semibold text-blue-900 mb-3">Opportunities</h4>
+                        <div className="space-y-2">
+                          {teamRecommendations.opportunities?.map((opportunity: string, index: number) => (
+                            <div key={`rec-${index}`} className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg">
+                              <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                              <p className="text-gray-700 text-sm">{opportunity}</p>
+                            </div>
+                          ))}
+                          {teamData.insights.opportunities?.map((opportunity: string, index: number) => (
+                            <div key={`insight-${index}`} className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg">
+                              <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                              <p className="text-gray-700 text-sm">{opportunity}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Top Recommendations */}
+                    {teamRecommendations.recommendations && teamRecommendations.recommendations.length > 0 && (
+                      <div>
+                        <h4 className="font-semibold text-gray-900 mb-4">Top Recommendations</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {teamRecommendations.recommendations.slice(0, 4).map((rec: any, index: number) => (
+                            <div key={index} className="border border-gray-200 rounded-lg overflow-hidden">
+                              <div className="p-4 bg-white">
+                                <div className="flex items-center justify-between mb-2">
+                                  <h5 className="font-medium text-gray-900">{rec.title}</h5>
+                                  <div className="flex gap-2">
+                                    <Badge className="bg-green-100 text-green-700 text-xs">High Impact</Badge>
+                                    <Badge className="bg-blue-100 text-blue-700 text-xs">Medium Effort</Badge>
+                                  </div>
+                                </div>
+                                <p className="text-sm text-gray-600">{rec.description}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Users className="h-8 w-8 text-gray-400" />
+                    </div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No Insights Yet</h3>
+                    <p className="text-gray-600 text-sm mb-4">
+                      Team insights and recommendations will be generated once at least 2 team members complete their assessments.
+                    </p>
+                    <div className="text-xs text-gray-500">
+                      <p>• AI-powered insights based on team personality dynamics</p>
+                      <p>• Personalized recommendations for team collaboration</p>
+                      <p>• Conflict prevention and communication optimization</p>
                     </div>
                   </div>
-                </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -639,6 +765,47 @@ export default function TeamDashboardPage() {
               </CardContent>
             </Card>
 
+            {/* Potential New Hires */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <UserPlus className="h-5 w-5" />
+                  Potential New Hires
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="text-center py-6">
+                    <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <UserPlus className="h-6 w-6 text-gray-400" />
+                    </div>
+                    <h3 className="text-sm font-medium text-gray-900 mb-2">No Candidates Yet</h3>
+                    <p className="text-xs text-gray-500 mb-4">
+                      Invite potential new hires to take the assessment and see how they match with your team.
+                    </p>
+                    <Button size="sm" className="w-full">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Invite Candidate
+                    </Button>
+                  </div>
+                  
+                  <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                    <div className="flex items-start gap-3">
+                      <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <span className="text-green-600 text-xs">🎯</span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-green-900 mb-1">Candidate Matching</p>
+                        <p className="text-sm text-green-700">
+                          Compare candidate profiles with your team to make informed hiring decisions and ensure cultural fit.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Term Glossary */}
             <Card>
               <CardHeader>
@@ -656,130 +823,41 @@ export default function TeamDashboardPage() {
               </CardContent>
             </Card>
 
-            {/* Quick Actions */}
+            {/* Quick Actions - Matching Individual Assessment Design */}
             <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Quick Actions</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <Button variant="outline" className="w-full">
-                    <Mail className="h-4 w-4 mr-2" />
-                    Send Reminders
-                  </Button>
-                  <Button variant="outline" className="w-full">
-                    <Download className="h-4 w-4 mr-2" />
-                    Export Report
-                  </Button>
-                  <Button variant="outline" className="w-full">
-                    <Copy className="h-4 w-4 mr-2" />
-                    Copy Invite Link
-                  </Button>
+              <CardContent className="pt-8">
+                <div className="max-w-2xl mx-auto">
+                  <h2 className="text-2xl font-bold text-gray-900 mb-4">Ready to Share Your Results?</h2>
+                  <p className="text-gray-600 mb-6">
+                    Share your team results or export them for future reference. You can also invite new members to join the assessment.
+                  </p>
+                  <div className="flex flex-col gap-4">
+                    <Button 
+                      size="lg" 
+                      className="bg-green-600 hover:bg-green-700 px-8 py-3"
+                      onClick={() => setShowShareModal(true)}
+                    >
+                      <Mail className="h-4 w-4 mr-2" />
+                      Share Team Results
+                    </Button>
+                    <Button 
+                      size="lg" 
+                      className="bg-blue-600 hover:bg-blue-700 px-8 py-3"
+                      onClick={() => setShowInviteModal(true)}
+                    >
+                      <UserPlus className="h-4 w-4 mr-2" />
+                      Invite New Members
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="lg" 
+                      className="px-8 py-3"
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Export Report
+                    </Button>
+                  </div>
                 </div>
-              </CardContent>
-            </Card>
-
-            {/* Team Recommendations */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Team Recommendations</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {recommendationsLoading ? (
-                  <div className="text-center py-8">
-                    <ModernSpinner />
-                    <p className="text-gray-600 mt-2">Generating AI-powered team insights...</p>
-                  </div>
-                ) : teamRecommendations ? (
-                  <div className="space-y-4">
-                    {/* Team Summary */}
-                    {teamRecommendations.summary && (
-                      <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                        <div className="flex items-start gap-3">
-                          <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                            <Lightbulb className="h-4 w-4 text-blue-600" />
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium text-blue-900 mb-1">AI Team Analysis</p>
-                            <p className="text-sm text-blue-700">{teamRecommendations.summary}</p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Team Strengths */}
-                    {teamRecommendations.strengths && teamRecommendations.strengths.length > 0 && (
-                      <div className="border border-green-200 rounded-lg overflow-hidden">
-                        <div className="p-4 bg-green-50">
-                          <div className="flex items-center gap-3 mb-3">
-                            <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                              <Award className="h-4 w-4 text-green-600" />
-                            </div>
-                            <h4 className="font-semibold text-green-900">Team Strengths</h4>
-                          </div>
-                          <ul className="text-sm text-green-700 space-y-1 ml-6">
-                            {teamRecommendations.strengths.map((strength: string, index: number) => (
-                              <li key={index}>• {strength}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Team Challenges */}
-                    {teamRecommendations.challenges && teamRecommendations.challenges.length > 0 && (
-                      <div className="border border-yellow-200 rounded-lg overflow-hidden">
-                        <div className="p-4 bg-yellow-50">
-                          <div className="flex items-center gap-3 mb-3">
-                            <div className="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
-                              <AlertTriangle className="h-4 w-4 text-yellow-600" />
-                            </div>
-                            <h4 className="font-semibold text-yellow-900">Areas for Growth</h4>
-                          </div>
-                          <ul className="text-sm text-yellow-700 space-y-1 ml-6">
-                            {teamRecommendations.challenges.map((challenge: string, index: number) => (
-                              <li key={index}>• {challenge}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Team Opportunities */}
-                    {teamRecommendations.opportunities && teamRecommendations.opportunities.length > 0 && (
-                      <div className="border border-blue-200 rounded-lg overflow-hidden">
-                        <div className="p-4 bg-blue-50">
-                          <div className="flex items-center gap-3 mb-3">
-                            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                              <TrendingUp className="h-4 w-4 text-blue-600" />
-                            </div>
-                            <h4 className="font-semibold text-blue-900">Growth Opportunities</h4>
-                          </div>
-                          <ul className="text-sm text-blue-700 space-y-1 ml-6">
-                            {teamRecommendations.opportunities.map((opportunity: string, index: number) => (
-                              <li key={index}>• {opportunity}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <Users className="h-8 w-8 text-gray-400" />
-                    </div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No Recommendations Yet</h3>
-                    <p className="text-gray-600 text-sm mb-4">
-                      Team recommendations will be generated once at least 2 team members complete their assessments.
-                    </p>
-                    <div className="text-xs text-gray-500">
-                      <p>• AI-powered insights based on team personality dynamics</p>
-                      <p>• Personalized recommendations for team collaboration</p>
-                      <p>• Conflict prevention and communication optimization</p>
-                    </div>
-                  </div>
-                )}
               </CardContent>
             </Card>
 
