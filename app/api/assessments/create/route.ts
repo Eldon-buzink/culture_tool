@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseAdmin } from '@/lib/supabase/server';
+import { randomUUID } from 'crypto';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -22,10 +23,13 @@ export async function POST(request: NextRequest) {
     let userId = createdBy;
     if (createdBy.startsWith('session-') || createdBy.startsWith('individual-')) {
       // This is a session-based or individual user, create a temporary user record
+      // Use timestamp + random UUID to ensure uniqueness
+      const uniqueEmail = `${createdBy}-${Date.now()}-${randomUUID().slice(0, 8)}@temp.local`;
+      
       const { data: newUser, error: userError } = await admin
         .from('users')
         .insert({
-          email: `${createdBy}-${Date.now()}@temp.local`,
+          email: uniqueEmail,
           name: 'Individual Assessment User'
         })
         .select('id')
