@@ -59,7 +59,6 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
             .from('assessment_responses')
             .upsert({
               assessment_id: assessmentId,
-              user_id: assessment.user_id,
               question_id: questionId,
               response: response
             }, {

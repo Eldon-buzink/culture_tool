@@ -36,14 +36,15 @@ export async function POST(
       );
     }
 
-    // Save the response (removed section column as it doesn't exist in schema)
+    // Save the response (assessment_responses table only has assessment_id, question_id, response)
     const { data: savedResponse, error: responseError } = await admin
       .from('assessment_responses')
       .upsert({
         assessment_id: id,
-        user_id: userId,
         question_id: questionId,
         response: response
+      }, {
+        onConflict: 'assessment_id,question_id'
       })
       .select('*')
       .single();
@@ -91,8 +92,7 @@ export async function GET(
     const { data: responses, error: responsesError } = await admin
       .from('assessment_responses')
       .select('*')
-      .eq('assessment_id', id)
-      .eq('user_id', userId);
+      .eq('assessment_id', id);
 
     if (responsesError) {
       console.error('Error fetching responses:', responsesError);
