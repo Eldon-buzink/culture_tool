@@ -43,8 +43,6 @@ export async function POST(
         assessment_id: id,
         question_id: questionId,
         response: response
-      }, {
-        onConflict: 'assessment_id,question_id'
       })
       .select('*')
       .single();

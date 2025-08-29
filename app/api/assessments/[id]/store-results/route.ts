@@ -61,8 +61,6 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
               assessment_id: assessmentId,
               question_id: questionId,
               response: response
-            }, {
-              onConflict: 'assessment_id,question_id'
             });
         } catch (error) {
           console.error('Error storing response:', error);
