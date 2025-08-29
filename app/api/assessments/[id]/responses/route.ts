@@ -13,7 +13,7 @@ export async function POST(
     const body = await request.json();
     const { userId, section, questionId, response } = body;
 
-    if (!userId || !section || !questionId || response === undefined) {
+    if (!userId || !questionId || response === undefined) {
       return NextResponse.json(
         { success: false, error: 'Missing required fields' },
         { status: 400 }
@@ -36,13 +36,12 @@ export async function POST(
       );
     }
 
-    // Save the response
+    // Save the response (removed section column as it doesn't exist in schema)
     const { data: savedResponse, error: responseError } = await admin
       .from('assessment_responses')
       .upsert({
         assessment_id: id,
         user_id: userId,
-        section: section,
         question_id: questionId,
         response: response
       })
