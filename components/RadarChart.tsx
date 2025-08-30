@@ -26,10 +26,10 @@ const termDefinitions = {
   customer_focus: "External vs. internal priorities orientation"
 };
 
-export default function RadarChart({ data, title, size = 400, color = '#3B82F6' }: RadarChartProps) {
+export default function RadarChart({ data, title, size = 500, color = '#3B82F6' }: RadarChartProps) {
   const centerX = size / 2;
   const centerY = size / 2;
-  const radius = (size * 0.15); // Further reduced radius to make more room for labels
+  const radius = (size * 0.18); // Reduced radius to make more room for labels
   
   const labels = Object.keys(data);
   const values = Object.values(data);
@@ -82,7 +82,7 @@ export default function RadarChart({ data, title, size = 400, color = '#3B82F6' 
   // Create labels with better positioning and text wrapping
   const labelElements = points.map((point, index) => {
     const angle = (index * 2 * Math.PI) / labels.length - Math.PI / 2;
-    const labelRadius = radius + 100; // Increased radius for labels to prevent cutoff
+    const labelRadius = radius + 70; // Reduced radius for labels to bring them closer
     const x = centerX + Math.cos(angle) * labelRadius;
     const y = centerY + Math.sin(angle) * labelRadius;
     
@@ -107,7 +107,7 @@ export default function RadarChart({ data, title, size = 400, color = '#3B82F6' 
       ).join(' ');
       
       // For very long words, add line breaks
-      if (formatted.length > 10) {
+      if (formatted.length > 8) {
         const words = formatted.split(' ');
         if (words.length > 1) {
           const mid = Math.ceil(words.length / 2);
@@ -129,8 +129,8 @@ export default function RadarChart({ data, title, size = 400, color = '#3B82F6' 
             y={y + (lineIndex - (lines.length - 1) / 2) * 18}
             textAnchor={textAnchor}
             dominantBaseline={dominantBaseline}
-            className="text-xs font-medium fill-gray-600 cursor-help"
-            style={{ fontSize: '12px' }}
+            className="text-sm font-medium fill-gray-700 cursor-help"
+            style={{ fontSize: '13px' }}
             data-tooltip={termDefinitions[point.label as keyof typeof termDefinitions] || formatLabel(point.label)}
           >
             {line}
@@ -140,12 +140,12 @@ export default function RadarChart({ data, title, size = 400, color = '#3B82F6' 
     );
   });
 
-  // Create value labels
+  // Create value labels - moved closer to data points
   const valueLabels = points.map((point, index) => (
     <text
       key={`value-${index}`}
       x={point.x}
-      y={point.y - 8}
+      y={point.y - 4}
       textAnchor="middle"
       dominantBaseline="middle"
       className="text-xs font-bold fill-gray-800"
@@ -156,10 +156,10 @@ export default function RadarChart({ data, title, size = 400, color = '#3B82F6' 
   ));
 
   return (
-    <div className="bg-white rounded-lg p-4 shadow-sm">
-      {title && <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center">{title}</h3>}
-      <div className="flex justify-center">
-        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+    <div className="bg-white rounded-lg p-6 pt-4 shadow-sm">
+      {title && <h3 className="text-lg font-semibold text-gray-900 mb-0 text-center">{title}</h3>}
+      <div className="flex justify-center mb-4 -mt-4">
+        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ marginTop: '-20px' }}>
           {/* Grid circles */}
           {gridCircles}
           

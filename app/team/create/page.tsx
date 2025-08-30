@@ -24,6 +24,7 @@ export default function CreateTeamPage() {
   const [isCreating, setIsCreating] = useState(false);
   const [teamCreated, setTeamCreated] = useState(false);
   const [teamCode, setTeamCode] = useState('');
+  const [createdByName, setCreatedByName] = useState('');
 
   const handleAddEmail = () => {
     setEmails([...emails, '']);
@@ -102,7 +103,7 @@ export default function CreateTeamPage() {
             recipientEmail: email.trim(),
             teamName: name,
             teamCode: code,
-            inviterName: 'Team Leader',
+            inviterName: createdByName || 'Team Leader',
             assessmentUrl: `${window.location.origin}/assessment/start-assessment?team=${code}`
           };
           
@@ -322,6 +323,19 @@ export default function CreateTeamPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Created By *
+                  </label>
+                  <Input
+                    type="text"
+                    placeholder="Enter your name"
+                    value={createdByName}
+                    onChange={(e) => setCreatedByName(e.target.value)}
+                    className="w-full"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
                     Invite Team Members
                   </label>
                   <div className="space-y-3">
@@ -359,7 +373,7 @@ export default function CreateTeamPage() {
 
                 <Button
                   onClick={handleCreateTeam}
-                  disabled={!teamName || isCreating}
+                  disabled={!teamName || !createdByName || isCreating}
                   className="w-full"
                 >
                   {isCreating ? (

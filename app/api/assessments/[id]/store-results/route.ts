@@ -38,7 +38,9 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       .from('assessment_results')
       .upsert({
         assessment_id: assessmentId,
-        ocean_scores: results.oceanScores
+        ocean_scores: results.oceanScores,
+        culture_scores: results.cultureScores,
+        values_scores: results.valuesScores
       }, {
         onConflict: 'assessment_id'
       });

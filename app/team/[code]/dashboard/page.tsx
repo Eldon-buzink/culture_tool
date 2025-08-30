@@ -485,20 +485,37 @@ export default function TeamDashboardPage() {
                       title="Team Personality Profile"
                       color="#3B82F6"
                     />
-                    <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                      <div className="flex items-start gap-3">
-                        <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                          <Lightbulb className="h-4 w-4 text-blue-600" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-blue-900 mb-1">Key Insights</p>
-                          <p className="text-sm text-blue-700">
-                            Your team shows a balanced personality profile with strengths in collaboration and innovation. 
-                            The mix of personality types creates opportunities for diverse perspectives and comprehensive problem-solving.
-                          </p>
+                    {completedMembers.length > 0 ? (
+                      <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                        <div className="flex items-start gap-3">
+                          <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <Lightbulb className="h-4 w-4 text-blue-600" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-blue-900 mb-1">Key Insights</p>
+                            <p className="text-sm text-blue-700">
+                              Your team shows a balanced personality profile with strengths in collaboration and innovation. 
+                              The mix of personality types creates opportunities for diverse perspectives and comprehensive problem-solving.
+                            </p>
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    ) : (
+                      <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                        <div className="flex items-start gap-3">
+                          <div className="w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <Clock className="h-4 w-4 text-gray-600" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-900 mb-1">No Data Yet</p>
+                            <p className="text-sm text-gray-700">
+                              Team insights will be generated once members complete their assessments. 
+                              Invite your team members to get started!
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Culture Aggregate */}
@@ -512,20 +529,37 @@ export default function TeamDashboardPage() {
                       title="Team Cultural Profile"
                       color="#10B981"
                     />
-                    <div className="mt-4 p-4 bg-green-50 rounded-lg border border-green-200">
-                      <div className="flex items-start gap-3">
-                        <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                          <Globe className="h-4 w-4 text-green-600" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-green-900 mb-1">Cultural Insights</p>
-                          <p className="text-sm text-green-700">
-                            Your team demonstrates a preference for collaborative work environments with balanced power dynamics. 
-                            This creates a foundation for inclusive decision-making and shared responsibility.
-                          </p>
+                    {completedMembers.length > 0 ? (
+                      <div className="mt-4 p-4 bg-green-50 rounded-lg border border-green-200">
+                        <div className="flex items-start gap-3">
+                          <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <Globe className="h-4 w-4 text-green-600" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-green-900 mb-1">Cultural Insights</p>
+                            <p className="text-sm text-green-700">
+                              Your team demonstrates a preference for collaborative work environments with balanced power dynamics. 
+                              This creates a foundation for inclusive decision-making and shared responsibility.
+                            </p>
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    ) : (
+                      <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                        <div className="flex items-start gap-3">
+                          <div className="w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <Clock className="h-4 w-4 text-gray-600" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-900 mb-1">No Data Yet</p>
+                            <p className="text-sm text-gray-700">
+                              Cultural insights will be generated once members complete their assessments. 
+                              Invite your team members to get started!
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Values Aggregate */}
@@ -539,20 +573,37 @@ export default function TeamDashboardPage() {
                       title="Team Values Profile"
                       color="#F59E0B"
                     />
-                    <div className="mt-4 p-4 bg-orange-50 rounded-lg border border-orange-200">
-                      <div className="flex items-start gap-3">
-                        <div className="w-6 h-6 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                          <Target className="h-4 w-4 text-orange-600" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-orange-900 mb-1">Values Insights</p>
-                          <p className="text-sm text-orange-700">
-                            Your team prioritizes quality and customer focus while maintaining a strong drive for innovation. 
-                            This combination supports sustainable growth and customer satisfaction.
-                          </p>
+                    {completedMembers.length > 0 ? (
+                      <div className="mt-4 p-4 bg-orange-50 rounded-lg border border-orange-200">
+                        <div className="flex items-start gap-3">
+                          <div className="w-6 h-6 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <Target className="h-4 w-4 text-orange-600" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-orange-900 mb-1">Values Insights</p>
+                            <p className="text-sm text-orange-700">
+                              Your team prioritizes quality and customer focus while maintaining a strong drive for innovation. 
+                              This combination supports sustainable growth and customer satisfaction.
+                            </p>
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    ) : (
+                      <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                        <div className="flex items-start gap-3">
+                          <div className="w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <Clock className="h-4 w-4 text-gray-600" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-900 mb-1">No Data Yet</p>
+                            <p className="text-sm text-gray-700">
+                              Values insights will be generated once members complete their assessments. 
+                              Invite your team members to get started!
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </CardContent>

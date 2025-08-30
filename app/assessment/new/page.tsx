@@ -1,5 +1,5 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,9 +17,14 @@ export default function NewAssessmentPage() {
     type: 'individual' as 'individual' | 'team'
   });
   const [isCreating, setIsCreating] = useState(false);
+  const isSubmittingRef = useRef(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Prevent double submission
+    if (isSubmittingRef.current || isCreating) return;
+    isSubmittingRef.current = true;
     setIsCreating(true);
 
     try {
@@ -49,6 +54,7 @@ export default function NewAssessmentPage() {
       alert('Failed to create assessment');
     } finally {
       setIsCreating(false);
+      isSubmittingRef.current = false;
     }
   };
 

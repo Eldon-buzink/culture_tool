@@ -180,9 +180,27 @@ export default function ResultsPage() {
               setResults(data.results);
             } else {
               console.error('No results found in database');
+              // Show a message that results are being processed
+              setResults({
+                ...results,
+                insights: {
+                  ocean: ["Your assessment results are being processed. Please check back in a few minutes."],
+                  culture: ["Your assessment results are being processed. Please check back in a few minutes."],
+                  values: ["Your assessment results are being processed. Please check back in a few minutes."]
+                }
+              });
             }
           } else {
             console.error('Failed to fetch results from database');
+            // Show a message that results are being processed
+            setResults({
+              ...results,
+              insights: {
+                ocean: ["Your assessment results are being processed. Please check back in a few minutes."],
+                culture: ["Your assessment results are being processed. Please check back in a few minutes."],
+                values: ["Your assessment results are being processed. Please check back in a few minutes."]
+              }
+            });
           }
         }
         
@@ -604,7 +622,7 @@ export default function ResultsPage() {
                 {/* Radar Chart */}
                 <div>
                   <h3 className="text-lg font-semibold mb-4">Your Personality Dimensions</h3>
-                  <div className="w-full h-72">
+                  <div className="w-full h-96 mb-12">
                     <RadarChart
                       data={{
                         'Openness': results.oceanScores.openness,
@@ -613,7 +631,7 @@ export default function ResultsPage() {
                         'Agreeableness': results.oceanScores.agreeableness,
                         'Neuroticism': results.oceanScores.neuroticism
                       }}
-                      size={350}
+                      size={500}
                     />
                   </div>
                 </div>
@@ -622,44 +640,44 @@ export default function ResultsPage() {
                 <div>
                   <h3 className="text-lg font-semibold mb-4">Detailed Scores</h3>
                   <div className="space-y-4">
-                    {Object.entries(results.oceanScores).map(([trait, score]) => (
-                      <div key={trait} className="space-y-2">
-                        <div className="flex justify-between items-center">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium capitalize">{trait}</span>
-                            <div className="relative">
-                              <button
-                                onClick={() => setActiveTooltip(activeTooltip === trait ? null : trait)}
-                                className="text-gray-400 hover:text-gray-600 cursor-pointer"
-                              >
-                                <HelpCircle className="h-4 w-4" />
-                              </button>
-                              {activeTooltip === trait && (
-                                <div className="absolute z-50 mt-2 p-4 bg-white border border-gray-200 text-gray-800 text-sm rounded-lg shadow-xl max-w-xs">
-                                  <div className="flex justify-between items-start mb-3">
-                                    <span className="font-semibold capitalize text-gray-900">{trait}</span>
-                                    <button
-                                      onClick={() => setActiveTooltip(null)}
-                                      className="text-gray-400 hover:text-gray-600 ml-2 text-lg font-bold"
-                                    >
-                                      ×
-                                    </button>
-                                  </div>
-                                  <p className="leading-relaxed">{getTermTooltip(trait)}</p>
+                  {Object.entries(results.oceanScores).map(([trait, score]) => (
+                    <div key={trait} className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium capitalize">{trait}</span>
+                          <div className="relative">
+                            <button
+                              onClick={() => setActiveTooltip(activeTooltip === trait ? null : trait)}
+                              className="text-gray-400 hover:text-gray-600 cursor-pointer"
+                            >
+                              <HelpCircle className="h-4 w-4" />
+                            </button>
+                            {activeTooltip === trait && (
+                              <div className="absolute z-50 mt-2 p-4 bg-white border border-gray-200 text-gray-800 text-sm rounded-lg shadow-xl max-w-xs">
+                                <div className="flex justify-between items-start mb-3">
+                                  <span className="font-semibold capitalize text-gray-900">{trait}</span>
+                                  <button
+                                    onClick={() => setActiveTooltip(null)}
+                                    className="text-gray-400 hover:text-gray-600 ml-2 text-lg font-bold"
+                                  >
+                                    ×
+                                  </button>
                                 </div>
-                              )}
-                            </div>
+                                <p className="leading-relaxed">{getTermTooltip(trait)}</p>
+                              </div>
+                            )}
                           </div>
-                          <Badge className={getScoreBadgeColor(score)}>
-                            {getScoreLabel(score)} ({score})
-                          </Badge>
                         </div>
-                        <Progress value={score} className="h-2" />
+                        <Badge className={getScoreBadgeColor(score)}>
+                          {getScoreLabel(score)} ({score})
+                        </Badge>
                       </div>
-                    ))}
-                  </div>
+                      <Progress value={score} className="h-2" />
+                    </div>
+                  ))}
                 </div>
               </div>
+            </div>
 
               {/* Right Column: Key Insights + AI Recommendations + Section Summary */}
               <div className="space-y-6">
@@ -749,7 +767,7 @@ export default function ResultsPage() {
                 {/* Radar Chart */}
                 <div>
                   <h3 className="text-lg font-semibold mb-4">Your Cultural Dimensions</h3>
-                  <div className="w-full h-72">
+                  <div className="w-full h-96 mb-12">
                     <RadarChart
                       data={{
                         'Power Distance': results.cultureScores.powerDistance,
@@ -759,7 +777,7 @@ export default function ResultsPage() {
                         'Long-term Orientation': results.cultureScores.longTermOrientation,
                         'Indulgence': results.cultureScores.indulgence
                       }}
-                      size={350}
+                      size={500}
                     />
                   </div>
                 </div>
@@ -895,7 +913,7 @@ export default function ResultsPage() {
                 {/* Radar Chart */}
                 <div>
                   <h3 className="text-lg font-semibold mb-4">Your Work Values</h3>
-                  <div className="w-full h-72">
+                  <div className="w-full h-96 mb-12">
                     <RadarChart
                       data={{
                         'Innovation': results.valuesScores.innovation,
@@ -904,7 +922,7 @@ export default function ResultsPage() {
                         'Quality': results.valuesScores.quality,
                         'Customer Focus': results.valuesScores.customerFocus
                       }}
-                      size={350}
+                      size={500}
                     />
                   </div>
                 </div>

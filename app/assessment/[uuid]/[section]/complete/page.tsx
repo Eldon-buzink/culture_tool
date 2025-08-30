@@ -42,6 +42,7 @@ export default function SectionCompletePage() {
   const [allSectionsCompleted, setAllSectionsCompleted] = useState(false);
   const [completedSections, setCompletedSections] = useState(0);
   const [totalSections, setTotalSections] = useState(3);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const sectionConfig = sectionConfigs[sectionId];
 
@@ -60,10 +61,118 @@ export default function SectionCompletePage() {
     router.push(`/assessment/${uuid}`);
   };
 
-  const handleSubmitAssessment = () => {
+  const handleSubmitAssessment = async () => {
     if (allSectionsCompleted) {
-      router.push(`/assessment/${uuid}/results`);
+      setIsSubmitting(true);
+      try {
+        // Get all responses from localStorage
+        const oceanResponses = JSON.parse(localStorage.getItem(`assessment-responses-${uuid}-ocean`) || '{}');
+        const cultureResponses = JSON.parse(localStorage.getItem(`assessment-responses-${uuid}-culture`) || '{}');
+        const valuesResponses = JSON.parse(localStorage.getItem(`assessment-responses-${uuid}-values`) || '{}');
+        
+        // Calculate scores
+        const oceanScores = calculateOceanScores(oceanResponses);
+        const cultureScores = calculateCultureScores(cultureResponses);
+        const valuesScores = calculateValuesScores(valuesResponses);
+        
+        // Store results in database
+        const response = await fetch(`/api/assessments/${uuid}/store-results`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            responses: {
+              ocean: oceanResponses,
+              culture: cultureResponses,
+              values: valuesResponses
+            },
+            results: {
+              oceanScores,
+              cultureScores,
+              valuesScores
+            }
+          }),
+        });
+
+        if (response.ok) {
+          console.log('Assessment results stored successfully');
+          // Redirect to results page
+          router.push(`/assessment/${uuid}/results`);
+        } else {
+          console.error('Failed to store assessment results');
+          // Still redirect to results page (it will show demo data)
+          router.push(`/assessment/${uuid}/results`);
+        }
+      } catch (error) {
+        console.error('Error storing assessment results:', error);
+        // Still redirect to results page (it will show demo data)
+        router.push(`/assessment/${uuid}/results`);
+      } finally {
+        setIsSubmitting(false);
+      }
     }
+  };
+
+  // Helper functions to calculate scores
+  const calculateOceanScores = (responses: Record<string, number>) => {
+    // Simple scoring logic - you can enhance this
+    const scores = {
+      openness: 0,
+      conscientiousness: 0,
+      extraversion: 0,
+      agreeableness: 0,
+      neuroticism: 0
+    };
+    
+    // Map responses to scores (this is a simplified version)
+    Object.values(responses).forEach((response, index) => {
+      const keys = Object.keys(scores);
+      if (keys[index]) {
+        scores[keys[index] as keyof typeof scores] = Math.round((response / 5) * 100);
+      }
+    });
+    
+    return scores;
+  };
+
+  const calculateCultureScores = (responses: Record<string, number>) => {
+    const scores = {
+      powerDistance: 0,
+      individualism: 0,
+      masculinity: 0,
+      uncertaintyAvoidance: 0,
+      longTermOrientation: 0,
+      indulgence: 0
+    };
+    
+    Object.values(responses).forEach((response, index) => {
+      const keys = Object.keys(scores);
+      if (keys[index]) {
+        scores[keys[index] as keyof typeof scores] = Math.round((response / 5) * 100);
+      }
+    });
+    
+    return scores;
+  };
+
+  const calculateValuesScores = (responses: Record<string, number>) => {
+    const scores = {
+      innovation: 0,
+      collaboration: 0,
+      autonomy: 0,
+      quality: 0,
+      customerFocus: 0
+    };
+    
+    Object.values(responses).forEach((response, index) => {
+      const keys = Object.keys(scores);
+      if (keys[index]) {
+        scores[keys[index] as keyof typeof scores] = Math.round((response / 5) * 100);
+      }
+    });
+    
+    return scores;
   };
 
   const handleGoHome = () => {
@@ -155,9 +264,19 @@ export default function SectionCompletePage() {
                   onClick={handleSubmitAssessment}
                   size="lg"
                   className="bg-green-600 hover:bg-green-700 px-8 py-3 w-full sm:w-auto"
+                  disabled={isSubmitting}
                 >
-                  <ArrowRight className="w-4 h-4 mr-2" />
-                  Submit Assessment & View Results
+                  {isSubmitting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <ArrowRight className="w-4 h-4 mr-2" />
+                      Submit Assessment & View Results
+                    </>
+                  )}
                 </Button>
                 <Button
                   onClick={handleBackToOverview}

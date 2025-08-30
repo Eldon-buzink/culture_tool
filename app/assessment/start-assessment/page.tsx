@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,8 +11,13 @@ export default function StartAssessmentPage() {
   const searchParams = useSearchParams();
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const hasStartedRef = useRef(false);
 
   useEffect(() => {
+    // Prevent double execution
+    if (hasStartedRef.current) return;
+    hasStartedRef.current = true;
+    
     // Automatically start creating an assessment when the page loads
     startNewAssessment();
   }, []);

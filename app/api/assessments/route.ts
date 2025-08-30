@@ -18,6 +18,29 @@ export async function POST(request: NextRequest) {
 
     const admin = createSupabaseAdmin();
 
+    // Check for recent duplicate assessments (within last 30 seconds)
+    // Only check if createdBy is an actual UUID, not a temporary session ID
+    if (createdBy && !createdBy.startsWith('session-') && !createdBy.startsWith('individual-') && !createdBy.startsWith('team-invite-')) {
+      const thirtySecondsAgo = new Date(Date.now() - 30 * 1000).toISOString();
+      const { data: recentAssessments, error: recentError } = await admin
+        .from('assessments')
+        .select('id, created_at')
+        .eq('user_id', createdBy)
+        .gte('created_at', thirtySecondsAgo)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (recentError) {
+        console.error('Error checking for recent assessments:', recentError);
+      } else if (recentAssessments && recentAssessments.length > 0) {
+        console.log('Found recent assessment, preventing duplicate:', recentAssessments[0]);
+        return NextResponse.json(
+          { success: false, error: 'Assessment already created recently' },
+          { status: 409 }
+        );
+      }
+    }
+
     const { data: assessment, error: assessmentError } = await admin
       .from('assessments')
       .insert({

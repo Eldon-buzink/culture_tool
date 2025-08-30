@@ -163,7 +163,7 @@ export function generateTeamInvitationEmail(data: TeamInvitationEmailData): Emai
         .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
         .team-code { background: white; padding: 20px; margin: 20px 0; border-radius: 8px; text-align: center; border: 2px dashed #667eea; }
         .code { font-size: 24px; font-weight: bold; color: #667eea; letter-spacing: 3px; }
-        .cta-button { display: inline-block; background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+        .cta-button { display: inline-block; background: #667eea; color: white !important; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: bold; }
         .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
         .benefits { background: #e8f5e8; padding: 15px; border-radius: 5px; margin: 20px 0; }
       </style>
