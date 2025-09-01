@@ -52,7 +52,7 @@ export async function GET(
       );
     }
 
-    // Check completion status for each member
+    // Check completion status for each member and collect scores
     const membersWithStatus = await Promise.all(
       teamMembers.map(async (member) => {
         // Check if this user has any assessments (individual or team)
@@ -87,6 +87,56 @@ export async function GET(
       })
     );
 
+    // Calculate aggregate scores from completed assessments
+    const completedMembers = membersWithStatus.filter(member => member.status === 'completed');
+    
+    let aggregateScores = {
+      ocean: { openness: 0, conscientiousness: 0, extraversion: 0, agreeableness: 0, neuroticism: 0 },
+      culture: { hierarchy: 0, egalitarian: 0, individualistic: 0, collectivistic: 0 },
+      values: { innovation: 0, quality: 0, efficiency: 0, collaboration: 0 }
+    };
+
+    if (completedMembers.length > 0) {
+      // Fetch assessment results for completed members
+      const { data: assessmentResults } = await admin
+        .from('assessment_results')
+        .select('ocean_scores, culture_scores, values_scores')
+        .in('user_id', completedMembers.map(m => m.id));
+
+      if (assessmentResults && assessmentResults.length > 0) {
+        // Calculate averages
+        const totalScores = assessmentResults.reduce((acc, result) => {
+          if (result.ocean_scores) {
+            Object.keys(result.ocean_scores).forEach(key => {
+              acc.ocean[key] = (acc.ocean[key] || 0) + result.ocean_scores[key];
+            });
+          }
+          if (result.culture_scores) {
+            Object.keys(result.culture_scores).forEach(key => {
+              acc.culture[key] = (acc.culture[key] || 0) + result.culture_scores[key];
+            });
+          }
+          if (result.values_scores) {
+            Object.keys(result.values_scores).forEach(key => {
+              acc.values[key] = (acc.values[key] || 0) + result.values_scores[key];
+            });
+          }
+          return acc;
+        }, { ocean: {}, culture: {}, values: {} });
+
+        // Calculate averages
+        Object.keys(totalScores.ocean).forEach(key => {
+          aggregateScores.ocean[key] = Math.round(totalScores.ocean[key] / assessmentResults.length);
+        });
+        Object.keys(totalScores.culture).forEach(key => {
+          aggregateScores.culture[key] = Math.round(totalScores.culture[key] / assessmentResults.length);
+        });
+        Object.keys(totalScores.values).forEach(key => {
+          aggregateScores.values[key] = Math.round(totalScores.values[key] / assessmentResults.length);
+        });
+      }
+    }
+
     // Transform the data to match the expected format
     const transformedTeam = {
       id: team.id,
@@ -95,6 +145,7 @@ export async function GET(
       description: team.description,
       createdAt: team.created_at,
       members: membersWithStatus,
+      aggregateScores: aggregateScores,
       invitations: [] // We'll add this later when we implement invitations
     };
 
