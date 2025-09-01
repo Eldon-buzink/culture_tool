@@ -87,8 +87,22 @@ export default function RadarChart({ data, title, size = 500, color = '#3B82F6' 
     const y = centerY + Math.sin(angle) * labelRadius;
     
     // Determine text anchor and alignment based on position
-    let textAnchor = 'middle';
-    let dominantBaseline = 'middle';
+    let textAnchor: 'start' | 'middle' | 'end' | 'inherit' | undefined = 'middle';
+    let dominantBaseline:
+      | 'alphabetic'
+      | 'hanging'
+      | 'ideographic'
+      | 'mathematical'
+      | 'middle'
+      | 'auto'
+      | 'inherit'
+      | 'use-script'
+      | 'no-change'
+      | 'reset-size'
+      | 'central'
+      | 'text-after-edge'
+      | 'text-before-edge'
+      | undefined = 'middle';
     
     if (Math.abs(Math.cos(angle)) > 0.7) {
       // Left or right side
