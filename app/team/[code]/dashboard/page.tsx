@@ -56,7 +56,9 @@ interface Candidate {
   name: string;
   email: string;
   position: string;
-  status: 'invited' | 'completed' | 'in_progress';
+  status: 'invited' | 'in_progress' | 'completed' | 'withdrawn';
+  invitedAt: string;
+  startedAt?: string;
   completedAt?: string;
   overallFit?: number;
 }

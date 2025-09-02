@@ -43,8 +43,12 @@ interface CandidateData {
   email: string;
   position: string;
   teamCode: string;
+  status: 'invited' | 'in_progress' | 'completed' | 'withdrawn';
   assessmentId: string;
-  completedAt: string;
+  invitedAt: string;
+  startedAt: string | null;
+  completedAt: string | null;
+  overallFit: number | null;
   scores: {
     ocean: Record<string, number>;
     culture: Record<string, number>;
@@ -303,7 +307,8 @@ export default function CandidateResults({ params }: CandidateResultsProps) {
     );
   }
 
-  const overallFit = calculateOverallFit();
+  // Use overall fit score from database if available, otherwise calculate it
+  const overallFit = candidateData?.overallFit ?? calculateOverallFit();
 
   return (
     <div className="min-h-screen bg-gray-50">
