@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Brain, Users, Menu, X, ArrowRight } from 'lucide-react';
+import { Brain, Users, Menu, X, ArrowRight, ChevronDown } from 'lucide-react';
 
 interface HeaderProps {
   showCTA?: boolean;
@@ -14,15 +14,35 @@ interface HeaderProps {
 
 export default function Header({ showCTA = true, ctaText = "Start Assessment", ctaLink = "/assessment/start-assessment" }: HeaderProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isDemoDropdownOpen, setIsDemoDropdownOpen] = useState(false);
   const pathname = usePathname();
+  const demoDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (demoDropdownRef.current && !demoDropdownRef.current.contains(event.target as Node)) {
+        setIsDemoDropdownOpen(false);
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const navigation = [
     { name: 'Home', href: '/' },
     { name: 'Individual Assessment', href: '/assessment/start-assessment' },
     { name: 'Team Assessment', href: '/team/create' },
+    { name: 'About', href: '/about' },
+  ];
+
+  const demoNavigation = [
     { name: 'Demo Results', href: '/demo-results' },
     { name: 'Demo Team Dashboard', href: '/demo-team-dashboard' },
-    { name: 'About', href: '/about' },
+    { name: 'Demo Candidate Results', href: '/demo-candidate-results' },
   ];
 
   const isActive = (href: string) => {
@@ -61,6 +81,40 @@ export default function Header({ showCTA = true, ctaText = "Start Assessment", c
                 {item.name}
               </Link>
             ))}
+            
+            {/* Demo Dropdown */}
+            <div className="relative" ref={demoDropdownRef}>
+              <button
+                onClick={() => setIsDemoDropdownOpen(!isDemoDropdownOpen)}
+                className={`text-sm font-medium transition-colors flex items-center gap-1 ${
+                  demoNavigation.some(item => isActive(item.href))
+                    ? 'text-blue-600'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Demos
+                <ChevronDown className={`h-4 w-4 transition-transform ${isDemoDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+              
+              {isDemoDropdownOpen && (
+                <div className="absolute top-full left-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg py-2 z-50">
+                  {demoNavigation.map((item) => (
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      className={`block px-4 py-2 text-sm transition-colors ${
+                        isActive(item.href)
+                          ? 'text-blue-600 bg-blue-50'
+                          : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                      }`}
+                      onClick={() => setIsDemoDropdownOpen(false)}
+                    >
+                      {item.name}
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
           </nav>
 
           {/* CTA Button */}
@@ -108,6 +162,27 @@ export default function Header({ showCTA = true, ctaText = "Start Assessment", c
                   {item.name}
                 </Link>
               ))}
+              
+              {/* Demo Section */}
+              <div className="pt-2 border-t border-gray-200 mt-2">
+                <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Demos
+                </div>
+                {demoNavigation.map((item) => (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    className={`block px-3 py-2 rounded-md text-base font-medium transition-colors ${
+                      isActive(item.href)
+                        ? 'text-blue-600 bg-blue-50'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                    }`}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    {item.name}
+                  </Link>
+                ))}
+              </div>
               {showCTA && (
                 <div className="pt-4">
                   <Button asChild className="w-full">

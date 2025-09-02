@@ -42,6 +42,15 @@ export interface TeamInvitationEmailData {
   assessmentUrl: string;
 }
 
+export interface CandidateInvitationEmailData {
+  candidateName: string;
+  candidateEmail: string;
+  candidatePosition: string;
+  teamName: string;
+  teamCode: string;
+  assessmentUrl: string;
+}
+
 export async function sendEmail(emailData: EmailData) {
   try {
     console.log('Email service - Starting email send to:', emailData.to);
@@ -222,6 +231,80 @@ export function generateTeamInvitationEmail(data: TeamInvitationEmailData): Emai
   };
 }
 
+export function generateCandidateInvitationEmail(data: CandidateInvitationEmailData): EmailData {
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Candidate Assessment Invitation</title>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+        .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+        .team-code { background: white; padding: 20px; margin: 20px 0; border-radius: 8px; text-align: center; border: 2px dashed #667eea; }
+        .code { font-size: 24px; font-weight: bold; color: #667eea; letter-spacing: 3px; }
+        .cta-button { display: inline-block; background: #667eea; color: white !important; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: bold; }
+        .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+        .benefits { background: #e8f5e8; padding: 15px; border-radius: 5px; margin: 20px 0; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>👥 You're Invited to Join a Team Assessment!</h1>
+          <p>Hi ${data.candidateName}, you've been invited to join a comprehensive team assessment.</p>
+        </div>
+        
+        <div class="content">
+          <h2>📋 Assessment Details</h2>
+          <p><strong>Position:</strong> ${data.candidatePosition}</p>
+          <p><strong>Team:</strong> ${data.teamName}</p>
+          
+          <div class="team-code">
+            <h3>🔑 Your Team Code</h3>
+            <div class="code">${data.teamCode}</div>
+            <p style="margin-top: 10px; font-size: 14px;">Use this code to join the team assessment</p>
+          </div>
+          
+          <div class="benefits">
+            <h3>🎯 What You'll Discover</h3>
+            <ul>
+              <li><strong>Your Personality Profile:</strong> Understand your natural work style and communication preferences</li>
+              <li><strong>Cultural Preferences:</strong> Learn how you prefer to work within organizational structures</li>
+              <li><strong>Work Values:</strong> Identify what truly motivates you professionally</li>
+              <li><strong>Team Dynamics:</strong> See how your traits complement your team members</li>
+            </ul>
+          </div>
+          
+          <div style="text-align: center;">
+            <a href="${data.assessmentUrl}" class="cta-button">Start Your Assessment</a>
+          </div>
+          
+          <p style="margin-top: 30px; font-size: 14px; color: #666;">
+            The assessment takes approximately 15-20 minutes to complete. Your responses will help the team 
+            understand dynamics, improve collaboration, and optimize work processes.
+          </p>
+        </div>
+        
+        <div class="footer">
+          <p>© 2024 Culture Mapping. All rights reserved.</p>
+          <p>This email was sent to ${data.candidateEmail}</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  return {
+    to: data.candidateEmail,
+    subject: `Candidate Assessment Invitation - ${data.teamName}`,
+    html: html,
+  };
+}
+
 function getTraitDescription(trait: string | undefined): string {
   const descriptions: Record<string, string> = {
     'openness': 'creativity and adaptability to new experiences',
@@ -242,5 +325,10 @@ export async function sendAssessmentResults(data: AssessmentResultsEmailData) {
 
 export async function sendTeamInvitation(data: TeamInvitationEmailData) {
   const emailData = generateTeamInvitationEmail(data);
+  return await sendEmail(emailData);
+}
+
+export async function sendCandidateInvitation(data: CandidateInvitationEmailData) {
+  const emailData = generateCandidateInvitationEmail(data);
   return await sendEmail(emailData);
 }

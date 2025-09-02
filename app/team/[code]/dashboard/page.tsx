@@ -36,6 +36,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { ModernSpinner } from '@/components/LoadingSpinner';
 import ShareModal from '@/components/ShareModal';
 import InviteModal from '@/components/InviteModal';
+import CandidateInviteModal from '@/components/CandidateInviteModal';
 
 interface TeamMember {
   id: string;
@@ -181,6 +182,7 @@ export default function TeamDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [showCandidateModal, setShowCandidateModal] = useState(false);
   const [expandedRecommendations, setExpandedRecommendations] = useState({
     communication: false,
     innovation: false,
@@ -1052,7 +1054,7 @@ export default function TeamDashboardPage() {
                     <p className="text-xs text-gray-500 mb-4">
                       Invite potential new hires to take the assessment and see how they match with your team.
                     </p>
-                    <Button size="sm" className="w-full">
+                    <Button size="sm" className="w-full" onClick={() => setShowCandidateModal(true)}>
                       <Plus className="h-4 w-4 mr-2" />
                       Invite Candidate
                     </Button>
@@ -1089,6 +1091,13 @@ export default function TeamDashboardPage() {
       <InviteModal
         isOpen={showInviteModal}
         onClose={() => setShowInviteModal(false)}
+        teamCode={teamData.code}
+        teamName={teamData.name}
+      />
+      
+      <CandidateInviteModal
+        isOpen={showCandidateModal}
+        onClose={() => setShowCandidateModal(false)}
         teamCode={teamData.code}
         teamName={teamData.name}
       />

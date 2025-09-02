@@ -16,6 +16,7 @@ import ActionableRecommendations from '@/components/ActionableRecommendations';
 export default function ResultsPage() {
   const { uuid } = useParams();
   const [loading, setLoading] = useState(true);
+  const [isCandidateAssessment, setIsCandidateAssessment] = useState(false);
 
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [activeTooltip, setActiveTooltip] = useState<string | null>(null);
@@ -178,27 +179,41 @@ export default function ResultsPage() {
             const data = await response.json();
             if (data.success && data.results) {
               setResults(data.results);
+              
+              // Check if this is a candidate assessment by looking at the user email
+              // Candidate users have emails like "candidate-...@temp.local"
+              if (data.results.userEmail && data.results.userEmail.includes('candidate-')) {
+                setIsCandidateAssessment(true);
+              }
             } else {
               console.error('No results found in database');
-              // Show a message that results are being processed
+              // Show appropriate message based on assessment type
+              const processingMessage = isCandidateAssessment 
+                ? "Your assessment results are being sent to the hiring manager. You'll be notified about next steps soon."
+                : "Your assessment results are being processed. Please check back in a few minutes.";
+              
               setResults({
                 ...results,
                 insights: {
-                  ocean: ["Your assessment results are being processed. Please check back in a few minutes."],
-                  culture: ["Your assessment results are being processed. Please check back in a few minutes."],
-                  values: ["Your assessment results are being processed. Please check back in a few minutes."]
+                  ocean: [processingMessage],
+                  culture: [processingMessage],
+                  values: [processingMessage]
                 }
               });
             }
           } else {
             console.error('Failed to fetch results from database');
-            // Show a message that results are being processed
+            // Show appropriate message based on assessment type
+            const processingMessage = isCandidateAssessment 
+              ? "Your assessment results are being sent to the hiring manager. You'll be notified about next steps soon."
+              : "Your assessment results are being processed. Please check back in a few minutes.";
+            
             setResults({
               ...results,
               insights: {
-                ocean: ["Your assessment results are being processed. Please check back in a few minutes."],
-                culture: ["Your assessment results are being processed. Please check back in a few minutes."],
-                values: ["Your assessment results are being processed. Please check back in a few minutes."]
+                ocean: [processingMessage],
+                culture: [processingMessage],
+                values: [processingMessage]
               }
             });
           }
@@ -1044,34 +1059,55 @@ export default function ResultsPage() {
         <Card className="text-center">
           <CardContent className="pt-8">
             <div className="max-w-2xl mx-auto">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">Ready to Share Your Results?</h2>
-              <p className="text-gray-600 mb-6">
-                Share your results with your team or save them for future reference. You can also take the assessment again to track your growth over time.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button 
-                  size="lg" 
-                  className="bg-green-600 hover:bg-green-700 px-8 py-3"
-                  onClick={() => setShowEmailModal(true)}
-                >
-                  Email My Results
-                </Button>
-                <Button 
-                  size="lg" 
-                  className="bg-blue-600 hover:bg-blue-700 px-8 py-3"
-                  onClick={() => window.location.href = '/'}
-                >
-                  Back to Home
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="lg" 
-                  className="px-8 py-3"
-                  onClick={() => window.location.href = '/assessment/start-assessment'}
-                >
-                  Take Assessment Again
-                </Button>
-              </div>
+              {isCandidateAssessment ? (
+                <>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-4">Assessment Complete!</h2>
+                  <p className="text-gray-600 mb-6">
+                    Thank you for completing your cultural assessment! Your results have been sent to the hiring manager. 
+                    They will review your profile and team compatibility, then contact you about next steps in the hiring process.
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                    <Button 
+                      size="lg" 
+                      className="bg-blue-600 hover:bg-blue-700 px-8 py-3"
+                      onClick={() => window.location.href = '/'}
+                    >
+                      Back to Home
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-4">Ready to Share Your Results?</h2>
+                  <p className="text-gray-600 mb-6">
+                    Share your results with your team or save them for future reference. You can also take the assessment again to track your growth over time.
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                    <Button 
+                      size="lg" 
+                      className="bg-green-600 hover:bg-green-700 px-8 py-3"
+                      onClick={() => setShowEmailModal(true)}
+                    >
+                      Email My Results
+                    </Button>
+                    <Button 
+                      size="lg" 
+                      className="bg-blue-600 hover:bg-blue-700 px-8 py-3"
+                      onClick={() => window.location.href = '/'}
+                    >
+                      Back to Home
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="lg" 
+                      className="px-8 py-3"
+                      onClick={() => window.location.href = '/assessment/start-assessment'}
+                    >
+                      Take Assessment Again
+                    </Button>
+                  </div>
+                </>
+              )}
             </div>
           </CardContent>
         </Card>

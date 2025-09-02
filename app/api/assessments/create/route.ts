@@ -7,7 +7,9 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
-    const { title, description, type, createdBy, teamId } = await request.json();
+    const { title, description, type, createdBy, teamId, teamCode } = await request.json();
+    
+    console.log('Assessment creation request:', { title, description, type, createdBy, teamId, teamCode });
     
     // Validate input
     if (!createdBy) {
@@ -21,7 +23,7 @@ export async function POST(request: NextRequest) {
 
     // Check for recent duplicate assessments (within last 30 seconds)
     // Only check if createdBy is an actual UUID, not a temporary session ID
-    if (createdBy && !createdBy.startsWith('session-') && !createdBy.startsWith('individual-') && !createdBy.startsWith('team-invite-')) {
+    if (createdBy && !createdBy.startsWith('session-') && !createdBy.startsWith('individual-') && !createdBy.startsWith('team-invite-') && !createdBy.startsWith('candidate-')) {
       const thirtySecondsAgo = new Date(Date.now() - 30 * 1000).toISOString();
       const { data: recentAssessments, error: recentError } = await admin
         .from('assessments')
@@ -42,10 +44,10 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // For individual assessments, create a user if it's a session ID or individual ID
+    // For individual assessments, create a user if it's a session ID, individual ID, or candidate ID
     let userId = createdBy;
-    if (createdBy.startsWith('session-') || createdBy.startsWith('individual-')) {
-      // This is a session-based or individual user, create a temporary user record
+    if (createdBy.startsWith('session-') || createdBy.startsWith('individual-') || createdBy.startsWith('candidate-')) {
+      // This is a session-based, individual, or candidate user, create a temporary user record
       // Use timestamp + random UUID to ensure uniqueness
       const uniqueEmail = `${createdBy}-${Date.now()}-${randomUUID().slice(0, 8)}@temp.local`;
       
@@ -53,7 +55,7 @@ export async function POST(request: NextRequest) {
         .from('users')
         .insert({
           email: uniqueEmail,
-          name: 'Individual Assessment User'
+          name: createdBy.startsWith('candidate-') ? 'Candidate Assessment User' : 'Individual Assessment User'
         })
         .select('id')
         .single();
@@ -101,26 +103,28 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Handle team ID - if teamId is a team code, look up the actual team ID
+    // Handle team ID - if teamId or teamCode is a team code, look up the actual team ID
     let actualTeamId = teamId;
-    if (teamId && !teamId.includes('-')) {
+    const teamCodeToUse = teamCode || teamId;
+    
+    if (teamCodeToUse && !teamCodeToUse.includes('-')) {
       // This looks like a team code, not a UUID
-      console.log('Looking up team ID for team code:', teamId);
+      console.log('Looking up team ID for team code:', teamCodeToUse);
       const { data: team, error: teamError } = await admin
         .from('teams')
         .select('id')
-        .eq('code', teamId)
+        .eq('code', teamCodeToUse)
         .single();
 
       if (teamError || !team) {
-        console.error('Team not found for code:', teamId, teamError);
+        console.error('Team not found for code:', teamCodeToUse, teamError);
         return NextResponse.json(
           { success: false, error: 'Team not found' },
           { status: 404 }
         );
       }
       actualTeamId = team.id;
-      console.log('Found team ID:', actualTeamId, 'for team code:', teamId);
+      console.log('Found team ID:', actualTeamId, 'for team code:', teamCodeToUse);
     }
 
     // Verify team exists if teamId is provided

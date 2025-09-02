@@ -96,7 +96,7 @@ export async function GET(
 ) {
   try {
     const { id } = params;
-    console.log('GET /api/assessments/[id]/results - Assessment ID:', id);
+    console.log('GET assessment results - Assessment ID:', id);
     
     if (!id) {
       console.log('No assessment ID provided');
@@ -109,11 +109,15 @@ export async function GET(
     const admin = createSupabaseAdmin();
     console.log('Supabase admin client created');
 
-    // First check if the assessment exists
+    // First check if the assessment exists and get user info
     console.log('Checking if assessment exists...');
     const { data: assessment, error: assessmentError } = await admin
       .from('assessments')
-      .select('id')
+      .select(`
+        id,
+        user_id,
+        users(email)
+      `)
       .eq('id', id)
       .single();
     
@@ -156,7 +160,8 @@ export async function GET(
         valuesScores: results.values_scores,
         insights: results.insights,
         recommendations: results.recommendations,
-        createdAt: results.created_at
+        createdAt: results.created_at,
+        userEmail: assessment.users?.[0]?.email || null
       }
     });
 
