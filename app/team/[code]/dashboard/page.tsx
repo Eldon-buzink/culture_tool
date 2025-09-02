@@ -29,7 +29,9 @@ import {
   ChevronDown,
   Lightbulb,
   AlertTriangle,
-  Plus
+  Plus,
+  User,
+  Eye
 } from 'lucide-react';
 import { TermGlossary } from '@/components/TermExplanation';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -47,6 +49,16 @@ interface TeamMember {
   oceanScores?: Record<string, number>;
   cultureScores?: Record<string, number>;
   valuesScores?: Record<string, number>;
+}
+
+interface Candidate {
+  id: string;
+  name: string;
+  email: string;
+  position: string;
+  status: 'invited' | 'completed' | 'in_progress';
+  completedAt?: string;
+  overallFit?: number;
 }
 
 interface TeamData {
@@ -183,6 +195,7 @@ export default function TeamDashboardPage() {
   const [showShareModal, setShowShareModal] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showCandidateModal, setShowCandidateModal] = useState(false);
+  const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [expandedRecommendations, setExpandedRecommendations] = useState({
     communication: false,
     innovation: false,
@@ -242,6 +255,24 @@ export default function TeamDashboardPage() {
         console.log('Transformed team data:', transformedData);
         console.log('Member statuses:', transformedData.members.map(m => ({ email: m.email, status: m.status })));
         setTeamData(transformedData);
+        
+        // Fetch candidates for this team
+        try {
+          const candidatesResponse = await fetch(`/api/candidates?teamCode=${params.code}`);
+          if (candidatesResponse.ok) {
+            const candidatesData = await candidatesResponse.json();
+            if (candidatesData.success) {
+              setCandidates(candidatesData.candidates);
+            } else {
+              console.error('Failed to fetch candidates:', candidatesData.error);
+            }
+          } else {
+            console.error('Failed to fetch candidates:', candidatesResponse.status);
+          }
+        } catch (err) {
+          console.error('Error fetching candidates:', err);
+        }
+        
         setLoading(false);
       } catch (error) {
         console.error('Error fetching team data:', error);
@@ -1046,19 +1077,72 @@ export default function TeamDashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <div className="text-center py-6">
-                    <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                      <UserPlus className="h-6 w-6 text-gray-400" />
+                  {candidates.length === 0 ? (
+                    <div className="text-center py-6">
+                      <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <UserPlus className="h-6 w-6 text-gray-400" />
+                      </div>
+                      <h3 className="text-sm font-medium text-gray-900 mb-2">No Candidates Yet</h3>
+                      <p className="text-xs text-gray-500 mb-4">
+                        Invite potential new hires to take the assessment and see how they match with your team.
+                      </p>
+                      <Button size="sm" className="w-full" onClick={() => setShowCandidateModal(true)}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Invite Candidate
+                      </Button>
                     </div>
-                    <h3 className="text-sm font-medium text-gray-900 mb-2">No Candidates Yet</h3>
-                    <p className="text-xs text-gray-500 mb-4">
-                      Invite potential new hires to take the assessment and see how they match with your team.
-                    </p>
-                    <Button size="sm" className="w-full" onClick={() => setShowCandidateModal(true)}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Invite Candidate
-                    </Button>
-                  </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {candidates.map((candidate) => (
+                        <div key={candidate.id} className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                              <User className="h-5 w-5 text-blue-600" />
+                            </div>
+                            <div>
+                              <h4 className="font-medium text-gray-900">{candidate.name}</h4>
+                              <p className="text-sm text-gray-600">{candidate.position}</p>
+                              <p className="text-xs text-gray-500">{candidate.email}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            {candidate.status === 'completed' && candidate.overallFit && (
+                              <div className="text-right">
+                                <div className="text-lg font-bold text-green-600">{candidate.overallFit}%</div>
+                                <div className="text-xs text-gray-500">Team Fit</div>
+                              </div>
+                            )}
+                            <Badge 
+                              variant={candidate.status === 'completed' ? 'default' : candidate.status === 'in_progress' ? 'secondary' : 'outline'}
+                              className={
+                                candidate.status === 'completed' ? 'bg-green-100 text-green-800' :
+                                candidate.status === 'in_progress' ? 'bg-yellow-100 text-yellow-800' :
+                                'bg-gray-100 text-gray-800'
+                              }
+                            >
+                              {candidate.status === 'completed' ? 'Completed' : 
+                               candidate.status === 'in_progress' ? 'In Progress' : 'Invited'}
+                            </Badge>
+                            {candidate.status === 'completed' && (
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => window.open(`/team/${params.code}/candidate/${candidate.id}/results`, '_blank')}
+                              >
+                                <Eye className="h-4 w-4 mr-2" />
+                                View Results
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                      
+                      <Button size="sm" className="w-full" onClick={() => setShowCandidateModal(true)}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Invite Another Candidate
+                      </Button>
+                    </div>
+                  )}
                   
                   <div className="p-4 bg-green-50 rounded-lg border border-green-200">
                     <div className="flex items-start gap-3">

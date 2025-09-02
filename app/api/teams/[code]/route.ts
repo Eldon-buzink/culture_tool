@@ -90,7 +90,7 @@ export async function GET(
     // Calculate aggregate scores from completed assessments
     const completedMembers = membersWithStatus.filter(member => member.status === 'completed');
     
-    let aggregateScores = {
+    let aggregateScores: Record<string, Record<string, number>> = {
       ocean: { openness: 0, conscientiousness: 0, extraversion: 0, agreeableness: 0, neuroticism: 0 },
       culture: { hierarchy: 0, egalitarian: 0, individualistic: 0, collectivistic: 0 },
       values: { innovation: 0, quality: 0, efficiency: 0, collaboration: 0 }
@@ -105,7 +105,7 @@ export async function GET(
 
       if (assessmentResults && assessmentResults.length > 0) {
         // Calculate averages
-        const totalScores = assessmentResults.reduce((acc, result) => {
+        const totalScores = assessmentResults.reduce((acc: any, result: any) => {
           if (result.ocean_scores) {
             Object.keys(result.ocean_scores).forEach(key => {
               acc.ocean[key] = (acc.ocean[key] || 0) + result.ocean_scores[key];
@@ -122,7 +122,7 @@ export async function GET(
             });
           }
           return acc;
-        }, { ocean: {}, culture: {}, values: {} });
+        }, { ocean: {} as Record<string, number>, culture: {} as Record<string, number>, values: {} as Record<string, number> });
 
         // Calculate averages
         Object.keys(totalScores.ocean).forEach(key => {
