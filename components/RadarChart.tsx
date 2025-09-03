@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import { HelpCircle } from 'lucide-react';
 
 interface RadarChartProps {
   data: Record<string, number>;
@@ -10,29 +9,7 @@ interface RadarChartProps {
   color?: string;
 }
 
-const termDefinitions = {
-  // OCEAN personality traits
-  openness: "Openness to new experiences, creativity, and intellectual curiosity",
-  conscientiousness: "Organization, planning, and goal-directed behavior",
-  extraversion: "Social energy, assertiveness, and positive emotions",
-  agreeableness: "Cooperation, trust, and interpersonal harmony",
-  neuroticism: "Emotional stability and stress resilience",
-  
-  // Culture terms
-  power_distance: "Your comfort with hierarchy and authority in the workplace",
-  individualism: "Preference for individual achievement vs. group success",
-  masculinity: "Competitive vs. collaborative work preferences",
-  uncertainty_avoidance: "Comfort with ambiguity and change",
-  long_term_orientation: "Focus on future planning vs. immediate results",
-  indulgence: "Work-life balance and gratification approach",
-  
-  // Values terms
-  innovation: "Preference for new approaches vs. proven methods",
-  collaboration: "Teamwork vs. individual achievement preference",
-  autonomy: "Independence vs. structured guidance preference",
-  quality: "Excellence vs. speed priority",
-  customer_focus: "External vs. internal priorities orientation"
-};
+
 
 export default function RadarChart({ data, title, size = 500, color = '#3B82F6' }: RadarChartProps) {
   const centerX = size / 2;
@@ -174,29 +151,7 @@ export default function RadarChart({ data, title, size = 500, color = '#3B82F6' 
           </text>
         ))}
         
-        {/* Simple question mark icon with title */}
-        <g className="cursor-help">
-          <title>{termDefinitions[point.label as keyof typeof termDefinitions] || formatLabel(point.label)}</title>
-          <circle
-            cx={iconX}
-            cy={iconY}
-            r="8"
-            fill="none"
-            stroke="#9CA3AF"
-            strokeWidth="1.5"
-            className="hover:stroke-gray-600 transition-colors"
-          />
-          <text
-            x={iconX}
-            y={iconY + 3}
-            textAnchor="middle"
-            dominantBaseline="middle"
-            className="text-xs fill-gray-500 hover:fill-gray-700 transition-colors"
-            style={{ fontSize: '10px', fontWeight: 'bold' }}
-          >
-            ?
-          </text>
-        </g>
+
       </g>
     );
   });
