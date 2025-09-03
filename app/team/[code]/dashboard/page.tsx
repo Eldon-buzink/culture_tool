@@ -2,10 +2,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import RadarChart from '@/components/RadarChart';
 import { 
   Users, 
@@ -387,6 +390,55 @@ export default function TeamDashboardPage() {
     return explanations[term.toLowerCase()] || 'No explanation available for this term.';
   };
 
+  const exportToPDF = async () => {
+    try {
+      // Get the main dashboard content
+      const element = document.getElementById('dashboard-content');
+      if (!element) {
+        alert('Unable to find dashboard content to export');
+        return;
+      }
+
+      // Create canvas from the element
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff'
+      });
+
+      // Create PDF
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      
+      const imgWidth = 210; // A4 width in mm
+      const pageHeight = 295; // A4 height in mm
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+
+      let position = 0;
+
+      // Add image to PDF
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      // Add new pages if content is longer than one page
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
+      // Download the PDF
+      const fileName = `team-dashboard-${teamData?.name || 'report'}-${new Date().toISOString().split('T')[0]}.pdf`;
+      pdf.save(fileName);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Failed to export PDF. Please try again.');
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -424,7 +476,7 @@ export default function TeamDashboardPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-7xl mx-auto px-4">
+      <div id="dashboard-content" className="max-w-7xl mx-auto px-4">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
@@ -510,12 +562,18 @@ export default function TeamDashboardPage() {
                       />
                                               <div className="mt-4 space-y-2">
                           <h5 className="text-sm font-medium text-gray-700 text-center mb-2">Trait Scores</h5>
-                          <div className="grid grid-cols-2 gap-2">
+                          <div className="flex flex-wrap gap-1 justify-center">
                             {Object.entries(teamData.aggregateScores.ocean).map(([trait, score]) => (
-                              <div key={trait} className="flex items-center justify-between p-2 bg-blue-50 rounded-lg border border-blue-200">
-                                <span className="text-sm font-medium text-blue-900 capitalize">{trait}</span>
-                                <span className="text-sm font-bold text-blue-700">{score}</span>
-                              </div>
+                              <Tooltip key={trait}>
+                                <TooltipTrigger>
+                                  <div className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200 cursor-help hover:bg-gray-200 transition-colors">
+                                    {trait.charAt(0).toUpperCase() + trait.slice(1)}: {score}
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                  <p>{getTermExplanation(trait)}</p>
+                                </TooltipContent>
+                              </Tooltip>
                             ))}
                           </div>
                         </div>
@@ -567,12 +625,18 @@ export default function TeamDashboardPage() {
                       />
                                               <div className="mt-4 space-y-2">
                           <h5 className="text-sm font-medium text-gray-700 text-center mb-2">Cultural Dimensions</h5>
-                          <div className="grid grid-cols-2 gap-2">
+                          <div className="flex flex-wrap gap-1 justify-center">
                             {Object.entries(teamData.aggregateScores.culture).map(([trait, score]) => (
-                              <div key={trait} className="flex items-center justify-between p-2 bg-green-50 rounded-lg border border-green-200">
-                                <span className="text-sm font-medium text-green-900 capitalize">{trait.replace(/_/g, ' ')}</span>
-                                <span className="text-sm font-bold text-green-700">{score}</span>
-                              </div>
+                              <Tooltip key={trait}>
+                                <TooltipTrigger>
+                                  <div className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200 cursor-help hover:bg-gray-200 transition-colors">
+                                    {trait.replace(/_/g, ' ').charAt(0).toUpperCase() + trait.replace(/_/g, ' ').slice(1)}: {score}
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                  <p>{getTermExplanation(trait)}</p>
+                                </TooltipContent>
+                              </Tooltip>
                             ))}
                           </div>
                         </div>
@@ -624,12 +688,18 @@ export default function TeamDashboardPage() {
                       />
                                               <div className="mt-4 space-y-2">
                           <h5 className="text-sm font-medium text-gray-700 text-center mb-2">Work Values</h5>
-                          <div className="grid grid-cols-2 gap-2">
+                          <div className="flex flex-wrap gap-1 justify-center">
                             {Object.entries(teamData.aggregateScores.values).map(([trait, score]) => (
-                              <div key={trait} className="flex items-center justify-between p-2 bg-orange-50 rounded-lg border border-orange-200">
-                                <span className="text-sm font-medium text-orange-900 capitalize">{trait}</span>
-                                <span className="text-sm font-bold text-orange-700">{score}</span>
-                              </div>
+                              <Tooltip key={trait}>
+                                <TooltipTrigger>
+                                  <div className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200 cursor-help hover:bg-gray-200 transition-colors">
+                                    {trait.charAt(0).toUpperCase() + trait.slice(1)}: {score}
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                  <p>{getTermExplanation(trait)}</p>
+                                </TooltipContent>
+                              </Tooltip>
                             ))}
                           </div>
                         </div>
@@ -908,6 +978,7 @@ export default function TeamDashboardPage() {
                       variant="outline" 
                       size="lg" 
                       className="px-8 py-3"
+                      onClick={exportToPDF}
                     >
                       <Download className="h-4 w-4 mr-2" />
                       Export Report

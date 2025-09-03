@@ -97,6 +97,46 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       // Don't fail the whole operation for this
     }
 
+    // Send completion notification to team creator
+    try {
+      // Get team information for the assessment
+      const { data: teamInfo, error: teamError } = await admin
+        .from('assessments')
+        .select(`
+          team_code,
+          user_email,
+          user_name,
+          teams!inner(
+            name,
+            creator_email,
+            creator_name
+          )
+        `)
+        .eq('id', assessmentId)
+        .single();
+
+      if (!teamError && teamInfo && teamInfo.teams && Array.isArray(teamInfo.teams) && teamInfo.teams.length > 0) {
+        const team = teamInfo.teams[0];
+        // Send completion notification
+        await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/email/send-completion-notification`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            teamCode: teamInfo.team_code,
+            memberEmail: teamInfo.user_email,
+            memberName: teamInfo.user_name,
+            teamName: team.name,
+            teamCreatorEmail: team.creator_email
+          }),
+        });
+      }
+    } catch (notificationError) {
+      console.error('Error sending completion notification:', notificationError);
+      // Don't fail the whole operation for this
+    }
+
     console.log('Successfully stored assessment results:', assessmentId);
 
     return NextResponse.json({ 
