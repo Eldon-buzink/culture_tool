@@ -33,7 +33,7 @@ import {
   User,
   Eye
 } from 'lucide-react';
-import { TermGlossary } from '@/components/TermExplanation';
+
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ModernSpinner } from '@/components/LoadingSpinner';
 import ShareModal from '@/components/ShareModal';
@@ -258,19 +258,9 @@ export default function TeamDashboardPage() {
         console.log('Member statuses:', transformedData.members.map(m => ({ email: m.email, status: m.status })));
         setTeamData(transformedData);
         
-        // Fetch candidates for this team
-        try {
-          const candidatesResponse = await fetch(`/api/candidates?teamCode=${params.code}`);
-          if (candidatesResponse.ok) {
-            const candidatesData = await candidatesResponse.json();
-            if (candidatesData.success) {
-              setCandidates(candidatesData.candidates || []);
-            }
-          }
-        } catch (error) {
-          console.error('Error fetching candidates:', error);
-          setCandidates([]);
-        }
+        // Note: Candidates functionality will be added later when the candidates table is set up
+        // For now, we focus on team members only
+        setCandidates([]);
         
         setLoading(false);
       } catch (error) {
@@ -512,11 +502,27 @@ export default function TeamDashboardPage() {
                       <Brain className="h-4 w-4" />
                       Team Personality Profile
                     </h4>
-                    <RadarChart 
-                      data={teamData.aggregateScores.ocean} 
-                      title="Team Personality Profile"
-                      color="#3B82F6"
-                    />
+                    <div className="relative">
+                      <RadarChart 
+                        data={teamData.aggregateScores.ocean} 
+                        title="Team Personality Profile"
+                        color="#3B82F6"
+                      />
+                      <div className="mt-3 flex flex-wrap gap-2 justify-center">
+                        {Object.entries(teamData.aggregateScores.ocean).map(([trait, score]) => (
+                          <Tooltip key={trait}>
+                            <TooltipTrigger asChild>
+                              <Badge variant="outline" className="cursor-help">
+                                {trait.charAt(0).toUpperCase() + trait.slice(1)}: {score}
+                              </Badge>
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs">
+                              <p>{getTermExplanation(trait)}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        ))}
+                      </div>
+                    </div>
                     {completedMembers.length > 0 ? (
                       <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
                         <div className="flex items-start gap-3">
@@ -556,11 +562,27 @@ export default function TeamDashboardPage() {
                       <Globe className="h-4 w-4" />
                       Team Cultural Preferences
                     </h4>
-                    <RadarChart 
-                      data={teamData.aggregateScores.culture} 
-                      title="Team Cultural Profile"
-                      color="#10B981"
-                    />
+                    <div className="relative">
+                      <RadarChart 
+                        data={teamData.aggregateScores.culture} 
+                        title="Team Cultural Profile"
+                        color="#10B981"
+                      />
+                      <div className="mt-3 flex flex-wrap gap-2 justify-center">
+                        {Object.entries(teamData.aggregateScores.culture).map(([trait, score]) => (
+                          <Tooltip key={trait}>
+                            <TooltipTrigger asChild>
+                              <Badge variant="outline" className="cursor-help">
+                                {trait.charAt(0).toUpperCase() + trait.slice(1)}: {score}
+                              </Badge>
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs">
+                              <p>{getTermExplanation(trait)}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        ))}
+                      </div>
+                    </div>
                     {completedMembers.length > 0 ? (
                       <div className="mt-4 p-4 bg-green-50 rounded-lg border border-green-200">
                         <div className="flex items-start gap-3">
@@ -600,11 +622,27 @@ export default function TeamDashboardPage() {
                       <Target className="h-4 w-4" />
                       Team Values Profile
                     </h4>
-                    <RadarChart 
-                      data={teamData.aggregateScores.values} 
-                      title="Team Values Profile"
-                      color="#F59E0B"
-                    />
+                    <div className="relative">
+                      <RadarChart 
+                        data={teamData.aggregateScores.values} 
+                        title="Team Values Profile"
+                        color="#F59E0B"
+                      />
+                      <div className="mt-3 flex flex-wrap gap-2 justify-center">
+                        {Object.entries(teamData.aggregateScores.values).map(([trait, score]) => (
+                          <Tooltip key={trait}>
+                            <TooltipTrigger asChild>
+                              <Badge variant="outline" className="cursor-help">
+                                {trait.charAt(0).toUpperCase() + trait.slice(1)}: {score}
+                              </Badge>
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs">
+                              <p>{getTermExplanation(trait)}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        ))}
+                      </div>
+                    </div>
                     {completedMembers.length > 0 ? (
                       <div className="mt-4 p-4 bg-orange-50 rounded-lg border border-orange-200">
                         <div className="flex items-start gap-3">
@@ -848,22 +886,7 @@ export default function TeamDashboardPage() {
               </CardContent>
             </Card>
 
-            {/* Term Glossary */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BookOpen className="h-5 w-5" />
-                  Understanding Your Results
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-6">
-                  <TermGlossary category="ocean" />
-                  <TermGlossary category="culture" />
-                  <TermGlossary category="values" />
-                </div>
-              </CardContent>
-            </Card>
+
 
             {/* Quick Actions - Matching Individual Assessment Design */}
             <Card>
