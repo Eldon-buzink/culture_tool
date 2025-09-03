@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -390,52 +389,125 @@ export default function TeamDashboardPage() {
     return explanations[term.toLowerCase()] || 'No explanation available for this term.';
   };
 
+  const [isExporting, setIsExporting] = useState(false);
+
   const exportToPDF = async () => {
     try {
-      // Get the main dashboard content
-      const element = document.getElementById('dashboard-content');
-      if (!element) {
-        alert('Unable to find dashboard content to export');
-        return;
-      }
-
-      // Create canvas from the element
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#ffffff'
-      });
-
-      // Create PDF
-      const imgData = canvas.toDataURL('image/png');
+      setIsExporting(true);
+      
+      // Create a cleaner PDF report
       const pdf = new jsPDF('p', 'mm', 'a4');
       
-      const imgWidth = 210; // A4 width in mm
-      const pageHeight = 295; // A4 height in mm
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      let heightLeft = imgHeight;
-
-      let position = 0;
-
-      // Add image to PDF
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
-
-      // Add new pages if content is longer than one page
-      while (heightLeft >= 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
+      // Add header
+      pdf.setFontSize(24);
+      pdf.setTextColor(59, 130, 246); // Blue color
+      pdf.text('Team Culture Report', 20, 30);
+      
+      // Add team info
+      pdf.setFontSize(14);
+      pdf.setTextColor(55, 65, 81); // Gray color
+      pdf.text(`Team: ${teamData?.name || 'Unknown Team'}`, 20, 50);
+      pdf.text(`Generated: ${new Date().toLocaleDateString()}`, 20, 60);
+      pdf.text(`Members: ${teamData?.members.length || 0}`, 20, 70);
+      pdf.text(`Completion Rate: ${Math.round(completionRate)}%`, 20, 80);
+      
+      let yPosition = 100;
+      
+      // Add OCEAN scores
+      if (teamData?.aggregateScores?.ocean) {
+        pdf.setFontSize(16);
+        pdf.setTextColor(59, 130, 246);
+        pdf.text('Personality Profile (OCEAN)', 20, yPosition);
+        yPosition += 15;
+        
+        pdf.setFontSize(12);
+        pdf.setTextColor(55, 65, 81);
+        Object.entries(teamData.aggregateScores.ocean).forEach(([trait, score]) => {
+          pdf.text(`${trait.charAt(0).toUpperCase() + trait.slice(1)}: ${score}`, 25, yPosition);
+          yPosition += 8;
+        });
+        yPosition += 10;
       }
-
+      
+      // Add Culture scores
+      if (teamData?.aggregateScores?.culture) {
+        pdf.setFontSize(16);
+        pdf.setTextColor(16, 185, 129);
+        pdf.text('Cultural Dimensions', 20, yPosition);
+        yPosition += 15;
+        
+        pdf.setFontSize(12);
+        pdf.setTextColor(55, 65, 81);
+        Object.entries(teamData.aggregateScores.culture).forEach(([trait, score]) => {
+          const traitName = trait.replace(/_/g, ' ').charAt(0).toUpperCase() + trait.replace(/_/g, ' ').slice(1);
+          pdf.text(`${traitName}: ${score}`, 25, yPosition);
+          yPosition += 8;
+        });
+        yPosition += 10;
+      }
+      
+      // Add Values scores
+      if (teamData?.aggregateScores?.values) {
+        pdf.setFontSize(16);
+        pdf.setTextColor(245, 158, 11);
+        pdf.text('Work Values', 20, yPosition);
+        yPosition += 15;
+        
+        pdf.setFontSize(12);
+        pdf.setTextColor(55, 65, 81);
+        Object.entries(teamData.aggregateScores.values).forEach(([trait, score]) => {
+          pdf.text(`${trait.charAt(0).toUpperCase() + trait.slice(1)}: ${score}`, 25, yPosition);
+          yPosition += 8;
+        });
+        yPosition += 10;
+      }
+      
+      // Add insights
+      if (completedMembers.length > 0) {
+        pdf.setFontSize(16);
+        pdf.setTextColor(59, 130, 246);
+        pdf.text('Key Insights', 20, yPosition);
+        yPosition += 15;
+        
+        pdf.setFontSize(12);
+        pdf.setTextColor(55, 65, 81);
+        const insights = [
+          'Your team shows a balanced personality profile with strengths in collaboration and innovation.',
+          'The mix of personality types creates opportunities for diverse perspectives and comprehensive problem-solving.',
+          'Cultural preferences support inclusive decision-making and shared responsibility.',
+          'Work values prioritize quality and customer focus while maintaining innovation drive.'
+        ];
+        
+        insights.forEach(insight => {
+          // Split long text to fit page width
+          const words = insight.split(' ');
+          let line = '';
+          for (const word of words) {
+            if (pdf.getTextWidth(line + ' ' + word) < 170) {
+              line += (line ? ' ' : '') + word;
+            } else {
+              pdf.text(line, 25, yPosition);
+              yPosition += 8;
+              line = word;
+            }
+          }
+          if (line) {
+            pdf.text(line, 25, yPosition);
+            yPosition += 8;
+          }
+          yPosition += 5;
+        });
+      }
+      
       // Download the PDF
-      const fileName = `team-dashboard-${teamData?.name || 'report'}-${new Date().toISOString().split('T')[0]}.pdf`;
+      const fileName = `team-culture-report-${teamData?.name?.replace(/\s+/g, '-') || 'report'}-${new Date().toISOString().split('T')[0]}.pdf`;
       pdf.save(fileName);
+      
     } catch (error) {
       console.error('Error generating PDF:', error);
       alert('Failed to export PDF. Please try again.');
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -562,16 +634,17 @@ export default function TeamDashboardPage() {
                       />
                                               <div className="mt-4 space-y-2">
                           <h5 className="text-sm font-medium text-gray-700 text-center mb-2">Trait Scores</h5>
-                          <div className="flex flex-wrap gap-1 justify-center">
+                          <div className="flex flex-wrap gap-2 justify-center">
                             {Object.entries(teamData.aggregateScores.ocean).map(([trait, score]) => (
                               <Tooltip key={trait}>
                                 <TooltipTrigger>
-                                  <div className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200 cursor-help hover:bg-gray-200 transition-colors">
+                                  <div className="inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium bg-blue-50 text-blue-800 border border-blue-200 cursor-pointer hover:bg-blue-100 transition-colors shadow-sm">
+                                    <span className="mr-2">ℹ️</span>
                                     {trait.charAt(0).toUpperCase() + trait.slice(1)}: {score}
                                   </div>
                                 </TooltipTrigger>
                                 <TooltipContent className="max-w-xs">
-                                  <p>{getTermExplanation(trait)}</p>
+                                  <p><strong>Click for explanation:</strong> {getTermExplanation(trait)}</p>
                                 </TooltipContent>
                               </Tooltip>
                             ))}
@@ -625,16 +698,17 @@ export default function TeamDashboardPage() {
                       />
                                               <div className="mt-4 space-y-2">
                           <h5 className="text-sm font-medium text-gray-700 text-center mb-2">Cultural Dimensions</h5>
-                          <div className="flex flex-wrap gap-1 justify-center">
+                          <div className="flex flex-wrap gap-2 justify-center">
                             {Object.entries(teamData.aggregateScores.culture).map(([trait, score]) => (
                               <Tooltip key={trait}>
                                 <TooltipTrigger>
-                                  <div className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200 cursor-help hover:bg-gray-200 transition-colors">
+                                  <div className="inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium bg-green-50 text-green-800 border border-green-200 cursor-pointer hover:bg-green-100 transition-colors shadow-sm">
+                                    <span className="mr-2">ℹ️</span>
                                     {trait.replace(/_/g, ' ').charAt(0).toUpperCase() + trait.replace(/_/g, ' ').slice(1)}: {score}
                                   </div>
                                 </TooltipTrigger>
                                 <TooltipContent className="max-w-xs">
-                                  <p>{getTermExplanation(trait)}</p>
+                                  <p><strong>Click for explanation:</strong> {getTermExplanation(trait)}</p>
                                 </TooltipContent>
                               </Tooltip>
                             ))}
@@ -688,16 +762,17 @@ export default function TeamDashboardPage() {
                       />
                                               <div className="mt-4 space-y-2">
                           <h5 className="text-sm font-medium text-gray-700 text-center mb-2">Work Values</h5>
-                          <div className="flex flex-wrap gap-1 justify-center">
+                          <div className="flex flex-wrap gap-2 justify-center">
                             {Object.entries(teamData.aggregateScores.values).map(([trait, score]) => (
                               <Tooltip key={trait}>
                                 <TooltipTrigger>
-                                  <div className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200 cursor-help hover:bg-gray-200 transition-colors">
+                                  <div className="inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium bg-orange-50 text-orange-800 border border-orange-200 cursor-pointer hover:bg-orange-100 transition-colors shadow-sm">
+                                    <span className="mr-2">ℹ️</span>
                                     {trait.charAt(0).toUpperCase() + trait.slice(1)}: {score}
                                   </div>
                                 </TooltipTrigger>
                                 <TooltipContent className="max-w-xs">
-                                  <p>{getTermExplanation(trait)}</p>
+                                  <p><strong>Click for explanation:</strong> {getTermExplanation(trait)}</p>
                                 </TooltipContent>
                               </Tooltip>
                             ))}
@@ -979,9 +1054,19 @@ export default function TeamDashboardPage() {
                       size="lg" 
                       className="px-8 py-3"
                       onClick={exportToPDF}
+                      disabled={isExporting}
                     >
-                      <Download className="h-4 w-4 mr-2" />
-                      Export Report
+                      {isExporting ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-gray-600 border-t-transparent rounded-full animate-spin mr-2"></div>
+                          Generating PDF...
+                        </>
+                      ) : (
+                        <>
+                          <Download className="h-4 w-4 mr-2" />
+                          Export Report
+                        </>
+                      )}
                     </Button>
                   </div>
                 </div>
