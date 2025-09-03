@@ -82,13 +82,32 @@ export async function GET(
           }
         }
 
+        // If completed, fetch the actual scores
+        let oceanScores, cultureScores, valuesScores;
+        if (status === 'completed') {
+          const { data: results } = await admin
+            .from('assessment_results')
+            .select('ocean_scores, culture_scores, values_scores')
+            .eq('user_id', member.user_id)
+            .single();
+          
+          if (results) {
+            oceanScores = results.ocean_scores;
+            cultureScores = results.culture_scores;
+            valuesScores = results.values_scores;
+          }
+        }
+
         return {
           id: member.user_id,
           name: member.users?.name || 'Unknown',
           email: member.users?.email || 'Unknown',
           role: member.role,
           joinedAt: member.joined_at,
-          status: status
+          status: status,
+          oceanScores,
+          cultureScores,
+          valuesScores
         };
       })
     );
@@ -96,10 +115,10 @@ export async function GET(
     // Calculate aggregate scores from completed assessments
     const completedMembers = membersWithStatus.filter(member => member.status === 'completed');
     
-    let aggregateScores: Record<string, Record<string, number>> = {
+    let aggregateScores: any = {
       ocean: { openness: 0, conscientiousness: 0, extraversion: 0, agreeableness: 0, neuroticism: 0 },
-      culture: { hierarchy: 0, egalitarian: 0, individualistic: 0, collectivistic: 0 },
-      values: { innovation: 0, quality: 0, efficiency: 0, collaboration: 0 }
+      culture: { powerDistance: 0, individualism: 0, masculinity: 0, uncertaintyAvoidance: 0, longTermOrientation: 0, indulgence: 0 },
+      values: { innovation: 0, collaboration: 0, autonomy: 0, quality: 0, customerFocus: 0 }
     };
 
     if (completedMembers.length > 0) {
@@ -143,6 +162,48 @@ export async function GET(
       }
     }
 
+    // Generate team insights based on aggregate scores
+    const insights = {
+      strengths: [] as string[],
+      challenges: [] as string[],
+      opportunities: [] as string[]
+    };
+
+    if (completedMembers.length > 0) {
+      // Analyze OCEAN scores
+      const oceanScores = aggregateScores.ocean;
+      if (oceanScores.openness > 70) insights.strengths.push("High creativity and adaptability");
+      if (oceanScores.conscientiousness > 70) insights.strengths.push("Strong organization and planning");
+      if (oceanScores.agreeableness > 70) insights.strengths.push("Excellent teamwork and collaboration");
+      if (oceanScores.extraversion > 70) insights.strengths.push("Strong communication and social skills");
+      if (oceanScores.neuroticism < 30) insights.strengths.push("Emotional stability and stress resilience");
+
+      // Analyze culture scores
+      const cultureScores = aggregateScores.culture;
+      if (cultureScores.powerDistance < 40) insights.strengths.push("Egalitarian work environment");
+      if (cultureScores.individualism > 60) insights.strengths.push("Strong individual initiative");
+      if (cultureScores.uncertaintyAvoidance < 50) insights.strengths.push("Comfort with change and innovation");
+
+      // Analyze values scores
+      const valuesScores = aggregateScores.values;
+      if (valuesScores.innovation > 70) insights.strengths.push("Innovation-focused culture");
+      if (valuesScores.quality > 70) insights.strengths.push("Quality-driven approach");
+      if (valuesScores.collaboration > 70) insights.strengths.push("Collaborative work style");
+
+      // Identify challenges
+      if (oceanScores.openness < 40) insights.challenges.push("May resist new approaches");
+      if (oceanScores.conscientiousness < 40) insights.challenges.push("Process discipline needs improvement");
+      if (cultureScores.powerDistance > 70) insights.challenges.push("Hierarchical decision-making may slow innovation");
+
+      // Identify opportunities
+      if (oceanScores.openness > 60 && oceanScores.conscientiousness > 60) {
+        insights.opportunities.push("Balance creativity with structure");
+      }
+      if (cultureScores.individualism > 50 && cultureScores.uncertaintyAvoidance < 50) {
+        insights.opportunities.push("Leverage individual initiative for innovation");
+      }
+    }
+
     // Transform the data to match the expected format
     const transformedTeam = {
       id: team.id,
@@ -152,6 +213,7 @@ export async function GET(
       createdAt: team.created_at,
       members: membersWithStatus,
       aggregateScores: aggregateScores,
+      insights: insights,
       invitations: [] // We'll add this later when we implement invitations
     };
 
