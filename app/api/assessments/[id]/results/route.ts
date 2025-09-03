@@ -92,25 +92,35 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
 // Helper functions to generate insights and recommendations
 function generateOceanInsights(oceanScores: any) {
-  const insights = [];
-  
-  if (oceanScores.openness > 70) insights.push("You show high openness to new experiences, indicating creativity and adaptability.");
-  if (oceanScores.extraversion > 70) insights.push("Your extraversion suggests you thrive in social and collaborative environments.");
-  if (oceanScores.conscientiousness > 70) insights.push("High conscientiousness indicates strong organization and planning skills.");
-  if (oceanScores.agreeableness > 70) insights.push("Your agreeableness indicates strong teamwork and cooperation skills.");
-  if (oceanScores.neuroticism < 30) insights.push("Low neuroticism shows emotional stability and stress resilience.");
-  
-  return insights.length > 0 ? insights : ["Your personality profile shows a balanced approach to work and collaboration."];
+  try {
+    const insights = [];
+    
+    if (oceanScores && oceanScores.openness > 70) insights.push("You show high openness to new experiences, indicating creativity and adaptability.");
+    if (oceanScores && oceanScores.extraversion > 70) insights.push("Your extraversion suggests you thrive in social and collaborative environments.");
+    if (oceanScores && oceanScores.conscientiousness > 70) insights.push("High conscientiousness indicates strong organization and planning skills.");
+    if (oceanScores && oceanScores.agreeableness > 70) insights.push("Your agreeableness indicates strong teamwork and cooperation skills.");
+    if (oceanScores && oceanScores.neuroticism < 30) insights.push("Low neuroticism shows emotional stability and stress resilience.");
+    
+    return insights.length > 0 ? insights : ["Your personality profile shows a balanced approach to work and collaboration."];
+  } catch (error) {
+    console.error('Error generating ocean insights:', error);
+    return ["Your personality profile shows a balanced approach to work and collaboration."];
+  }
 }
 
 function generateCultureInsights(cultureScores: any) {
-  const insights = [];
-  
-  if (cultureScores.powerDistance < 40) insights.push("You prefer egalitarian work environments with low power distance.");
-  if (cultureScores.individualism > 60) insights.push("Your individualism indicates you value personal achievement and autonomy.");
-  if (cultureScores.uncertaintyAvoidance < 50) insights.push("Your uncertainty avoidance shows comfort with both structure and flexibility.");
-  
-  return insights.length > 0 ? insights : ["Your cultural preferences show adaptability to different work environments."];
+  try {
+    const insights = [];
+    
+    if (cultureScores && cultureScores.powerDistance < 40) insights.push("You prefer egalitarian work environments with low power distance.");
+    if (cultureScores && cultureScores.individualism > 60) insights.push("Your individualism indicates you value personal achievement and autonomy.");
+    if (cultureScores && cultureScores.uncertaintyAvoidance < 50) insights.push("Your uncertainty avoidance shows comfort with both structure and flexibility.");
+    
+    return insights.length > 0 ? insights : ["Your cultural preferences show adaptability to different work environments."];
+  } catch (error) {
+    console.error('Error generating culture insights:', error);
+    return ["Your cultural preferences show adaptability to different work environments."];
+  }
 }
 
 function generateValuesInsights(valuesScores: any) {
@@ -236,15 +246,15 @@ export async function GET(
 
     // Generate insights and recommendations based on scores
     const insights = {
-      ocean: generateOceanInsights(results.ocean_scores),
-      culture: generateCultureInsights(results.culture_scores),
-      values: generateValuesInsights(results.values_scores)
+      ocean: generateOceanInsights(results.ocean_scores || {}),
+      culture: generateCultureInsights(results.culture_scores || {}),
+      values: generateValuesInsights(results.values_scores || {})
     };
 
     const recommendations = {
-      ocean: generateOceanRecommendations(results.ocean_scores),
-      culture: generateCultureRecommendations(results.culture_scores),
-      values: generateValuesRecommendations(results.values_scores)
+      ocean: generateOceanRecommendations(results.ocean_scores || {}),
+      culture: generateCultureRecommendations(results.culture_scores || {}),
+      values: generateValuesRecommendations(results.values_scores || {})
     };
 
     return NextResponse.json({

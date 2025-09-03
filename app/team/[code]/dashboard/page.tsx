@@ -238,16 +238,16 @@ export default function TeamDashboardPage() {
             email: member.email,
             status: member.status,
             completedAt: member.completedAt,
-            oceanScores: undefined, // Will be populated when we have assessment results
-            cultureScores: undefined,
-            valuesScores: undefined
+            oceanScores: member.oceanScores || undefined,
+            cultureScores: member.cultureScores || undefined,
+            valuesScores: member.valuesScores || undefined
           })),
-          aggregateScores: {
+          aggregateScores: data.team.aggregateScores || {
             ocean: { openness: 0, conscientiousness: 0, extraversion: 0, agreeableness: 0, neuroticism: 0 },
-            culture: { power_distance: 0, individualism: 0, masculinity: 0, uncertainty_avoidance: 0, long_term_orientation: 0, indulgence: 0 },
-            values: { innovation: 0, collaboration: 0, autonomy: 0, quality: 0, customer_focus: 0 }
+            culture: { powerDistance: 0, individualism: 0, masculinity: 0, uncertaintyAvoidance: 0, longTermOrientation: 0, indulgence: 0 },
+            values: { innovation: 0, collaboration: 0, autonomy: 0, quality: 0, customerFocus: 0 }
           },
-          insights: {
+          insights: data.team.insights || {
             strengths: [],
             challenges: [],
             opportunities: []
@@ -258,9 +258,19 @@ export default function TeamDashboardPage() {
         console.log('Member statuses:', transformedData.members.map(m => ({ email: m.email, status: m.status })));
         setTeamData(transformedData);
         
-        // Note: Candidates functionality will be added later
-        // For now, we focus on team members only
-        setCandidates([]);
+        // Fetch candidates for this team
+        try {
+          const candidatesResponse = await fetch(`/api/candidates?teamCode=${params.code}`);
+          if (candidatesResponse.ok) {
+            const candidatesData = await candidatesResponse.json();
+            if (candidatesData.success) {
+              setCandidates(candidatesData.candidates || []);
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching candidates:', error);
+          setCandidates([]);
+        }
         
         setLoading(false);
       } catch (error) {
@@ -779,7 +789,7 @@ export default function TeamDashboardPage() {
                   {teamData.members.map((member) => (
                     <div 
                       key={member.id} 
-                      className="p-5 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-all duration-200 hover:shadow-sm"
+                      className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-all duration-200 hover:shadow-sm"
                       onClick={() => {
                         if (member.status === 'completed') {
                           // Navigate to individual results
@@ -791,7 +801,7 @@ export default function TeamDashboardPage() {
                       }}
                     >
                       <div className="flex items-start gap-4">
-                        <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-blue-200 rounded-full flex items-center justify-center shadow-sm flex-shrink-0">
+                        <div className="w-10 h-10 bg-gradient-to-br from-blue-100 to-blue-200 rounded-full flex items-center justify-center shadow-sm flex-shrink-0">
                           <span className="text-sm font-bold text-blue-700">
                             {member.name.split(' ').map(n => n[0]).join('')}
                           </span>
@@ -1056,86 +1066,88 @@ export default function TeamDashboardPage() {
               </CardContent>
             </Card>
 
-            {/* Team Members Status */}
+            {/* Potential New Hires */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Users className="h-5 w-5" />
-                  Team Members Status
+                  <UserPlus className="h-5 w-5" />
+                  Potential New Hires
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {teamData.members.length === 0 ? (
+                  {candidates.length === 0 ? (
                     <div className="text-center py-6">
                       <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                        <Users className="h-6 w-6 text-gray-400" />
+                        <UserPlus className="h-6 w-6 text-gray-400" />
                       </div>
-                      <h3 className="text-sm font-medium text-gray-900 mb-2">No Team Members Yet</h3>
+                      <h3 className="text-sm font-medium text-gray-900 mb-2">No Candidates Yet</h3>
                       <p className="text-xs text-gray-500 mb-4">
-                        Invite team members to join your team and complete the assessment.
+                        Invite potential new hires to assess their fit with your team culture.
                       </p>
-                      <Button size="sm" className="w-full" onClick={() => setShowInviteModal(true)}>
+                      <Button size="sm" className="w-full" onClick={() => setShowCandidateModal(true)}>
                         <Plus className="h-4 w-4 mr-2" />
-                        Invite Team Member
+                        Invite Candidate
                       </Button>
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      {teamData.members.map((member) => (
-                        <div key={member.id} className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                              <User className="h-5 w-5 text-green-600" />
+                      {candidates.map((candidate) => (
+                        <div key={candidate.id} className="p-4 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-all duration-200 hover:shadow-sm">
+                          <div className="flex items-start gap-4">
+                            <div className="w-12 h-12 bg-gradient-to-br from-purple-100 to-purple-200 rounded-full flex items-center justify-center shadow-sm flex-shrink-0">
+                              <span className="text-sm font-bold text-purple-700">
+                                {candidate.name.split(' ').map(n => n[0]).join('')}
+                              </span>
                             </div>
-                            <div>
-                              <h4 className="font-medium text-gray-900">{member.name}</h4>
-                              <p className="text-sm text-gray-600">Team Member</p>
-                              <p className="text-xs text-gray-500">{member.email}</p>
+                            
+                            <div className="flex-1 min-w-0">
+                              <div className="mb-3">
+                                <div className="font-semibold text-gray-900 text-base truncate">{candidate.name}</div>
+                                <div className="text-sm text-gray-500 truncate">{candidate.position}</div>
+                                <div className="text-sm text-gray-500 truncate">{candidate.email}</div>
+                              </div>
+                              
+                              <div className="flex items-center justify-between">
+                                <Badge className={`${
+                                  candidate.status === 'completed' ? 'bg-green-100 text-green-800 border-green-200' :
+                                  candidate.status === 'in_progress' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' :
+                                  candidate.status === 'invited' ? 'bg-blue-100 text-blue-800 border-blue-200' :
+                                  'bg-gray-100 text-gray-800 border-gray-200'
+                                } px-2 py-1 text-xs`}>
+                                  {candidate.status === 'completed' ? 'Assessment Complete' : 
+                                   candidate.status === 'in_progress' ? 'In Progress' : 
+                                   candidate.status === 'invited' ? 'Invited' : 'Withdrawn'}
+                                </Badge>
+                                
+                                {candidate.status === 'completed' && (
+                                  <div className="flex items-center gap-1 text-purple-600 text-sm font-medium hover:text-purple-700 transition-colors">
+                                    <span>View Results</span>
+                                    <ArrowRight className="h-3 w-3" />
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <Badge 
-                              variant={member.status === 'completed' ? 'default' : member.status === 'in_progress' ? 'secondary' : 'outline'}
-                              className={
-                                member.status === 'completed' ? 'bg-green-100 text-green-800' :
-                                member.status === 'in_progress' ? 'bg-yellow-100 text-yellow-800' :
-                                'bg-gray-100 text-gray-800'
-                              }
-                            >
-                              {member.status === 'completed' ? 'Assessment Complete' : 
-                               member.status === 'in_progress' ? 'Assessment In Progress' : 'Invited'}
-                            </Badge>
-                            {member.status === 'completed' && (
-                              <Button 
-                                size="sm" 
-                                variant="outline"
-                                onClick={() => window.open(`/assessment/${member.id}/results`, '_blank')}
-                              >
-                                <Eye className="h-4 w-4 mr-2" />
-                                View Results
-                              </Button>
-                            )}
                           </div>
                         </div>
                       ))}
                       
-                      <Button size="sm" className="w-full" onClick={() => setShowInviteModal(true)}>
+                      <Button size="sm" className="w-full" onClick={() => setShowCandidateModal(true)}>
                         <Plus className="h-4 w-4 mr-2" />
-                        Invite Another Team Member
+                        Invite Another Candidate
                       </Button>
                     </div>
                   )}
                   
-                  <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
                     <div className="flex items-start gap-3">
-                      <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <span className="text-blue-600 text-xs">👥</span>
+                      <div className="w-6 h-6 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <span className="text-purple-600 text-xs">🎯</span>
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-blue-900 mb-1">Team Assessment</p>
-                        <p className="text-sm text-blue-700">
-                          Track your team members' assessment progress and view individual results to understand team dynamics.
+                        <p className="text-sm font-medium text-purple-900 mb-1">Candidate Assessment</p>
+                        <p className="text-sm text-purple-700">
+                          Evaluate potential new hires against your team's culture and personality profile to ensure the best fit.
                         </p>
                       </div>
                     </div>
