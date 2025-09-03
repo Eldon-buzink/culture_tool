@@ -90,6 +90,90 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   }
 }
 
+// Helper functions to generate insights and recommendations
+function generateOceanInsights(oceanScores: any) {
+  const insights = [];
+  
+  if (oceanScores.openness > 70) insights.push("You show high openness to new experiences, indicating creativity and adaptability.");
+  if (oceanScores.extraversion > 70) insights.push("Your extraversion suggests you thrive in social and collaborative environments.");
+  if (oceanScores.conscientiousness > 70) insights.push("High conscientiousness indicates strong organization and planning skills.");
+  if (oceanScores.agreeableness > 70) insights.push("Your agreeableness indicates strong teamwork and cooperation skills.");
+  if (oceanScores.neuroticism < 30) insights.push("Low neuroticism shows emotional stability and stress resilience.");
+  
+  return insights.length > 0 ? insights : ["Your personality profile shows a balanced approach to work and collaboration."];
+}
+
+function generateCultureInsights(cultureScores: any) {
+  const insights = [];
+  
+  if (cultureScores.powerDistance < 40) insights.push("You prefer egalitarian work environments with low power distance.");
+  if (cultureScores.individualism > 60) insights.push("Your individualism indicates you value personal achievement and autonomy.");
+  if (cultureScores.uncertaintyAvoidance < 50) insights.push("Your uncertainty avoidance shows comfort with both structure and flexibility.");
+  
+  return insights.length > 0 ? insights : ["Your cultural preferences show adaptability to different work environments."];
+}
+
+function generateValuesInsights(valuesScores: any) {
+  const insights = [];
+  
+  if (valuesScores.innovation > 70) insights.push("Innovation is a top work value, driving your professional choices.");
+  if (valuesScores.collaboration > 70) insights.push("You value collaboration and teamwork in your work.");
+  if (valuesScores.quality > 70) insights.push("Quality focus shows your attention to excellence and detail.");
+  
+  return insights.length > 0 ? insights : ["Your work values show a commitment to delivering quality results."];
+}
+
+function generateOceanRecommendations(oceanScores: any) {
+  return {
+    context: "Based on your OCEAN personality profile, you're naturally inclined toward creative and collaborative work environments.",
+    recommendations: [
+      {
+        title: "Leverage Your Strengths",
+        description: "Focus on roles that align with your natural personality traits.",
+        nextSteps: [
+          "Seek opportunities that match your personality profile",
+          "Develop skills that complement your natural strengths",
+          "Find work environments that support your preferences"
+        ]
+      }
+    ]
+  };
+}
+
+function generateCultureRecommendations(cultureScores: any) {
+  return {
+    context: "Your cultural preferences indicate adaptability to different work environments.",
+    recommendations: [
+      {
+        title: "Cultural Adaptation",
+        description: "Use your cultural awareness to work effectively in diverse teams.",
+        nextSteps: [
+          "Learn about different cultural perspectives",
+          "Adapt your communication style as needed",
+          "Seek diverse team experiences"
+        ]
+      }
+    ]
+  };
+}
+
+function generateValuesRecommendations(valuesScores: any) {
+  return {
+    context: "Your work values guide your professional choices and satisfaction.",
+    recommendations: [
+      {
+        title: "Value-Based Career Planning",
+        description: "Align your career choices with your core work values.",
+        nextSteps: [
+          "Identify roles that match your values",
+          "Communicate your values to potential employers",
+          "Seek organizations that share your values"
+        ]
+      }
+    ]
+  };
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -150,6 +234,19 @@ export async function GET(
       );
     }
 
+    // Generate insights and recommendations based on scores
+    const insights = {
+      ocean: generateOceanInsights(results.ocean_scores),
+      culture: generateCultureInsights(results.culture_scores),
+      values: generateValuesInsights(results.values_scores)
+    };
+
+    const recommendations = {
+      ocean: generateOceanRecommendations(results.ocean_scores),
+      culture: generateCultureRecommendations(results.culture_scores),
+      values: generateValuesRecommendations(results.values_scores)
+    };
+
     return NextResponse.json({
       success: true,
       results: {
@@ -158,8 +255,8 @@ export async function GET(
         oceanScores: results.ocean_scores,
         cultureScores: results.culture_scores,
         valuesScores: results.values_scores,
-        insights: results.insights,
-        recommendations: results.recommendations,
+        insights: insights,
+        recommendations: recommendations,
         createdAt: results.created_at,
         userEmail: assessment.users?.[0]?.email || null
       }

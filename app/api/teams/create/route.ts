@@ -213,8 +213,7 @@ async function addTeamMembers(teamCode: string, teamId: string, memberEmails: st
                 title: 'Team Assessment',
                 description: 'Assessment for team collaboration and culture fit',
                 type: 'team',
-                status: 'invited',
-                created_by: `team-invite-${Date.now()}`
+                status: 'invited'
               })
               .select('id')
               .single();

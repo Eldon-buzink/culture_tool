@@ -34,21 +34,33 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     }
 
     // Store assessment results
+    console.log('Attempting to store results for assessment:', assessmentId);
+    console.log('Results data:', JSON.stringify(results, null, 2));
+    
+    // Try to insert with only the columns that exist
+    const insertData: any = {
+      assessment_id: assessmentId,
+      user_id: assessment.user_id
+    };
+    
+    // Only add columns if they exist in the data
+    if (results.oceanScores) insertData.ocean_scores = results.oceanScores;
+    if (results.cultureScores) insertData.culture_scores = results.cultureScores;
+    if (results.valuesScores) insertData.values_scores = results.valuesScores;
+    
+    console.log('Inserting data:', JSON.stringify(insertData, null, 2));
+    
     const { error: resultsError } = await admin
       .from('assessment_results')
-      .upsert({
-        assessment_id: assessmentId,
-        ocean_scores: results.oceanScores,
-        culture_scores: results.cultureScores,
-        values_scores: results.valuesScores
-      }, {
+      .upsert(insertData, {
         onConflict: 'assessment_id'
       });
 
     if (resultsError) {
       console.error('Error storing results:', resultsError);
+      console.error('Error details:', JSON.stringify(resultsError, null, 2));
       return NextResponse.json(
-        { success: false, error: 'Failed to store assessment results' },
+        { success: false, error: `Failed to store assessment results: ${resultsError.message}` },
         { status: 500 }
       );
     }
