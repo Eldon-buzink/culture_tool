@@ -202,6 +202,31 @@ async function addTeamMembers(teamCode: string, teamId: string, memberEmails: st
           if (debug) console.error('Failed to add team member:', memberError);
         } else {
           if (debug) console.log('Member added successfully:', email);
+          
+          // Create an assessment for this team member
+          try {
+            const { data: assessment, error: assessmentError } = await admin
+              .from('assessments')
+              .insert({
+                user_id: user.id,
+                team_id: teamId,
+                title: 'Team Assessment',
+                description: 'Assessment for team collaboration and culture fit',
+                type: 'team',
+                status: 'invited',
+                created_by: `team-invite-${Date.now()}`
+              })
+              .select('id')
+              .single();
+
+            if (assessmentError) {
+              if (debug) console.error('Failed to create assessment for member:', assessmentError);
+            } else {
+              if (debug) console.log('Assessment created for member:', assessment.id);
+            }
+          } catch (assessmentErr) {
+            if (debug) console.error('Error creating assessment for member:', assessmentErr);
+          }
         }
       } catch (error) {
         if (debug) console.error('Error processing member email:', email, error);

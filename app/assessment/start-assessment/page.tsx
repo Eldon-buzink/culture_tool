@@ -30,10 +30,34 @@ export default function StartAssessmentPage() {
       const teamCode = searchParams.get('team');
       
       if (teamCode) {
-        // This is a team invitation - create a team-linked assessment
-        console.log('Creating team-linked assessment for team:', teamCode);
+        // This is a team invitation - find existing assessment for this user
+        console.log('Looking for existing team assessment for team:', teamCode);
         
-        // Create assessment in database with team link
+        // First, try to find an existing assessment for this user and team
+        const findResponse = await fetch(`/api/assessments/find-team-assessment?teamCode=${teamCode}`);
+        
+        if (findResponse.ok) {
+          const findData = await findResponse.json();
+          if (findData.success && findData.assessment) {
+            console.log('Found existing assessment:', findData.assessment.id);
+            
+            // Store team info in localStorage
+            localStorage.setItem(`team-assessment-${findData.assessment.id}`, JSON.stringify({
+              teamCode,
+              assessmentId: findData.assessment.id,
+              type: 'team',
+              status: findData.assessment.status
+            }));
+
+            // Redirect to the existing team assessment
+            router.push(`/assessment/${findData.assessment.id}`);
+            return;
+          }
+        }
+        
+        // If no existing assessment found, create a new one
+        console.log('No existing assessment found, creating new team-linked assessment');
+        
         const response = await fetch('/api/assessments/create', {
           method: 'POST',
           headers: {
@@ -43,7 +67,7 @@ export default function StartAssessmentPage() {
             title: 'Team Assessment',
             description: 'Assessment for team collaboration and culture fit',
             type: 'team',
-            createdBy: `team-invite-${Date.now()}`, // Will be updated when user provides info
+            createdBy: `team-invite-${Date.now()}`,
             teamId: teamCode
           }),
         });
