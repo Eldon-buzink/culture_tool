@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import RadarChart from '@/components/RadarChart';
+// import RadarChart from '@/components/RadarChart';
 import { 
   Users, 
   Mail, 
@@ -503,11 +503,11 @@ export default function TeamDashboardPage() {
                       Team Personality Profile
                     </h4>
                     <div className="relative">
-                      <RadarChart 
+                      {/* <RadarChart 
                         data={teamData.aggregateScores.ocean} 
                         title="Team Personality Profile"
                         color="#3B82F6"
-                      />
+                      /> */}
                       <div className="mt-3 flex flex-wrap gap-2 justify-center">
                         {Object.entries(teamData.aggregateScores.ocean).map(([trait, score]) => (
                           <div key={trait} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
@@ -556,11 +556,11 @@ export default function TeamDashboardPage() {
                       Team Cultural Preferences
                     </h4>
                     <div className="relative">
-                      <RadarChart 
+                      {/* <RadarChart 
                         data={teamData.aggregateScores.culture} 
                         title="Team Cultural Profile"
                         color="#10B981"
-                      />
+                      /> */}
                       <div className="mt-3 flex flex-wrap gap-2 justify-center">
                         {Object.entries(teamData.aggregateScores.culture).map(([trait, score]) => (
                           <div key={trait} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
@@ -609,11 +609,11 @@ export default function TeamDashboardPage() {
                       Team Values Profile
                     </h4>
                     <div className="relative">
-                      <RadarChart 
+                      {/* <RadarChart 
                         data={teamData.aggregateScores.values} 
                         title="Team Values Profile"
                         color="#F59E0B"
-                      />
+                      /> */}
                       <div className="mt-3 flex flex-wrap gap-2 justify-center">
                         {Object.entries(teamData.aggregateScores.values).map(([trait, score]) => (
                           <div key={trait} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800 border border-orange-200">
