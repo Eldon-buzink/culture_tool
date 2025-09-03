@@ -34,7 +34,7 @@ import {
   Eye
 } from 'lucide-react';
 
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+
 import { ModernSpinner } from '@/components/LoadingSpinner';
 import ShareModal from '@/components/ShareModal';
 import InviteModal from '@/components/InviteModal';
