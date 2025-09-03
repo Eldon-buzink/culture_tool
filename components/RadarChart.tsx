@@ -1,6 +1,13 @@
 'use client';
 
 import React, { useState } from 'react';
+import { HelpCircle } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from './ui/tooltip';
 
 interface RadarChartProps {
   data: Record<string, number>;
@@ -10,6 +17,13 @@ interface RadarChartProps {
 }
 
 const termDefinitions = {
+  // OCEAN personality traits
+  openness: "Openness to new experiences, creativity, and intellectual curiosity",
+  conscientiousness: "Organization, planning, and goal-directed behavior",
+  extraversion: "Social energy, assertiveness, and positive emotions",
+  agreeableness: "Cooperation, trust, and interpersonal harmony",
+  neuroticism: "Emotional stability and stress resilience",
+  
   // Culture terms
   power_distance: "Your comfort with hierarchy and authority in the workplace",
   individualism: "Preference for individual achievement vs. group success",
@@ -134,6 +148,22 @@ export default function RadarChart({ data, title, size = 500, color = '#3B82F6' 
     const labelText = formatLabel(point.label);
     const lines = labelText.split('\n');
     
+    // Calculate position for question mark icon
+    const iconOffset = 15; // Distance from label text
+    let iconX = x;
+    let iconY = y;
+    
+    // Position icon based on label position
+    if (Math.abs(Math.cos(angle)) > 0.7) {
+      // Left or right side
+      iconX = x + (Math.cos(angle) > 0 ? iconOffset : -iconOffset);
+      iconY = y;
+    } else if (Math.abs(Math.sin(angle)) > 0.7) {
+      // Top or bottom
+      iconX = x;
+      iconY = y + (Math.sin(angle) > 0 ? iconOffset : -iconOffset);
+    }
+    
     return (
       <g key={index}>
         {lines.map((line, lineIndex) => (
@@ -143,13 +173,34 @@ export default function RadarChart({ data, title, size = 500, color = '#3B82F6' 
             y={y + (lineIndex - (lines.length - 1) / 2) * 18}
             textAnchor={textAnchor}
             dominantBaseline={dominantBaseline}
-            className="text-sm font-medium fill-gray-700 cursor-help"
+            className="text-sm font-medium fill-gray-700"
             style={{ fontSize: '13px' }}
-            data-tooltip={termDefinitions[point.label as keyof typeof termDefinitions] || formatLabel(point.label)}
           >
             {line}
           </text>
         ))}
+        
+        {/* Question mark icon with tooltip */}
+        <foreignObject
+          x={iconX - 8}
+          y={iconY - 8}
+          width="16"
+          height="16"
+          style={{ overflow: 'visible' }}
+        >
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="w-4 h-4 cursor-pointer text-gray-500 hover:text-gray-700 transition-colors">
+                  <HelpCircle size={16} />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p>{termDefinitions[point.label as keyof typeof termDefinitions] || formatLabel(point.label)}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </foreignObject>
       </g>
     );
   });

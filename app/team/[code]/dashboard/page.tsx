@@ -510,16 +510,9 @@ export default function TeamDashboardPage() {
                       />
                       <div className="mt-3 flex flex-wrap gap-2 justify-center">
                         {Object.entries(teamData.aggregateScores.ocean).map(([trait, score]) => (
-                          <Tooltip key={trait}>
-                            <TooltipTrigger>
-                              <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200 cursor-help hover:bg-blue-200 transition-colors">
-                                {trait.charAt(0).toUpperCase() + trait.slice(1)}: {score}
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent className="max-w-xs">
-                              <p>{getTermExplanation(trait)}</p>
-                            </TooltipContent>
-                          </Tooltip>
+                          <div key={trait} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
+                            {trait.charAt(0).toUpperCase() + trait.slice(1)}: {score}
+                          </div>
                         ))}
                       </div>
                     </div>
@@ -570,16 +563,9 @@ export default function TeamDashboardPage() {
                       />
                       <div className="mt-3 flex flex-wrap gap-2 justify-center">
                         {Object.entries(teamData.aggregateScores.culture).map(([trait, score]) => (
-                          <Tooltip key={trait}>
-                            <TooltipTrigger>
-                              <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200 cursor-help hover:bg-green-200 transition-colors">
-                                {trait.charAt(0).toUpperCase() + trait.slice(1)}: {score}
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent className="max-w-xs">
-                              <p>{getTermExplanation(trait)}</p>
-                            </TooltipContent>
-                          </Tooltip>
+                          <div key={trait} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
+                            {trait.charAt(0).toUpperCase() + trait.slice(1)}: {score}
+                          </div>
                         ))}
                       </div>
                     </div>
@@ -630,16 +616,9 @@ export default function TeamDashboardPage() {
                       />
                       <div className="mt-3 flex flex-wrap gap-2 justify-center">
                         {Object.entries(teamData.aggregateScores.values).map(([trait, score]) => (
-                          <Tooltip key={trait}>
-                            <TooltipTrigger>
-                              <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800 border border-orange-200 cursor-help hover:bg-orange-200 transition-colors">
-                                {trait.charAt(0).toUpperCase() + trait.slice(1)}: {score}
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent className="max-w-xs">
-                              <p>{getTermExplanation(trait)}</p>
-                            </TooltipContent>
-                          </Tooltip>
+                          <div key={trait} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800 border border-orange-200">
+                            {trait.charAt(0).toUpperCase() + trait.slice(1)}: {score}
+                          </div>
                         ))}
                       </div>
                     </div>
