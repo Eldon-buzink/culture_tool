@@ -174,16 +174,9 @@ export default function RadarChart({ data, title, size = 500, color = '#3B82F6' 
           </text>
         ))}
         
-        {/* Question mark icon - clickable for tooltip */}
-        <g 
-          className="cursor-pointer"
-          onClick={() => {
-            const tooltip = document.getElementById(`tooltip-${index}`);
-            if (tooltip) {
-              tooltip.style.display = tooltip.style.display === 'block' ? 'none' : 'block';
-            }
-          }}
-        >
+        {/* Simple question mark icon with title */}
+        <g className="cursor-help">
+          <title>{termDefinitions[point.label as keyof typeof termDefinitions] || formatLabel(point.label)}</title>
           <circle
             cx={iconX}
             cy={iconY}
@@ -198,33 +191,12 @@ export default function RadarChart({ data, title, size = 500, color = '#3B82F6' 
             y={iconY + 3}
             textAnchor="middle"
             dominantBaseline="middle"
-            className="text-xs fill-gray-500 hover:fill-gray-700 transition-colors cursor-pointer"
+            className="text-xs fill-gray-500 hover:fill-gray-700 transition-colors"
             style={{ fontSize: '10px', fontWeight: 'bold' }}
           >
             ?
           </text>
         </g>
-        
-        {/* Tooltip */}
-        <foreignObject
-          x={iconX + 12}
-          y={iconY - 20}
-          width="200"
-          height="60"
-          style={{ overflow: 'visible' }}
-        >
-          <div
-            id={`tooltip-${index}`}
-            className="bg-gray-900 text-white text-xs rounded-lg p-2 shadow-lg max-w-xs hidden"
-            style={{
-              position: 'absolute',
-              zIndex: 1000,
-              whiteSpace: 'nowrap'
-            }}
-          >
-            {termDefinitions[point.label as keyof typeof termDefinitions] || formatLabel(point.label)}
-          </div>
-        </foreignObject>
       </g>
     );
   });
