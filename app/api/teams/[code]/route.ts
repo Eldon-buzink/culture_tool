@@ -68,12 +68,18 @@ export async function GET(
 
         let status: 'invited' | 'completed' | 'in_progress' = 'invited';
         
-        if (userAssessment?.assessment_results && userAssessment.assessment_results.length > 0) {
-          status = 'completed';
-        } else if (userAssessment && userAssessment.status === 'completed') {
-          status = 'completed';
-        } else if (userAssessment) {
-          status = 'in_progress';
+        // Check if assessment exists and has results
+        if (userAssessment) {
+          if (userAssessment.status === 'completed') {
+            status = 'completed';
+          } else if (userAssessment.status === 'in_progress') {
+            status = 'in_progress';
+          }
+          
+          // Also check if there are assessment results
+          if (userAssessment.assessment_results && userAssessment.assessment_results.length > 0) {
+            status = 'completed';
+          }
         }
 
         return {
