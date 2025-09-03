@@ -2,12 +2,6 @@
 
 import React, { useState } from 'react';
 import { HelpCircle } from 'lucide-react';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from './ui/tooltip';
 
 interface RadarChartProps {
   data: Record<string, number>;
@@ -180,26 +174,56 @@ export default function RadarChart({ data, title, size = 500, color = '#3B82F6' 
           </text>
         ))}
         
-        {/* Question mark icon with tooltip */}
+        {/* Question mark icon - clickable for tooltip */}
+        <g 
+          className="cursor-pointer"
+          onClick={() => {
+            const tooltip = document.getElementById(`tooltip-${index}`);
+            if (tooltip) {
+              tooltip.style.display = tooltip.style.display === 'block' ? 'none' : 'block';
+            }
+          }}
+        >
+          <circle
+            cx={iconX}
+            cy={iconY}
+            r="8"
+            fill="none"
+            stroke="#9CA3AF"
+            strokeWidth="1.5"
+            className="hover:stroke-gray-600 transition-colors"
+          />
+          <text
+            x={iconX}
+            y={iconY + 3}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            className="text-xs fill-gray-500 hover:fill-gray-700 transition-colors cursor-pointer"
+            style={{ fontSize: '10px', fontWeight: 'bold' }}
+          >
+            ?
+          </text>
+        </g>
+        
+        {/* Tooltip */}
         <foreignObject
-          x={iconX - 8}
-          y={iconY - 8}
-          width="16"
-          height="16"
+          x={iconX + 12}
+          y={iconY - 20}
+          width="200"
+          height="60"
           style={{ overflow: 'visible' }}
         >
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="w-4 h-4 cursor-pointer text-gray-500 hover:text-gray-700 transition-colors">
-                  <HelpCircle size={16} />
-                </div>
-              </TooltipTrigger>
-              <TooltipContent className="max-w-xs">
-                <p>{termDefinitions[point.label as keyof typeof termDefinitions] || formatLabel(point.label)}</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <div
+            id={`tooltip-${index}`}
+            className="bg-gray-900 text-white text-xs rounded-lg p-2 shadow-lg max-w-xs hidden"
+            style={{
+              position: 'absolute',
+              zIndex: 1000,
+              whiteSpace: 'nowrap'
+            }}
+          >
+            {termDefinitions[point.label as keyof typeof termDefinitions] || formatLabel(point.label)}
+          </div>
         </foreignObject>
       </g>
     );
