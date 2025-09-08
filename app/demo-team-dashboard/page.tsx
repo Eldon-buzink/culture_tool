@@ -21,7 +21,6 @@ import {
   Target,
   ArrowRight,
   UserPlus,
-  BookOpen,
   MessageSquare,
   Zap,
   Award,
@@ -29,7 +28,6 @@ import {
   Lightbulb,
   AlertTriangle
 } from 'lucide-react';
-import { TermGlossary } from '@/components/TermExplanation';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ModernSpinner } from '@/components/LoadingSpinner';
 import ShareModal from '@/components/ShareModal';
@@ -240,7 +238,7 @@ export default function DemoTeamDashboardPage() {
   const completionRate = (completedMembers.length / demoTeamData.members.length) * 100;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8">
+    <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
@@ -250,7 +248,7 @@ export default function DemoTeamDashboardPage() {
             <div className="flex items-center gap-4 mt-2">
               <Badge variant="outline" className="font-mono">{demoTeamData.code}</Badge>
               <span className="text-sm text-gray-500">
-                Created {new Date(demoTeamData.createdAt).toLocaleDateString()}
+                Created {new Date(demoTeamData.createdAt).toLocaleDateString('en-US')}
               </span>
             </div>
           </div>
@@ -578,42 +576,41 @@ export default function DemoTeamDashboardPage() {
               </CardContent>
             </Card>
 
-            {/* Term Glossary */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BookOpen className="h-5 w-5" />
-                  Understanding Your Results
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-6">
-                  <TermGlossary category="ocean" />
-                  <TermGlossary category="culture" />
-                  <TermGlossary category="values" />
-                </div>
-              </CardContent>
-            </Card>
 
-            {/* Quick Actions */}
+            {/* Quick Actions - Matching Individual Assessment Design */}
             <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Quick Actions</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <Button variant="outline" className="w-full">
-                    <Mail className="h-4 w-4 mr-2" />
-                    Send Reminders
-                  </Button>
-                  <Button variant="outline" className="w-full">
-                    <Download className="h-4 w-4 mr-2" />
-                    Export Report
-                  </Button>
-                  <Button variant="outline" className="w-full">
-                    <Copy className="h-4 w-4 mr-2" />
-                    Copy Invite Link
-                  </Button>
+              <CardContent className="pt-8">
+                <div className="max-w-2xl mx-auto">
+                  <h2 className="text-2xl font-bold text-gray-900 mb-4">Ready to Share Your Results?</h2>
+                  <p className="text-gray-600 mb-6">
+                    Share your team results or export them for future reference. You can also invite new members to join the assessment.
+                  </p>
+                  <div className="flex flex-col gap-4">
+                    <Button 
+                      size="lg" 
+                      className="bg-green-600 hover:bg-green-700 px-8 py-3"
+                      onClick={() => setShowShareModal(true)}
+                    >
+                      <Mail className="h-4 w-4 mr-2" />
+                      Share Team Results
+                    </Button>
+                    <Button 
+                      size="lg" 
+                      className="bg-blue-600 hover:bg-blue-700 px-8 py-3"
+                      onClick={() => setShowInviteModal(true)}
+                    >
+                      <UserPlus className="h-4 w-4 mr-2" />
+                      Invite New Members
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="lg" 
+                      className="px-8 py-3"
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Export Report
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
