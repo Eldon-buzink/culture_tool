@@ -116,60 +116,127 @@ export default function SectionCompletePage() {
 
   // Helper functions to calculate scores
   const calculateOceanScores = (responses: Record<string, number>) => {
-    // Simple scoring logic - you can enhance this
-    const scores = {
-      openness: 0,
-      conscientiousness: 0,
-      extraversion: 0,
-      agreeableness: 0,
-      neuroticism: 0
+    console.log('Calculating OCEAN scores from responses:', responses);
+    
+    // Map question IDs to OCEAN dimensions
+    const oceanMapping: Record<string, 'openness' | 'conscientiousness' | 'extraversion' | 'agreeableness' | 'neuroticism'> = {
+      // Extraversion questions
+      'ocean_1': 'extraversion',      // 'I am the life of the party'
+      'ocean_6': 'extraversion',      // 'I don\'t talk a lot' (reverse scored)
+      'ocean_11': 'extraversion',     // 'I talk to a lot of different people at parties'
+      'ocean_16': 'extraversion',     // 'I keep in the background' (reverse scored)
+      'ocean_21': 'extraversion',     // 'I start conversations'
+      'ocean_26': 'extraversion',     // 'I have little to say' (reverse scored)
+      'ocean_31': 'extraversion',     // 'I am quiet around strangers' (reverse scored)
+      'ocean_36': 'extraversion',     // 'I get energized by social interactions'
+      
+      // Agreeableness questions
+      'ocean_2': 'agreeableness',     // 'I sympathize with others\' feelings'
+      'ocean_7': 'agreeableness',     // 'I am not interested in other people\'s problems' (reverse scored)
+      'ocean_12': 'agreeableness',    // 'I feel others\' emotions'
+      'ocean_17': 'agreeableness',    // 'I am not really interested in others' (reverse scored)
+      'ocean_22': 'agreeableness',    // 'I insult people' (reverse scored)
+      'ocean_27': 'agreeableness',    // 'I am concerned about others'
+      'ocean_32': 'agreeableness',    // 'I am helpful and unselfish with others'
+      'ocean_37': 'agreeableness',    // 'I am sometimes rude to others' (reverse scored)
+      
+      // Conscientiousness questions
+      'ocean_3': 'conscientiousness', // 'I get chores done right away'
+      'ocean_8': 'conscientiousness', // 'I often forget to put things back in their proper place' (reverse scored)
+      'ocean_13': 'conscientiousness',// 'I like order'
+      'ocean_18': 'conscientiousness',// 'I make a mess of things' (reverse scored)
+      'ocean_23': 'conscientiousness',// 'I get chores done right away'
+      'ocean_28': 'conscientiousness',// 'I often forget to put things back in their proper place' (reverse scored)
+      'ocean_33': 'conscientiousness',// 'I like order'
+      'ocean_38': 'conscientiousness',// 'I make a mess of things' (reverse scored)
+      
+      // Neuroticism questions
+      'ocean_4': 'neuroticism',       // 'I have frequent mood swings'
+      'ocean_9': 'neuroticism',       // 'I am relaxed most of the time' (reverse scored)
+      'ocean_14': 'neuroticism',      // 'I get upset easily'
+      'ocean_19': 'neuroticism',      // 'I am not easily bothered by things' (reverse scored)
+      'ocean_24': 'neuroticism',      // 'I worry about things'
+      'ocean_29': 'neuroticism',      // 'I am easily disturbed'
+      'ocean_34': 'neuroticism',      // 'I get stressed out easily'
+      'ocean_39': 'neuroticism',      // 'I am not easily frustrated' (reverse scored)
+      
+      // Openness questions
+      'ocean_5': 'openness',          // 'I have a vivid imagination'
+      'ocean_10': 'openness',         // 'I am not interested in abstract ideas' (reverse scored)
+      'ocean_15': 'openness',         // 'I have excellent ideas'
+      'ocean_20': 'openness',         // 'I have a rich vocabulary'
+      'ocean_25': 'openness',         // 'I have difficulty understanding abstract ideas' (reverse scored)
+      'ocean_30': 'openness',         // 'I have a vivid imagination'
+      'ocean_35': 'openness',         // 'I am not interested in abstract ideas' (reverse scored)
+      'ocean_40': 'openness'          // 'I have excellent ideas'
     };
     
-    // Map responses to scores (this is a simplified version)
-    Object.values(responses).forEach((response, index) => {
-      const keys = Object.keys(scores);
-      if (keys[index]) {
-        scores[keys[index] as keyof typeof scores] = Math.round((response / 5) * 100);
+    const scores = { openness: 0, conscientiousness: 0, extraversion: 0, agreeableness: 0, neuroticism: 0 };
+    const counts = { openness: 0, conscientiousness: 0, extraversion: 0, agreeableness: 0, neuroticism: 0 };
+    
+    Object.entries(responses).forEach(([questionId, response]) => {
+      const dimension = oceanMapping[questionId];
+      if (dimension) {
+        // Handle reverse-scored questions (1-5 scale becomes 5-1)
+        let adjustedResponse = response;
+        const reverseScoredQuestions = ['ocean_6', 'ocean_7', 'ocean_8', 'ocean_9', 'ocean_10', 'ocean_16', 'ocean_17', 'ocean_18', 'ocean_19', 'ocean_22', 'ocean_25', 'ocean_26', 'ocean_27', 'ocean_28', 'ocean_31', 'ocean_32', 'ocean_33', 'ocean_34', 'ocean_35', 'ocean_36', 'ocean_37', 'ocean_38', 'ocean_39'];
+        if (reverseScoredQuestions.includes(questionId)) {
+          adjustedResponse = 6 - response; // Convert 1->5, 2->4, 3->3, 4->2, 5->1
+        }
+        
+        scores[dimension] += adjustedResponse;
+        counts[dimension]++;
       }
     });
     
+    // Calculate averages and convert to percentage (0-100)
+    Object.keys(scores).forEach(dimension => {
+      const key = dimension as keyof typeof scores;
+      if (counts[key] > 0) {
+        scores[key] = Math.round((scores[key] / counts[key]) * 20); // Convert 1-5 scale to 0-100
+      }
+    });
+    
+    console.log('Final OCEAN scores:', scores);
     return scores;
   };
 
   const calculateCultureScores = (responses: Record<string, number>) => {
-    const scores = {
-      powerDistance: 0,
-      individualism: 0,
-      masculinity: 0,
-      uncertaintyAvoidance: 0,
-      longTermOrientation: 0,
-      indulgence: 0
+    // For now, generate culture scores based on OCEAN scores
+    const oceanScores = calculateOceanScores(responses);
+    
+    const scores = { 
+      powerDistance: Math.round(50 + (oceanScores.conscientiousness - 50) * 0.3 + (oceanScores.neuroticism - 50) * 0.2), 
+      individualism: Math.round(50 + (oceanScores.extraversion - 50) * 0.4 + (oceanScores.openness - 50) * 0.3), 
+      masculinity: Math.round(50 + (oceanScores.extraversion - 50) * 0.3 + (oceanScores.agreeableness - 50) * -0.2), 
+      uncertaintyAvoidance: Math.round(50 + (oceanScores.conscientiousness - 50) * 0.4 + (oceanScores.neuroticism - 50) * 0.3), 
+      longTermOrientation: Math.round(50 + (oceanScores.conscientiousness - 50) * 0.5 + (oceanScores.openness - 50) * 0.2), 
+      indulgence: Math.round(50 + (oceanScores.extraversion - 50) * 0.3 + (oceanScores.neuroticism - 50) * -0.4) 
     };
     
-    Object.values(responses).forEach((response, index) => {
-      const keys = Object.keys(scores);
-      if (keys[index]) {
-        scores[keys[index] as keyof typeof scores] = Math.round((response / 5) * 100);
-      }
+    // Ensure scores are within 0-100 range
+    Object.keys(scores).forEach(key => {
+      scores[key as keyof typeof scores] = Math.max(0, Math.min(100, scores[key as keyof typeof scores]));
     });
     
     return scores;
   };
 
   const calculateValuesScores = (responses: Record<string, number>) => {
-    const scores = {
-      innovation: 0,
-      collaboration: 0,
-      autonomy: 0,
-      quality: 0,
-      customerFocus: 0
+    // For now, generate values scores based on OCEAN scores
+    const oceanScores = calculateOceanScores(responses);
+    
+    const scores = { 
+      innovation: Math.round(50 + (oceanScores.openness - 50) * 0.6 + (oceanScores.extraversion - 50) * 0.2), 
+      collaboration: Math.round(50 + (oceanScores.agreeableness - 50) * 0.5 + (oceanScores.extraversion - 50) * 0.3), 
+      autonomy: Math.round(50 + (oceanScores.extraversion - 50) * -0.2 + (oceanScores.conscientiousness - 50) * 0.4), 
+      quality: Math.round(50 + (oceanScores.conscientiousness - 50) * 0.6 + (oceanScores.neuroticism - 50) * 0.2), 
+      customerFocus: Math.round(50 + (oceanScores.agreeableness - 50) * 0.4 + (oceanScores.extraversion - 50) * 0.3) 
     };
     
-    Object.values(responses).forEach((response, index) => {
-      const keys = Object.keys(scores);
-      if (keys[index]) {
-        scores[keys[index] as keyof typeof scores] = Math.round((response / 5) * 100);
-      }
+    // Ensure scores are within 0-100 range
+    Object.keys(scores).forEach(key => {
+      scores[key as keyof typeof scores] = Math.max(0, Math.min(100, scores[key as keyof typeof scores]));
     });
     
     return scores;

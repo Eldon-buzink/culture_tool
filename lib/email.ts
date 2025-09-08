@@ -82,8 +82,9 @@ export async function sendEmail(emailData: EmailData) {
 }
 
 export function generateAssessmentResultsEmail(data: AssessmentResultsEmailData): EmailData {
-  const topScore = Math.max(...Object.values(data.oceanScores));
-  const topTrait = Object.keys(data.oceanScores).find(key => data.oceanScores[key] === topScore);
+  const oceanScores = data.oceanScores || {};
+  const topScore = Object.keys(oceanScores).length > 0 ? Math.max(...Object.values(oceanScores)) : 0;
+  const topTrait = Object.keys(oceanScores).find(key => oceanScores[key] === topScore);
   
   const html = `
     <!DOCTYPE html>

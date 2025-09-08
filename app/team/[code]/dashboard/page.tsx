@@ -629,22 +629,21 @@ export default function TeamDashboardPage() {
                     <div className="relative">
                       <RadarChart 
                         data={teamData.aggregateScores.ocean} 
-                        title="Team Personality Profile"
                         color="#3B82F6"
                       />
-                                              <div className="mt-4 space-y-2">
-                          <h5 className="text-sm font-medium text-gray-700 text-center mb-2">Trait Scores</h5>
-                          <div className="flex flex-wrap gap-2 justify-center">
+                                              <div className="mt-4">
+                          <h5 className="text-sm font-medium text-gray-700 text-center mb-3">Trait Scores</h5>
+                          <div className="flex gap-2 justify-center overflow-x-auto pb-2">
                             {Object.entries(teamData.aggregateScores.ocean).map(([trait, score]) => (
                               <Tooltip key={trait}>
-                                <TooltipTrigger>
-                                  <div className="inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium bg-blue-50 text-blue-800 border border-blue-200 cursor-pointer hover:bg-blue-100 transition-colors shadow-sm">
-                                    <span className="mr-2">ℹ️</span>
+                                <TooltipTrigger asChild>
+                                  <div className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-white text-gray-700 border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors whitespace-nowrap shadow-sm">
+                                    <span className="mr-1 text-gray-500">?</span>
                                     {trait.charAt(0).toUpperCase() + trait.slice(1)}: {score}
                                   </div>
                                 </TooltipTrigger>
                                 <TooltipContent className="max-w-xs">
-                                  <p><strong>Click for explanation:</strong> {getTermExplanation(trait)}</p>
+                                  <p>{getTermExplanation(trait)}</p>
                                 </TooltipContent>
                               </Tooltip>
                             ))}
@@ -693,22 +692,21 @@ export default function TeamDashboardPage() {
                     <div className="relative">
                       <RadarChart 
                         data={teamData.aggregateScores.culture} 
-                        title="Team Cultural Profile"
                         color="#10B981"
                       />
-                                              <div className="mt-4 space-y-2">
-                          <h5 className="text-sm font-medium text-gray-700 text-center mb-2">Cultural Dimensions</h5>
-                          <div className="flex flex-wrap gap-2 justify-center">
+                                              <div className="mt-4">
+                          <h5 className="text-sm font-medium text-gray-700 text-center mb-3">Cultural Dimensions</h5>
+                          <div className="flex gap-2 justify-center overflow-x-auto pb-2">
                             {Object.entries(teamData.aggregateScores.culture).map(([trait, score]) => (
                               <Tooltip key={trait}>
-                                <TooltipTrigger>
-                                  <div className="inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium bg-green-50 text-green-800 border border-green-200 cursor-pointer hover:bg-green-100 transition-colors shadow-sm">
-                                    <span className="mr-2">ℹ️</span>
+                                <TooltipTrigger asChild>
+                                  <div className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-white text-gray-700 border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors whitespace-nowrap shadow-sm">
+                                    <span className="mr-1 text-gray-500">?</span>
                                     {trait.replace(/_/g, ' ').charAt(0).toUpperCase() + trait.replace(/_/g, ' ').slice(1)}: {score}
                                   </div>
                                 </TooltipTrigger>
                                 <TooltipContent className="max-w-xs">
-                                  <p><strong>Click for explanation:</strong> {getTermExplanation(trait)}</p>
+                                  <p>{getTermExplanation(trait)}</p>
                                 </TooltipContent>
                               </Tooltip>
                             ))}
@@ -757,22 +755,21 @@ export default function TeamDashboardPage() {
                     <div className="relative">
                       <RadarChart 
                         data={teamData.aggregateScores.values} 
-                        title="Team Values Profile"
                         color="#F59E0B"
                       />
-                                              <div className="mt-4 space-y-2">
-                          <h5 className="text-sm font-medium text-gray-700 text-center mb-2">Work Values</h5>
-                          <div className="flex flex-wrap gap-2 justify-center">
+                                              <div className="mt-4">
+                          <h5 className="text-sm font-medium text-gray-700 text-center mb-3">Work Values</h5>
+                          <div className="flex gap-2 justify-center overflow-x-auto pb-2">
                             {Object.entries(teamData.aggregateScores.values).map(([trait, score]) => (
                               <Tooltip key={trait}>
-                                <TooltipTrigger>
-                                  <div className="inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium bg-orange-50 text-orange-800 border border-orange-200 cursor-pointer hover:bg-orange-100 transition-colors shadow-sm">
-                                    <span className="mr-2">ℹ️</span>
+                                <TooltipTrigger asChild>
+                                  <div className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-white text-gray-700 border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors whitespace-nowrap shadow-sm">
+                                    <span className="mr-1 text-gray-500">?</span>
                                     {trait.charAt(0).toUpperCase() + trait.slice(1)}: {score}
                                   </div>
                                 </TooltipTrigger>
                                 <TooltipContent className="max-w-xs">
-                                  <p><strong>Click for explanation:</strong> {getTermExplanation(trait)}</p>
+                                  <p>{getTermExplanation(trait)}</p>
                                 </TooltipContent>
                               </Tooltip>
                             ))}

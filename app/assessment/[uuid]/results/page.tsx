@@ -560,13 +560,16 @@ export default function ResultsPage() {
   const getSectionSummary = (section: string) => {
     switch (section) {
       case 'ocean':
-        const oceanAvg = Object.values(results.oceanScores).reduce((a, b) => a + b, 0) / 5;
+        const oceanScores = results.oceanScores || {};
+        const oceanAvg = Object.keys(oceanScores).length > 0 ? Object.values(oceanScores).reduce((a, b) => a + b, 0) / Object.keys(oceanScores).length : 0;
         return `Your average OCEAN score is ${Math.round(oceanAvg)}, indicating a ${oceanAvg >= 60 ? 'positive' : oceanAvg >= 40 ? 'balanced' : 'cautious'} overall personality profile.`;
       case 'culture':
-        const cultureAvg = Object.values(results.cultureScores).reduce((a, b) => a + b, 0) / 6;
+        const cultureScores = results.cultureScores || {};
+        const cultureAvg = Object.keys(cultureScores).length > 0 ? Object.values(cultureScores).reduce((a, b) => a + b, 0) / Object.keys(cultureScores).length : 0;
         return `Your cultural preferences average ${Math.round(cultureAvg)}, suggesting you prefer ${cultureAvg >= 60 ? 'structured' : cultureAvg >= 40 ? 'balanced' : 'flexible'} work environments.`;
       case 'values':
-        const valuesAvg = Object.values(results.valuesScores).reduce((a, b) => a + b, 0) / 5;
+        const valuesScores = results.valuesScores || {};
+        const valuesAvg = Object.keys(valuesScores).length > 0 ? Object.values(valuesScores).reduce((a, b) => a + b, 0) / Object.keys(valuesScores).length : 0;
         return `Your work values average ${Math.round(valuesAvg)}, indicating you are ${valuesAvg >= 70 ? 'highly' : valuesAvg >= 50 ? 'moderately' : 'less'} motivated by these factors.`;
       default:
         return "";
@@ -640,11 +643,11 @@ export default function ResultsPage() {
                   <div className="w-full h-96 mb-12">
                     <RadarChart
                       data={{
-                        'Openness': results.oceanScores.openness,
-                        'Conscientiousness': results.oceanScores.conscientiousness,
-                        'Extraversion': results.oceanScores.extraversion,
-                        'Agreeableness': results.oceanScores.agreeableness,
-                        'Neuroticism': results.oceanScores.neuroticism
+                        'Openness': results.oceanScores?.openness || 0,
+                        'Conscientiousness': results.oceanScores?.conscientiousness || 0,
+                        'Extraversion': results.oceanScores?.extraversion || 0,
+                        'Agreeableness': results.oceanScores?.agreeableness || 0,
+                        'Neuroticism': results.oceanScores?.neuroticism || 0
                       }}
                       size={500}
                     />
@@ -655,7 +658,7 @@ export default function ResultsPage() {
                 <div>
                   <h3 className="text-lg font-semibold mb-4">Detailed Scores</h3>
                   <div className="space-y-4">
-                  {Object.entries(results.oceanScores).map(([trait, score]) => (
+                  {Object.entries(results.oceanScores || {}).map(([trait, score]) => (
                     <div key={trait} className="space-y-2">
                       <div className="flex justify-between items-center">
                         <div className="flex items-center gap-2">
@@ -700,7 +703,7 @@ export default function ResultsPage() {
                 <div>
                   <h3 className="text-lg font-semibold mb-4">Key Insights</h3>
                   <ul className="space-y-2">
-                    {results.insights.ocean.map((insight, index) => (
+                    {(results.insights?.ocean || []).map((insight, index) => (
                       <li key={index} className="text-sm text-gray-700 flex items-start gap-2">
                         <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
                         {insight}
@@ -713,7 +716,7 @@ export default function ResultsPage() {
                 <div>
                   <h3 className="text-lg font-semibold mb-4">AI-Powered Recommendations</h3>
                   <div className="space-y-4">
-                    {results.recommendations.ocean.recommendations.map((rec, index) => (
+                    {(results.recommendations?.ocean?.recommendations || []).map((rec, index) => (
                       <div key={index} className="border border-gray-200 rounded-lg overflow-hidden">
                         <div 
                           className="p-4 bg-blue-50 cursor-pointer hover:bg-blue-100 transition-colors"
@@ -785,12 +788,12 @@ export default function ResultsPage() {
                   <div className="w-full h-96 mb-12">
                     <RadarChart
                       data={{
-                        'Power Distance': results.cultureScores.powerDistance,
-                        'Individualism': results.cultureScores.individualism,
-                        'Masculinity': results.cultureScores.masculinity,
-                        'Uncertainty Avoidance': results.cultureScores.uncertaintyAvoidance,
-                        'Long-term Orientation': results.cultureScores.longTermOrientation,
-                        'Indulgence': results.cultureScores.indulgence
+                        'Power Distance': results.cultureScores?.powerDistance || 0,
+                        'Individualism': results.cultureScores?.individualism || 0,
+                        'Masculinity': results.cultureScores?.masculinity || 0,
+                        'Uncertainty Avoidance': results.cultureScores?.uncertaintyAvoidance || 0,
+                        'Long-term Orientation': results.cultureScores?.longTermOrientation || 0,
+                        'Indulgence': results.cultureScores?.indulgence || 0
                       }}
                       size={500}
                     />
@@ -801,7 +804,7 @@ export default function ResultsPage() {
                 <div>
                   <h3 className="text-lg font-semibold mb-4">Detailed Scores</h3>
                   <div className="space-y-4">
-                    {Object.entries(results.cultureScores).map(([dimension, score]) => (
+                    {Object.entries(results.cultureScores || {}).map(([dimension, score]) => (
                       <div key={dimension} className="space-y-2">
                         <div className="flex justify-between items-center">
                           <div className="flex items-center gap-2">
@@ -846,7 +849,7 @@ export default function ResultsPage() {
                 <div>
                   <h3 className="text-lg font-semibold mb-4">Key Insights</h3>
                   <ul className="space-y-2">
-                    {results.insights.culture.map((insight, index) => (
+                    {(results.insights?.culture || []).map((insight, index) => (
                       <li key={index} className="text-sm text-gray-700 flex items-start gap-2">
                         <div className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
                         {insight}
@@ -859,7 +862,7 @@ export default function ResultsPage() {
                 <div>
                   <h3 className="text-lg font-semibold mb-4">AI-Powered Recommendations</h3>
                   <div className="space-y-4">
-                    {results.recommendations.culture.recommendations.map((rec, index) => (
+                    {(results.recommendations?.culture?.recommendations || []).map((rec, index) => (
                       <div key={index} className="border border-gray-200 rounded-lg overflow-hidden">
                         <div 
                           className="p-4 bg-green-50 cursor-pointer hover:bg-green-100 transition-colors"
@@ -931,11 +934,11 @@ export default function ResultsPage() {
                   <div className="w-full h-96 mb-12">
                     <RadarChart
                       data={{
-                        'Innovation': results.valuesScores.innovation,
-                        'Collaboration': results.valuesScores.collaboration,
-                        'Autonomy': results.valuesScores.autonomy,
-                        'Quality': results.valuesScores.quality,
-                        'Customer Focus': results.valuesScores.customerFocus
+                        'Innovation': results.valuesScores?.innovation || 0,
+                        'Collaboration': results.valuesScores?.collaboration || 0,
+                        'Autonomy': results.valuesScores?.autonomy || 0,
+                        'Quality': results.valuesScores?.quality || 0,
+                        'Customer Focus': results.valuesScores?.customerFocus || 0
                       }}
                       size={500}
                     />
@@ -946,7 +949,7 @@ export default function ResultsPage() {
                 <div>
                   <h3 className="text-lg font-semibold mb-4">Detailed Scores</h3>
                   <div className="space-y-4">
-                    {Object.entries(results.valuesScores).map(([value, score]) => (
+                    {Object.entries(results.valuesScores || {}).map(([value, score]) => (
                       <div key={value} className="space-y-2">
                         <div className="flex justify-between items-center">
                           <div className="flex items-center gap-2">
@@ -991,7 +994,7 @@ export default function ResultsPage() {
                 <div>
                   <h3 className="text-lg font-semibold mb-4">Key Insights</h3>
                   <ul className="space-y-2">
-                    {results.insights.values.map((insight, index) => (
+                    {(results.insights?.values || []).map((insight, index) => (
                       <li key={index} className="text-sm text-gray-700 flex items-start gap-2">
                         <div className="w-1.5 h-1.5 bg-purple-500 rounded-full mt-2 flex-shrink-0"></div>
                         {insight}
@@ -1004,7 +1007,7 @@ export default function ResultsPage() {
                 <div>
                   <h3 className="text-lg font-semibold mb-4">AI-Powered Recommendations</h3>
                   <div className="space-y-4">
-                    {results.recommendations.values.recommendations.map((rec, index) => (
+                    {(results.recommendations?.values?.recommendations || []).map((rec, index) => (
                       <div key={index} className="border border-gray-200 rounded-lg overflow-hidden">
                         <div 
                           className="p-4 bg-purple-50 cursor-pointer hover:bg-purple-100 transition-colors"
@@ -1119,10 +1122,10 @@ export default function ResultsPage() {
         onClose={() => setShowEmailModal(false)}
         assessmentId={uuidString}
         resultsUrl={`${window.location.origin}/assessment/${uuidString}/results`}
-        oceanScores={results.oceanScores}
-        cultureScores={results.cultureScores}
-        valuesScores={results.valuesScores}
-        insights={results.insights}
+        oceanScores={results.oceanScores || {}}
+        cultureScores={results.cultureScores || {}}
+        valuesScores={results.valuesScores || {}}
+        insights={results.insights || { ocean: [], culture: [], values: [] }}
       />
     </div>
   );
