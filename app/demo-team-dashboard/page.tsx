@@ -618,10 +618,13 @@ export default function DemoTeamDashboardPage() {
             {/* Team Recommendations */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Team Recommendations</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <Lightbulb className="h-5 w-5" />
+                  Team Recommendations
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
+                <div className="space-y-6">
                   {/* Team Summary */}
                   <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
                     <div className="flex items-start gap-3">
@@ -637,12 +640,12 @@ export default function DemoTeamDashboardPage() {
 
                   {/* Key Strengths */}
                   <div>
-                    <h4 className="font-semibold text-green-900 mb-2 text-sm">Key Strengths</h4>
+                    <h4 className="font-semibold text-green-900 mb-3">Key Strengths</h4>
                     <div className="space-y-2">
                       {demoRecommendations.keyStrengths.map((strength, index) => (
-                        <div key={index} className="flex items-start gap-2 p-2 bg-green-50 rounded">
-                          <div className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
-                          <p className="text-xs text-green-800">{strength}</p>
+                        <div key={index} className="flex items-start gap-3 p-3 bg-green-50 rounded-lg">
+                          <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
+                          <p className="text-sm text-gray-700">{strength}</p>
                         </div>
                       ))}
                     </div>
@@ -650,12 +653,12 @@ export default function DemoTeamDashboardPage() {
 
                   {/* Development Areas */}
                   <div>
-                    <h4 className="font-semibold text-orange-900 mb-2 text-sm">Development Areas</h4>
+                    <h4 className="font-semibold text-yellow-900 mb-3">Development Areas</h4>
                     <div className="space-y-2">
                       {demoRecommendations.developmentAreas.map((area, index) => (
-                        <div key={index} className="flex items-start gap-2 p-2 bg-orange-50 rounded">
-                          <div className="w-1.5 h-1.5 bg-orange-500 rounded-full mt-2 flex-shrink-0"></div>
-                          <p className="text-xs text-orange-800">{area}</p>
+                        <div key={index} className="flex items-start gap-3 p-3 bg-yellow-50 rounded-lg">
+                          <div className="w-2 h-2 bg-yellow-500 rounded-full mt-2 flex-shrink-0"></div>
+                          <p className="text-sm text-gray-700">{area}</p>
                         </div>
                       ))}
                     </div>
@@ -663,22 +666,20 @@ export default function DemoTeamDashboardPage() {
 
                   {/* Recommendations */}
                   <div>
-                    <h4 className="font-semibold text-gray-900 mb-2 text-sm">Top Recommendations</h4>
-                    <div className="space-y-3">
+                    <h4 className="font-semibold text-gray-900 mb-4">Top Recommendations</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {demoRecommendations.recommendations.map((rec, index) => (
-                        <div key={index} className="p-3 bg-gray-50 rounded-lg border">
-                          <div className="flex items-start justify-between mb-2">
-                            <h5 className="font-medium text-gray-900 text-sm">{rec.title}</h5>
-                            <div className="flex gap-1">
-                              <Badge variant="outline" className="text-xs">
-                                Impact: {rec.impact}
-                              </Badge>
-                              <Badge variant="outline" className="text-xs">
-                                Effort: {rec.effort}
-                              </Badge>
+                        <div key={index} className="border border-gray-200 rounded-lg overflow-hidden">
+                          <div className="p-4 bg-white">
+                            <div className="flex items-center justify-between mb-2">
+                              <h5 className="font-medium text-gray-900">{rec.title}</h5>
+                              <div className="flex gap-2">
+                                <Badge className="bg-green-100 text-green-700 text-xs">High Impact</Badge>
+                                <Badge className="bg-blue-100 text-blue-700 text-xs">Medium Effort</Badge>
+                              </div>
                             </div>
+                            <p className="text-sm text-gray-600">{rec.description}</p>
                           </div>
-                          <p className="text-xs text-gray-600">{rec.description}</p>
                         </div>
                       ))}
                     </div>
