@@ -213,6 +213,29 @@ export default function DemoTeamDashboardPage() {
     }
   };
 
+  const getTermExplanation = (term: string) => {
+    const explanations: Record<string, string> = {
+      'openness': 'Openness reflects curiosity, imagination, and willingness to try new experiences. High scores indicate creativity and adaptability.',
+      'conscientiousness': 'Conscientiousness measures organization, responsibility, and self-discipline. High scores indicate reliability and attention to detail.',
+      'extraversion': 'Extraversion reflects social energy and assertiveness. High scores indicate outgoing, energetic behavior.',
+      'agreeableness': 'Agreeableness measures cooperation, trust, and compassion. High scores indicate helpfulness and empathy.',
+      'neuroticism': 'Neuroticism reflects emotional stability and stress response. High scores indicate sensitivity to stress.',
+      'powerDistance': 'Power Distance reflects comfort with hierarchical structures and authority. High scores indicate preference for clear leadership.',
+      'individualism': 'Individualism measures preference for working independently vs. in teams. High scores indicate self-reliance.',
+      'masculinity': 'Masculinity reflects competitive vs. cooperative work preferences. High scores indicate achievement focus.',
+      'uncertaintyAvoidance': 'Uncertainty Avoidance measures comfort with ambiguity and change. High scores indicate preference for structure and rules.',
+      'longTermOrientation': 'Long-term Orientation reflects focus on future planning vs. immediate results. High scores indicate strategic thinking.',
+      'indulgence': 'Indulgence measures preference for enjoying life vs. restraint. High scores indicate work-life balance focus.',
+      'innovation': 'Innovation reflects preference for new approaches and creative solutions. High scores indicate adaptability to change.',
+      'collaboration': 'Collaboration measures preference for teamwork and shared success. High scores indicate cooperative work style.',
+      'autonomy': 'Autonomy reflects need for independence and self-direction. High scores indicate preference for freedom.',
+      'quality': 'Quality reflects focus on excellence and attention to detail. High scores indicate perfectionist tendencies.',
+      'customerFocus': 'Customer Focus measures orientation toward serving others and meeting needs. High scores indicate service orientation.'
+    };
+    
+    return explanations[term.toLowerCase()] || 'No explanation available for this term.';
+  };
+
   const completedMembers = demoTeamData.members.filter(m => m.status === 'completed');
   const completionRate = (completedMembers.length / demoTeamData.members.length) * 100;
 
@@ -289,44 +312,143 @@ export default function DemoTeamDashboardPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-6">
+                <div className="space-y-8">
                   {/* OCEAN Aggregate */}
                   <div>
-                    <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
                       <Brain className="h-4 w-4" />
                       Team Personality Profile
                     </h4>
-                    <RadarChart 
-                      data={demoTeamData.aggregateScores.ocean} 
-                      title="Team OCEAN Profile"
-                      color="#3B82F6"
-                    />
+                    <div className="relative">
+                      <RadarChart 
+                        data={demoTeamData.aggregateScores.ocean} 
+                        color="#3B82F6"
+                      />
+                      <div className="mt-4">
+                        <h5 className="text-sm font-medium text-gray-700 text-center mb-3">Trait Scores</h5>
+                        <div className="flex gap-2 justify-center overflow-x-auto pb-2">
+                          {Object.entries(demoTeamData.aggregateScores.ocean).map(([trait, score]) => (
+                            <Tooltip key={trait}>
+                              <TooltipTrigger asChild>
+                                <div className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-white text-gray-700 border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors whitespace-nowrap shadow-sm">
+                                  <span className="mr-1 text-gray-500">?</span>
+                                  {trait.charAt(0).toUpperCase() + trait.slice(1)}: {score}
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-xs">
+                                <p>{getTermExplanation(trait)}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                      <div className="flex items-start gap-3">
+                        <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <Lightbulb className="h-4 w-4 text-blue-600" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-blue-900 mb-1">Key Insights</p>
+                          <p className="text-sm text-blue-700">
+                            Your team shows a balanced personality profile with strengths in collaboration and innovation. 
+                            The mix of personality types creates opportunities for diverse perspectives and comprehensive problem-solving.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
                   {/* Culture Aggregate */}
                   <div>
-                    <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
                       <Globe className="h-4 w-4" />
                       Team Cultural Preferences
                     </h4>
-                    <RadarChart 
-                      data={demoTeamData.aggregateScores.culture} 
-                      title="Team Cultural Profile"
-                      color="#10B981"
-                    />
+                    <div className="relative">
+                      <RadarChart 
+                        data={demoTeamData.aggregateScores.culture} 
+                        color="#10B981"
+                      />
+                      <div className="mt-4">
+                        <h5 className="text-sm font-medium text-gray-700 text-center mb-3">Cultural Dimensions</h5>
+                        <div className="flex gap-2 justify-center overflow-x-auto pb-2">
+                          {Object.entries(demoTeamData.aggregateScores.culture).map(([trait, score]) => (
+                            <Tooltip key={trait}>
+                              <TooltipTrigger asChild>
+                                <div className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-white text-gray-700 border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors whitespace-nowrap shadow-sm">
+                                  <span className="mr-1 text-gray-500">?</span>
+                                  {trait.replace(/_/g, ' ').charAt(0).toUpperCase() + trait.replace(/_/g, ' ').slice(1)}: {score}
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-xs">
+                                <p>{getTermExplanation(trait)}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-4 p-4 bg-green-50 rounded-lg border border-green-200">
+                      <div className="flex items-start gap-3">
+                        <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <Globe className="h-4 w-4 text-green-600" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-green-900 mb-1">Cultural Insights</p>
+                          <p className="text-sm text-green-700">
+                            Your team demonstrates a preference for collaborative work environments with balanced power dynamics. 
+                            This creates a foundation for inclusive decision-making and shared responsibility.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
                   {/* Values Aggregate */}
                   <div>
-                    <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
                       <Target className="h-4 w-4" />
                       Team Values Profile
                     </h4>
-                    <RadarChart 
-                      data={demoTeamData.aggregateScores.values} 
-                      title="Team Values Profile"
-                      color="#F59E0B"
-                    />
+                    <div className="relative">
+                      <RadarChart 
+                        data={demoTeamData.aggregateScores.values} 
+                        color="#F59E0B"
+                      />
+                      <div className="mt-4">
+                        <h5 className="text-sm font-medium text-gray-700 text-center mb-3">Work Values</h5>
+                        <div className="flex gap-2 justify-center overflow-x-auto pb-2">
+                          {Object.entries(demoTeamData.aggregateScores.values).map(([trait, score]) => (
+                            <Tooltip key={trait}>
+                              <TooltipTrigger asChild>
+                                <div className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-white text-gray-700 border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors whitespace-nowrap shadow-sm">
+                                  <span className="mr-1 text-gray-500">?</span>
+                                  {trait.charAt(0).toUpperCase() + trait.slice(1)}: {score}
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-xs">
+                                <p>{getTermExplanation(trait)}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-4 p-4 bg-orange-50 rounded-lg border border-orange-200">
+                      <div className="flex items-start gap-3">
+                        <div className="w-6 h-6 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <Target className="h-4 w-4 text-orange-600" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-orange-900 mb-1">Values Insights</p>
+                          <p className="text-sm text-orange-700">
+                            Your team prioritizes quality and customer focus while maintaining a strong drive for innovation. 
+                            This combination supports sustainable growth and customer satisfaction.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </CardContent>
