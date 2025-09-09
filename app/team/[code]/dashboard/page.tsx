@@ -389,6 +389,86 @@ export default function TeamDashboardPage() {
     return explanations[term.toLowerCase()] || 'No explanation available for this term.';
   };
 
+  const generateDynamicKeyInsights = (scores: any, memberCount: number) => {
+    const insights = [];
+    
+    // Analyze OCEAN scores
+    const oceanScores = scores.ocean || {};
+    const avgOpenness = oceanScores.openness || 0;
+    const avgConscientiousness = oceanScores.conscientiousness || 0;
+    const avgExtraversion = oceanScores.extraversion || 0;
+    const avgAgreeableness = oceanScores.agreeableness || 0;
+    const avgNeuroticism = oceanScores.neuroticism || 0;
+    
+    // Analyze Culture scores
+    const cultureScores = scores.culture || {};
+    const avgPowerDistance = cultureScores.powerDistance || 0;
+    const avgIndividualism = cultureScores.individualism || 0;
+    
+    // Analyze Values scores
+    const valuesScores = scores.values || {};
+    const avgInnovation = valuesScores.innovation || 0;
+    const avgCollaboration = valuesScores.collaboration || 0;
+    const avgQuality = valuesScores.quality || 0;
+    
+    // Generate insights based on actual scores
+    if (avgOpenness > 70) {
+      insights.push("Your team shows high creativity and openness to new ideas, making them well-suited for innovative projects and problem-solving.");
+    }
+    
+    if (avgConscientiousness > 70) {
+      insights.push("Strong organizational skills and attention to detail across the team support reliable project delivery and quality outcomes.");
+    }
+    
+    if (avgExtraversion > 60 && avgExtraversion < 80) {
+      insights.push("Balanced communication styles allow for both collaborative discussions and focused individual work.");
+    } else if (avgExtraversion > 80) {
+      insights.push("High energy and social engagement create a dynamic, interactive team environment.");
+    } else if (avgExtraversion < 40) {
+      insights.push("Team members prefer thoughtful, structured communication and may benefit from advance planning for meetings.");
+    }
+    
+    if (avgAgreeableness > 70) {
+      insights.push("High cooperation and empathy create a supportive team culture with strong collaboration potential.");
+    }
+    
+    if (avgNeuroticism < 40) {
+      insights.push("Low stress sensitivity indicates the team can handle pressure and uncertainty effectively.");
+    }
+    
+    if (avgPowerDistance < 40) {
+      insights.push("Low power distance preference suggests the team thrives in flat, collaborative decision-making structures.");
+    }
+    
+    if (avgInnovation > 70) {
+      insights.push("Strong innovation focus positions the team well for creative challenges and continuous improvement.");
+    }
+    
+    if (avgCollaboration > 70) {
+      insights.push("High collaboration scores indicate excellent potential for teamwork and shared success.");
+    }
+    
+    if (avgQuality > 70) {
+      insights.push("Quality-focused approach ensures attention to detail and excellence in deliverables.");
+    }
+    
+    // Add member count specific insights
+    if (memberCount === 1) {
+      insights.push("As a solo contributor, focus on leveraging your individual strengths and seeking external collaboration opportunities.");
+    } else if (memberCount >= 2 && memberCount <= 5) {
+      insights.push("Small team size enables close collaboration and rapid decision-making with clear communication channels.");
+    } else if (memberCount > 5) {
+      insights.push("Larger team size provides diverse perspectives but may benefit from structured communication protocols.");
+    }
+    
+    // Return insights or fallback
+    return insights.length > 0 ? insights : [
+      "Your team's assessment results show a unique combination of strengths that can be leveraged for team success.",
+      "Consider how individual strengths complement each other to create a well-rounded team dynamic.",
+      "Regular team check-ins can help optimize collaboration based on these personality insights."
+    ];
+  };
+
   const [isExporting, setIsExporting] = useState(false);
 
   const exportToPDF = async () => {
@@ -637,8 +717,8 @@ export default function TeamDashboardPage() {
                             {Object.entries(teamData.aggregateScores.ocean).map(([trait, score]) => (
                               <Tooltip key={trait}>
                                 <TooltipTrigger asChild>
-                                  <div className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-white text-gray-700 border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors whitespace-nowrap shadow-sm">
-                                    <span className="mr-1 text-gray-500">?</span>
+                                  <div className="inline-flex items-center px-3 py-2 rounded-full text-sm font-medium bg-white text-gray-700 border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors whitespace-nowrap shadow-sm">
+                                    <span className="mr-2 text-gray-400 text-xs">ℹ</span>
                                     {trait.charAt(0).toUpperCase() + trait.slice(1)}: {score}
                                   </div>
                                 </TooltipTrigger>
@@ -657,11 +737,14 @@ export default function TeamDashboardPage() {
                             <Lightbulb className="h-4 w-4 text-blue-600" />
                           </div>
                           <div>
-                            <p className="text-sm font-medium text-blue-900 mb-1">Key Insights</p>
-                            <p className="text-sm text-blue-700">
-                              Your team shows a balanced personality profile with strengths in collaboration and innovation. 
-                              The mix of personality types creates opportunities for diverse perspectives and comprehensive problem-solving.
-                            </p>
+                            <p className="text-sm font-medium text-blue-900 mb-2">Key Insights</p>
+                            <div className="space-y-1">
+                              {generateDynamicKeyInsights(teamData.aggregateScores, completedMembers.length).slice(0, 3).map((insight, index) => (
+                                <p key={index} className="text-sm text-blue-700">
+                                  • {insight}
+                                </p>
+                              ))}
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -700,8 +783,8 @@ export default function TeamDashboardPage() {
                             {Object.entries(teamData.aggregateScores.culture).map(([trait, score]) => (
                               <Tooltip key={trait}>
                                 <TooltipTrigger asChild>
-                                  <div className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-white text-gray-700 border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors whitespace-nowrap shadow-sm">
-                                    <span className="mr-1 text-gray-500">?</span>
+                                  <div className="inline-flex items-center px-3 py-2 rounded-full text-sm font-medium bg-white text-gray-700 border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors whitespace-nowrap shadow-sm">
+                                    <span className="mr-2 text-gray-400 text-xs">ℹ</span>
                                     {trait.replace(/_/g, ' ').charAt(0).toUpperCase() + trait.replace(/_/g, ' ').slice(1)}: {score}
                                   </div>
                                 </TooltipTrigger>
@@ -720,11 +803,14 @@ export default function TeamDashboardPage() {
                             <Globe className="h-4 w-4 text-green-600" />
                           </div>
                           <div>
-                            <p className="text-sm font-medium text-green-900 mb-1">Cultural Insights</p>
-                            <p className="text-sm text-green-700">
-                              Your team demonstrates a preference for collaborative work environments with balanced power dynamics. 
-                              This creates a foundation for inclusive decision-making and shared responsibility.
-                            </p>
+                            <p className="text-sm font-medium text-green-900 mb-2">Cultural Insights</p>
+                            <div className="space-y-1">
+                              {generateDynamicKeyInsights(teamData.aggregateScores, completedMembers.length).slice(0, 2).map((insight, index) => (
+                                <p key={index} className="text-sm text-green-700">
+                                  • {insight}
+                                </p>
+                              ))}
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -763,8 +849,8 @@ export default function TeamDashboardPage() {
                             {Object.entries(teamData.aggregateScores.values).map(([trait, score]) => (
                               <Tooltip key={trait}>
                                 <TooltipTrigger asChild>
-                                  <div className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-white text-gray-700 border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors whitespace-nowrap shadow-sm">
-                                    <span className="mr-1 text-gray-500">?</span>
+                                  <div className="inline-flex items-center px-3 py-2 rounded-full text-sm font-medium bg-white text-gray-700 border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors whitespace-nowrap shadow-sm">
+                                    <span className="mr-2 text-gray-400 text-xs">ℹ</span>
                                     {trait.charAt(0).toUpperCase() + trait.slice(1)}: {score}
                                   </div>
                                 </TooltipTrigger>
@@ -783,11 +869,14 @@ export default function TeamDashboardPage() {
                             <Target className="h-4 w-4 text-orange-600" />
                           </div>
                           <div>
-                            <p className="text-sm font-medium text-orange-900 mb-1">Values Insights</p>
-                            <p className="text-sm text-orange-700">
-                              Your team prioritizes quality and customer focus while maintaining a strong drive for innovation. 
-                              This combination supports sustainable growth and customer satisfaction.
-                            </p>
+                            <p className="text-sm font-medium text-orange-900 mb-2">Values Insights</p>
+                            <div className="space-y-1">
+                              {generateDynamicKeyInsights(teamData.aggregateScores, completedMembers.length).slice(0, 2).map((insight, index) => (
+                                <p key={index} className="text-sm text-orange-700">
+                                  • {insight}
+                                </p>
+                              ))}
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -950,9 +1039,19 @@ export default function TeamDashboardPage() {
             {/* Team Members */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="h-5 w-5" />
-                  Team Members
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Users className="h-5 w-5" />
+                    Team Members
+                  </div>
+                  <Button 
+                    size="sm" 
+                    onClick={() => setShowInviteModal(true)}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    <UserPlus className="h-4 w-4 mr-1" />
+                    Invite
+                  </Button>
                 </CardTitle>
               </CardHeader>
               <CardContent>
