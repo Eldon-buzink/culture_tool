@@ -208,6 +208,8 @@ export default function TeamDashboardPage() {
   const [expandedConflicts, setExpandedConflicts] = useState<{ [key: number]: boolean }>({});
   const [teamRecommendations, setTeamRecommendations] = useState<any>(null);
   const [recommendationsLoading, setRecommendationsLoading] = useState(false);
+  const [aiInsights, setAiInsights] = useState<{[key: string]: string[]}>({});
+  const [insightsLoading, setInsightsLoading] = useState(false);
 
   useEffect(() => {
     const fetchTeamData = async () => {
@@ -339,6 +341,37 @@ export default function TeamDashboardPage() {
     generateTeamRecommendations();
   }, [teamData, params.code]);
 
+  // Generate AI insights when team data is available
+  useEffect(() => {
+    const generateAIInsights = async () => {
+      if (!teamData || teamData.members.filter(m => m.status === 'completed').length < 1) {
+        return;
+      }
+
+      try {
+        setInsightsLoading(true);
+        const completedMembers = teamData.members.filter(m => m.status === 'completed');
+        
+        // Generate insights for each section
+        const sections = ['ocean', 'culture', 'values'];
+        const newInsights: {[key: string]: string[]} = {};
+        
+        for (const section of sections) {
+          const insights = await generateAIKeyInsights(teamData.aggregateScores, completedMembers.length, section);
+          newInsights[section] = insights;
+        }
+        
+        setAiInsights(newInsights);
+      } catch (error) {
+        console.error('Error generating AI insights:', error);
+      } finally {
+        setInsightsLoading(false);
+      }
+    };
+
+    generateAIInsights();
+  }, [teamData]);
+
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'completed': return <CheckCircle className="h-4 w-4 text-green-600" />;
@@ -467,6 +500,30 @@ export default function TeamDashboardPage() {
       "Consider how individual strengths complement each other to create a well-rounded team dynamic.",
       "Regular team check-ins can help optimize collaboration based on these personality insights."
     ];
+  };
+
+  const generateAIKeyInsights = async (scores: any, memberCount: number, section: string) => {
+    try {
+      const response = await fetch('/api/teams/ai-insights', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          scores,
+          memberCount,
+          section
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        return data.insights || [];
+      }
+    } catch (error) {
+      console.error('Error generating AI insights:', error);
+    }
+    
+    // Fallback to rule-based insights
+    return generateDynamicKeyInsights(scores, memberCount);
   };
 
   const [isExporting, setIsExporting] = useState(false);
@@ -712,13 +769,13 @@ export default function TeamDashboardPage() {
                         color="#3B82F6"
                       />
                                               <div className="mt-4">
-                          <h5 className="text-sm font-medium text-gray-700 text-center mb-3">Trait Scores</h5>
-                          <div className="flex gap-2 justify-center overflow-x-auto pb-2">
+                          <h5 className="text-base font-semibold text-gray-800 text-center mb-2">Trait Scores</h5>
+                          <p className="text-xs text-gray-500 text-center mb-4">Click on any score for detailed explanation</p>
+                          <div className="flex flex-wrap gap-2 justify-center">
                             {Object.entries(teamData.aggregateScores.ocean).map(([trait, score]) => (
                               <Tooltip key={trait}>
                                 <TooltipTrigger asChild>
-                                  <div className="inline-flex items-center px-3 py-2 rounded-full text-sm font-medium bg-white text-gray-700 border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors whitespace-nowrap shadow-sm">
-                                    <span className="mr-2 text-gray-400 text-xs">ℹ</span>
+                                  <div className="inline-flex items-center px-3 py-2 rounded-full text-sm font-medium bg-white text-gray-700 border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors shadow-sm">
                                     {trait.charAt(0).toUpperCase() + trait.slice(1)}: {score}
                                   </div>
                                 </TooltipTrigger>
@@ -738,13 +795,20 @@ export default function TeamDashboardPage() {
                           </div>
                           <div>
                             <p className="text-sm font-medium text-blue-900 mb-2">Key Insights</p>
-                            <div className="space-y-1">
-                              {generateDynamicKeyInsights(teamData.aggregateScores, completedMembers.length).slice(0, 3).map((insight, index) => (
-                                <p key={index} className="text-sm text-blue-700">
-                                  • {insight}
-                                </p>
-                              ))}
-                            </div>
+                            {insightsLoading ? (
+                              <div className="flex items-center gap-2">
+                                <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                                <span className="text-sm text-blue-600">Generating AI insights...</span>
+                              </div>
+                            ) : (
+                              <div className="space-y-1">
+                                {(aiInsights.ocean || generateDynamicKeyInsights(teamData.aggregateScores, completedMembers.length)).slice(0, 3).map((insight, index) => (
+                                  <p key={index} className="text-sm text-blue-700">
+                                    • {insight}
+                                  </p>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -778,13 +842,13 @@ export default function TeamDashboardPage() {
                         color="#10B981"
                       />
                                               <div className="mt-4">
-                          <h5 className="text-sm font-medium text-gray-700 text-center mb-3">Cultural Dimensions</h5>
-                          <div className="flex gap-2 justify-center overflow-x-auto pb-2">
+                          <h5 className="text-base font-semibold text-gray-800 text-center mb-2">Cultural Dimensions</h5>
+                          <p className="text-xs text-gray-500 text-center mb-4">Click on any score for detailed explanation</p>
+                          <div className="flex flex-wrap gap-2 justify-center">
                             {Object.entries(teamData.aggregateScores.culture).map(([trait, score]) => (
                               <Tooltip key={trait}>
                                 <TooltipTrigger asChild>
-                                  <div className="inline-flex items-center px-3 py-2 rounded-full text-sm font-medium bg-white text-gray-700 border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors whitespace-nowrap shadow-sm">
-                                    <span className="mr-2 text-gray-400 text-xs">ℹ</span>
+                                  <div className="inline-flex items-center px-3 py-2 rounded-full text-sm font-medium bg-white text-gray-700 border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors shadow-sm">
                                     {trait.replace(/_/g, ' ').charAt(0).toUpperCase() + trait.replace(/_/g, ' ').slice(1)}: {score}
                                   </div>
                                 </TooltipTrigger>
@@ -804,13 +868,20 @@ export default function TeamDashboardPage() {
                           </div>
                           <div>
                             <p className="text-sm font-medium text-green-900 mb-2">Cultural Insights</p>
-                            <div className="space-y-1">
-                              {generateDynamicKeyInsights(teamData.aggregateScores, completedMembers.length).slice(0, 2).map((insight, index) => (
-                                <p key={index} className="text-sm text-green-700">
-                                  • {insight}
-                                </p>
-                              ))}
-                            </div>
+                            {insightsLoading ? (
+                              <div className="flex items-center gap-2">
+                                <div className="w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full animate-spin"></div>
+                                <span className="text-sm text-green-600">Generating AI insights...</span>
+                              </div>
+                            ) : (
+                              <div className="space-y-1">
+                                {(aiInsights.culture || generateDynamicKeyInsights(teamData.aggregateScores, completedMembers.length)).slice(0, 2).map((insight, index) => (
+                                  <p key={index} className="text-sm text-green-700">
+                                    • {insight}
+                                  </p>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -844,13 +915,13 @@ export default function TeamDashboardPage() {
                         color="#F59E0B"
                       />
                                               <div className="mt-4">
-                          <h5 className="text-sm font-medium text-gray-700 text-center mb-3">Work Values</h5>
-                          <div className="flex gap-2 justify-center overflow-x-auto pb-2">
+                          <h5 className="text-base font-semibold text-gray-800 text-center mb-2">Work Values</h5>
+                          <p className="text-xs text-gray-500 text-center mb-4">Click on any score for detailed explanation</p>
+                          <div className="flex flex-wrap gap-2 justify-center">
                             {Object.entries(teamData.aggregateScores.values).map(([trait, score]) => (
                               <Tooltip key={trait}>
                                 <TooltipTrigger asChild>
-                                  <div className="inline-flex items-center px-3 py-2 rounded-full text-sm font-medium bg-white text-gray-700 border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors whitespace-nowrap shadow-sm">
-                                    <span className="mr-2 text-gray-400 text-xs">ℹ</span>
+                                  <div className="inline-flex items-center px-3 py-2 rounded-full text-sm font-medium bg-white text-gray-700 border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors shadow-sm">
                                     {trait.charAt(0).toUpperCase() + trait.slice(1)}: {score}
                                   </div>
                                 </TooltipTrigger>
@@ -870,13 +941,20 @@ export default function TeamDashboardPage() {
                           </div>
                           <div>
                             <p className="text-sm font-medium text-orange-900 mb-2">Values Insights</p>
-                            <div className="space-y-1">
-                              {generateDynamicKeyInsights(teamData.aggregateScores, completedMembers.length).slice(0, 2).map((insight, index) => (
-                                <p key={index} className="text-sm text-orange-700">
-                                  • {insight}
-                                </p>
-                              ))}
-                            </div>
+                            {insightsLoading ? (
+                              <div className="flex items-center gap-2">
+                                <div className="w-4 h-4 border-2 border-orange-600 border-t-transparent rounded-full animate-spin"></div>
+                                <span className="text-sm text-orange-600">Generating AI insights...</span>
+                              </div>
+                            ) : (
+                              <div className="space-y-1">
+                                {(aiInsights.values || generateDynamicKeyInsights(teamData.aggregateScores, completedMembers.length)).slice(0, 2).map((insight, index) => (
+                                  <p key={index} className="text-sm text-orange-700">
+                                    • {insight}
+                                  </p>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
