@@ -82,6 +82,41 @@ function parseAIInsights(aiResponse: string, section: string): string[] {
   // Take the first 3 relevant insights and clean them up
   return filteredInsights
     .slice(0, 3)
-    .map(insight => insight.trim().replace(/^[•\-\*]\s*/, ''))
-    .filter(insight => insight.length > 0);
+    .map(insight => {
+      // Clean up the insight text
+      let cleaned = insight.trim().replace(/^[•\-\*]\s*/, '');
+      
+      // Make text more readable by:
+      // 1. Breaking up long sentences
+      // 2. Adding emphasis to key terms
+      // 3. Simplifying complex language
+      
+      // Break up very long sentences (over 120 characters)
+      if (cleaned.length > 120) {
+        const parts = cleaned.split(',').map(part => part.trim());
+        if (parts.length > 1) {
+          // Take the first meaningful part
+          cleaned = parts[0] + '.';
+        }
+      }
+      
+      // Simplify common complex phrases
+      cleaned = cleaned
+        .replace(/high scores in/gi, 'strong')
+        .replace(/shows a strong inclination towards/gi, 'excels at')
+        .replace(/may be more sensitive to/gi, 'tends to be sensitive to')
+        .replace(/which may affect/gi, 'this could impact')
+        .replace(/could potentially/gi, 'may')
+        .replace(/suggests the team/gi, 'indicates the team')
+        .replace(/however,/gi, 'However,')
+        .replace(/The high/gi, 'High');
+      
+      // Ensure it ends with proper punctuation
+      if (!cleaned.match(/[.!?]$/)) {
+        cleaned += '.';
+      }
+      
+      return cleaned;
+    })
+    .filter(insight => insight.length > 0 && insight.length < 150); // Keep insights concise
 }

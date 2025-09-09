@@ -305,7 +305,7 @@ Make the recommendations specific, actionable, and tailored to their scores. Foc
   static async generateTeamInsights(teamScores: AssessmentScores, memberCount: number): Promise<any> {
     try {
       const prompt = `
-Based on the following team aggregate assessment results for a team of ${memberCount} members, provide team-level insights and recommendations:
+Based on the following team aggregate assessment results for a team of ${memberCount} members, provide concise, readable team insights:
 
 Team OCEAN Scores (0-100):
 - Openness: ${teamScores.ocean.openness}
@@ -329,7 +329,13 @@ Team Values (0-100):
 - Quality: ${teamScores.values.quality}
 - Customer Focus: ${teamScores.values.customerFocus}
 
-Provide insights about team dynamics, potential conflicts, strengths, and recommendations for effective collaboration.
+IMPORTANT: Write 3-4 short, clear insights (max 100 characters each). Use simple language. Focus on:
+- Team strengths and what they excel at
+- Potential challenges to watch for
+- How the team works best together
+- Key dynamics to leverage
+
+Avoid complex sentences and jargon. Make it scannable and actionable.
       `;
 
       const completion = await getOpenAI().chat.completions.create({
@@ -337,7 +343,7 @@ Provide insights about team dynamics, potential conflicts, strengths, and recomm
         messages: [
           {
             role: "system",
-            content: "You are an expert in team dynamics and organizational psychology. Provide insights about team composition, potential challenges, and recommendations for effective collaboration."
+            content: "You are an expert in team dynamics. Write concise, readable insights that are easy to scan and understand. Use simple language and short sentences. Focus on practical, actionable observations about team dynamics."
           },
           {
             role: "user",
@@ -345,7 +351,7 @@ Provide insights about team dynamics, potential conflicts, strengths, and recomm
           }
         ],
         temperature: 0.7,
-        max_tokens: 1500,
+        max_tokens: 800,
       });
 
       return completion.choices[0]?.message?.content || 'Team insights could not be generated at this time.';
