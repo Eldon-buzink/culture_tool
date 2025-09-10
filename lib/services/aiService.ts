@@ -69,37 +69,68 @@ export interface AIRecommendations {
 export class AIService {
   static async generateRecommendations(scores: AssessmentScores): Promise<AIRecommendations> {
     try {
-      const prompt = this.buildPrompt(scores);
+      // Pre-processing: Apply rules engine to set prompt toggles
+      const promptConfig = this.applyPreProcessingRules(scores);
       
-      const completion = await getOpenAI().chat.completions.create({
-        model: "gpt-4",
-        messages: [
-          {
-            role: "system",
-            content: `You are a personal development coach who helps people understand themselves and create meaningful habits. You focus on behaviors, rituals, and personal growth rather than job titles or corporate jargon. You write in a warm, encouraging, and immediately actionable way. You avoid generic career advice and instead provide specific, personal recommendations that people can start today.`
-          },
-          {
-            role: "user",
-            content: prompt
-          }
-        ],
-        temperature: 0.7,
-        max_tokens: 2000,
-      });
+      const prompt = this.buildPrompt(scores, promptConfig);
+      
+      let attempts = 0;
+      const maxAttempts = 3;
+      let recommendations: AIRecommendations;
 
-      const response = completion.choices[0]?.message?.content;
-      if (!response) {
-        throw new Error('No response from OpenAI');
+      while (attempts < maxAttempts) {
+        attempts++;
+        
+        const completion = await getOpenAI().chat.completions.create({
+          model: "gpt-4",
+          messages: [
+            {
+              role: "system",
+              content: `You are a personal development coach who helps people understand themselves and create meaningful habits. You focus on behaviors, rituals, and personal growth rather than job titles or corporate jargon. You write in a warm, encouraging, and immediately actionable way. You avoid generic career advice and instead provide specific, personal recommendations that people can start today.`
+            },
+            {
+              role: "user",
+              content: prompt
+            }
+          ],
+          temperature: 0.7,
+          max_tokens: 2000,
+        });
+
+        const response = completion.choices[0]?.message?.content;
+        if (!response) {
+          throw new Error('No response from OpenAI');
+        }
+
+        recommendations = this.parseAIResponse(response);
+        
+        // Post-processing: Validate quality and apply improvement rules
+        const validationResult = this.applyPostProcessingRules(recommendations, scores);
+        
+        if (validationResult.isValid) {
+          // Two-pass generation: Use critic to improve recommendations
+          const improvedRecommendations = await this.applyCriticPass(recommendations, scores);
+          return improvedRecommendations;
+        } else {
+          console.warn(`Recommendation quality check failed (attempt ${attempts}):`, validationResult.issues);
+          
+          if (attempts < maxAttempts) {
+            // Add feedback to prompt for next attempt
+            prompt += `\n\nIMPORTANT: Previous attempt had these issues: ${validationResult.issues.join(', ')}. Please address these specific problems.`;
+          }
+        }
       }
 
-      return this.parseAIResponse(response);
+      // If all attempts failed, return the last attempt with fallback improvements
+      return this.applyFallbackImprovements(recommendations!, scores);
+      
     } catch (error) {
       console.error('Error generating AI recommendations:', error);
       return this.getFallbackRecommendations(scores);
     }
   }
 
-  private static buildPrompt(scores: AssessmentScores): string {
+  private static buildPrompt(scores: AssessmentScores, promptConfig?: any): string {
     // Create user intent block
     const userIntent = {
       career_titles: false,
@@ -122,14 +153,10 @@ OCEAN: Openness ${scores.ocean.openness}, Conscientiousness ${scores.ocean.consc
 CULTURE: Power Distance ${scores.culture.powerDistance}, Individualism ${scores.culture.individualism}, Uncertainty Avoidance ${scores.culture.uncertaintyAvoidance}
 VALUES: Innovation ${scores.values.innovation}, Collaboration ${scores.values.collaboration}, Quality ${scores.values.quality}
 
-USER INTENT: ${JSON.stringify(userIntent)}
+USER INTENT: ${JSON.stringify(promptConfig?.userIntent || userIntent)}
 
 REQUIREMENTS:
-${highOpenness ? "- Include at least one personal creative activity (e.g., weekly exploration time, creative journaling)" : ""}
-${highIndividualism ? "- Include one personal autonomy habit and one team alignment habit" : ""}
-${lowPowerDistance ? "- Include one peer-to-peer collaboration ritual" : ""}
-${highAgreeableness ? "- Include boundary-setting practices" : ""}
-${lowNeuroticism ? "- Include stretch goals with recovery rituals" : ""}
+${promptConfig?.requirements?.join('\n') || ''}
 
 BANNED PHRASES: "innovation team", "product squad", "agile", "MVP", "hackathon", "join a team", "find a role", "career path", "department", "methodology"
 
@@ -234,6 +261,285 @@ Each recommendation must:
     }
 
     return hasActionVerbs;
+  }
+
+  // Pre-processing rules engine
+  private static applyPreProcessingRules(scores: AssessmentScores): any {
+    const rules = {
+      highOpenness: scores.ocean.openness >= 70,
+      highConscientiousness: scores.ocean.conscientiousness >= 70,
+      highExtraversion: scores.ocean.extraversion >= 70,
+      highAgreeableness: scores.ocean.agreeableness >= 70,
+      lowNeuroticism: scores.ocean.neuroticism <= 40,
+      highIndividualism: scores.culture.individualism >= 65,
+      lowPowerDistance: scores.culture.powerDistance <= 45,
+      highUncertaintyAvoidance: scores.culture.uncertaintyAvoidance >= 70,
+      highInnovation: scores.values.innovation >= 70,
+      highCollaboration: scores.values.collaboration >= 70,
+      highQuality: scores.values.quality >= 70
+    };
+
+    // Generate specific requirements based on rules
+    const requirements = [];
+    
+    if (rules.highOpenness) {
+      requirements.push("- Include at least one personal creative activity (e.g., weekly exploration time, creative journaling)");
+    }
+    
+    if (rules.highIndividualism) {
+      requirements.push("- Include one personal autonomy habit and one team alignment habit");
+    }
+    
+    if (rules.lowPowerDistance) {
+      requirements.push("- Include one peer-to-peer collaboration ritual");
+    }
+    
+    if (rules.highAgreeableness) {
+      requirements.push("- Include boundary-setting practices");
+    }
+    
+    if (rules.lowNeuroticism) {
+      requirements.push("- Include stretch goals with recovery rituals");
+    }
+    
+    if (rules.highConscientiousness) {
+      requirements.push("- Include time management and organization habits");
+    }
+    
+    if (rules.highExtraversion) {
+      requirements.push("- Include social energy management practices");
+    }
+    
+    if (rules.highUncertaintyAvoidance) {
+      requirements.push("- Include structured planning and preparation habits");
+    }
+    
+    if (rules.highInnovation) {
+      requirements.push("- Include creative problem-solving practices");
+    }
+    
+    if (rules.highCollaboration) {
+      requirements.push("- Include team communication and feedback habits");
+    }
+    
+    if (rules.highQuality) {
+      requirements.push("- Include attention to detail and excellence practices");
+    }
+
+    return {
+      rules,
+      requirements,
+      userIntent: {
+        career_titles: false,
+        personal_life: true,
+        behavioral_focus: true,
+        trait_specific: true
+      }
+    };
+  }
+
+  // Post-processing rules engine
+  private static applyPostProcessingRules(recommendations: AIRecommendations, scores: AssessmentScores): {isValid: boolean, issues: string[], recommendations: AIRecommendations} {
+    const issues: string[] = [];
+    
+    // Check for banned phrases
+    const bannedPhrases = [
+      'innovation team', 'product squad', 'agile', 'mvp', 'hackathon',
+      'join a team', 'find a role', 'career path', 'department', 'methodology',
+      'become a', 'work in', 'pursue a career', 'get into', 'apply for',
+      'look for', 'seek out', 'consider a', 'explore a career'
+    ];
+
+    const text = JSON.stringify(recommendations).toLowerCase();
+    for (const phrase of bannedPhrases) {
+      if (text.includes(phrase)) {
+        issues.push(`Contains banned phrase: "${phrase}"`);
+      }
+    }
+
+    // Check for action verbs in titles
+    const actionVerbs = ['schedule', 'block', 'practice', 'start', 'create', 'build', 'develop', 'explore', 'dedicate', 'set', 'establish', 'begin', 'implement', 'try', 'experiment'];
+    let hasActionVerbs = false;
+    
+    const allRecommendations = [
+      ...(recommendations.ocean?.recommendations || []),
+      ...(recommendations.culture?.recommendations || []),
+      ...(recommendations.values?.recommendations || [])
+    ];
+
+    for (const rec of allRecommendations) {
+      if (rec.title && actionVerbs.some(verb => rec.title.toLowerCase().startsWith(verb))) {
+        hasActionVerbs = true;
+        break;
+      }
+    }
+
+    if (!hasActionVerbs) {
+      issues.push("Recommendation titles don't start with action verbs");
+    }
+
+    // Check for specific timing/frequency
+    const timingWords = ['daily', 'weekly', 'monthly', 'every', 'schedule', 'block', 'set aside', 'minutes', 'hours', 'times'];
+    let hasTiming = false;
+    
+    for (const rec of allRecommendations) {
+      if (rec.description && timingWords.some(word => rec.description.toLowerCase().includes(word))) {
+        hasTiming = true;
+        break;
+      }
+    }
+
+    if (!hasTiming) {
+      issues.push("Recommendations lack specific timing/frequency");
+    }
+
+    // Check for personal life suggestions when openness is high
+    if (scores.ocean.openness >= 70) {
+      const personalWords = ['personal', 'outside work', 'hobby', 'creative', 'explore', 'curiosity', 'journal', 'sketch', 'write'];
+      let hasPersonalSuggestion = false;
+      
+      for (const rec of allRecommendations) {
+        if (rec.description && personalWords.some(word => rec.description.toLowerCase().includes(word))) {
+          hasPersonalSuggestion = true;
+          break;
+        }
+      }
+
+      if (!hasPersonalSuggestion) {
+        issues.push("High openness requires personal life suggestions");
+      }
+    }
+
+    // Check for boundary-setting when agreeableness is high
+    if (scores.ocean.agreeableness >= 70) {
+      const boundaryWords = ['boundary', 'say no', 'decline', 'limit', 'protect', 'preserve', 'maintain'];
+      let hasBoundarySuggestion = false;
+      
+      for (const rec of allRecommendations) {
+        if (rec.description && boundaryWords.some(word => rec.description.toLowerCase().includes(word))) {
+          hasBoundarySuggestion = true;
+          break;
+        }
+      }
+
+      if (!hasBoundarySuggestion) {
+        issues.push("High agreeableness requires boundary-setting suggestions");
+      }
+    }
+
+    // Check for peer-to-peer suggestions when power distance is low
+    if (scores.culture.powerDistance <= 45) {
+      const peerWords = ['peer', 'colleague', 'team member', 'together', 'collaborate', 'share', 'exchange'];
+      let hasPeerSuggestion = false;
+      
+      for (const rec of allRecommendations) {
+        if (rec.description && peerWords.some(word => rec.description.toLowerCase().includes(word))) {
+          hasPeerSuggestion = true;
+          break;
+        }
+      }
+
+      if (!hasPeerSuggestion) {
+        issues.push("Low power distance requires peer-to-peer suggestions");
+      }
+    }
+
+    return {
+      isValid: issues.length === 0,
+      issues,
+      recommendations
+    };
+  }
+
+  // Fallback improvements when validation fails
+  private static applyFallbackImprovements(recommendations: AIRecommendations, scores: AssessmentScores): AIRecommendations {
+    // Apply basic improvements to make recommendations more actionable
+    const improved = JSON.parse(JSON.stringify(recommendations)); // Deep clone
+    
+    // Add timing to recommendations that lack it
+    const allRecommendations = [
+      ...(improved.ocean?.recommendations || []),
+      ...(improved.culture?.recommendations || []),
+      ...(improved.values?.recommendations || [])
+    ];
+
+    for (const rec of allRecommendations) {
+      if (rec.description && !rec.description.toLowerCase().includes('weekly') && !rec.description.toLowerCase().includes('daily')) {
+        rec.description = `Schedule 30 minutes weekly to ${rec.description.toLowerCase()}`;
+      }
+      
+      if (rec.title && !rec.title.toLowerCase().startsWith('schedule') && !rec.title.toLowerCase().startsWith('block')) {
+        rec.title = `Schedule ${rec.title.toLowerCase()}`;
+      }
+    }
+
+    return improved;
+  }
+
+  // Two-pass generation: Critic pass to improve recommendations
+  private static async applyCriticPass(recommendations: AIRecommendations, scores: AssessmentScores): Promise<AIRecommendations> {
+    try {
+      const criticPrompt = `
+You are a quality critic for personal development recommendations. Review the following recommendations and improve them to be more actionable, personal, and behavior-focused.
+
+CURRENT RECOMMENDATIONS:
+${JSON.stringify(recommendations, null, 2)}
+
+ASSESSMENT CONTEXT:
+OCEAN: Openness ${scores.ocean.openness}, Conscientiousness ${scores.ocean.conscientiousness}, Extraversion ${scores.ocean.extraversion}, Agreeableness ${scores.ocean.agreeableness}, Neuroticism ${scores.ocean.neuroticism}
+
+CRITIC CHECKLIST:
+1. Remove any job-title advice or corporate jargon
+2. Replace org-structure solutions with behavioral prescriptions
+3. Ensure at least one suggestion is outside work if creativity/openness is high (≥70)
+4. Trim to ≤ 7 items total; make each item start with a verb
+5. Add specific timing/frequency where missing
+6. Make language more personal and relatable
+7. Focus on immediate actions people can take today
+
+IMPROVEMENT RULES:
+- If title doesn't start with action verb, rewrite it
+- If description lacks timing, add "Schedule X minutes weekly/daily to..."
+- If too generic, make it more specific and personal
+- If too corporate, make it more human and relatable
+- If missing personal life suggestions for high openness, add one
+
+Return the improved recommendations in the same JSON format. Make each recommendation more actionable and personal.
+      `;
+
+      const completion = await getOpenAI().chat.completions.create({
+        model: "gpt-4",
+        messages: [
+          {
+            role: "system",
+            content: "You are a quality critic who improves personal development recommendations to be more actionable, personal, and behavior-focused. You focus on making recommendations immediately actionable and relatable."
+          },
+          {
+            role: "user",
+            content: criticPrompt
+          }
+        ],
+        temperature: 0.3, // Lower temperature for more consistent improvements
+        max_tokens: 2000,
+      });
+
+      const response = completion.choices[0]?.message?.content;
+      if (!response) {
+        return recommendations; // Return original if critic fails
+      }
+
+      // Parse the improved recommendations
+      const jsonMatch = response.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const improved = JSON.parse(jsonMatch[0]);
+        return this.validateAndFormatRecommendations(improved);
+      }
+
+      return recommendations; // Return original if parsing fails
+    } catch (error) {
+      console.error('Error in critic pass:', error);
+      return recommendations; // Return original if critic fails
+    }
   }
 
   private static validateAndFormatRecommendations(data: any): AIRecommendations {
