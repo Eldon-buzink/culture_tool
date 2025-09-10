@@ -10,36 +10,92 @@ import { Brain, Users, Target, ArrowLeft, CheckCircle, ArrowRight, ArrowLeft as 
 
 // Import calculation functions from results page
 function calculateOceanScores(oceanResponses: Record<string, number>) {
-  const scores = {
-    openness: 0,
-    conscientiousness: 0,
-    extraversion: 0,
-    agreeableness: 0,
-    neuroticism: 0
+  console.log('Calculating OCEAN scores from responses:', oceanResponses);
+  
+  // Map question IDs to OCEAN dimensions
+  const oceanMapping: Record<string, 'openness' | 'conscientiousness' | 'extraversion' | 'agreeableness' | 'neuroticism'> = {
+    // Extraversion questions
+    'ocean_1': 'extraversion',      // 'I am the life of the party'
+    'ocean_6': 'extraversion',      // 'I don\'t talk a lot' (reverse scored)
+    'ocean_11': 'extraversion',     // 'I talk to a lot of different people at parties'
+    'ocean_16': 'extraversion',     // 'I keep in the background' (reverse scored)
+    'ocean_21': 'extraversion',     // 'I start conversations'
+    'ocean_26': 'extraversion',     // 'I have little to say' (reverse scored)
+    'ocean_31': 'extraversion',     // 'I am quiet around strangers' (reverse scored)
+    'ocean_36': 'extraversion',     // 'I get energized by social interactions'
+    
+    // Agreeableness questions
+    'ocean_2': 'agreeableness',     // 'I sympathize with others\' feelings'
+    'ocean_7': 'agreeableness',     // 'I am not interested in other people\'s problems' (reverse scored)
+    'ocean_12': 'agreeableness',    // 'I feel others\' emotions'
+    'ocean_17': 'agreeableness',    // 'I am not really interested in others' (reverse scored)
+    'ocean_22': 'agreeableness',    // 'I insult people' (reverse scored)
+    'ocean_27': 'agreeableness',    // 'I am concerned about others'
+    'ocean_32': 'agreeableness',    // 'I am helpful and unselfish with others'
+    'ocean_37': 'agreeableness',    // 'I am sometimes rude to others' (reverse scored)
+    
+    // Conscientiousness questions
+    'ocean_3': 'conscientiousness', // 'I get chores done right away'
+    'ocean_8': 'conscientiousness', // 'I often forget to put things back in their proper place' (reverse scored)
+    'ocean_13': 'conscientiousness',// 'I like order'
+    'ocean_18': 'conscientiousness',// 'I make a mess of things' (reverse scored)
+    'ocean_23': 'conscientiousness',// 'I get chores done right away'
+    'ocean_28': 'conscientiousness',// 'I often forget to put things back in their proper place' (reverse scored)
+    'ocean_33': 'conscientiousness',// 'I like order'
+    'ocean_38': 'conscientiousness',// 'I make a mess of things' (reverse scored)
+    
+    // Neuroticism questions
+    'ocean_4': 'neuroticism',       // 'I have frequent mood swings'
+    'ocean_9': 'neuroticism',       // 'I am relaxed most of the time' (reverse scored)
+    'ocean_14': 'neuroticism',      // 'I get upset easily'
+    'ocean_19': 'neuroticism',      // 'I am not easily bothered by things' (reverse scored)
+    'ocean_24': 'neuroticism',      // 'I worry about things'
+    'ocean_29': 'neuroticism',      // 'I am easily disturbed'
+    'ocean_34': 'neuroticism',      // 'I get stressed out easily'
+    'ocean_39': 'neuroticism',      // 'I am not easily frustrated' (reverse scored)
+    
+    // Openness questions
+    'ocean_5': 'openness',          // 'I have a vivid imagination'
+    'ocean_10': 'openness',         // 'I am not interested in abstract ideas' (reverse scored)
+    'ocean_15': 'openness',         // 'I have excellent ideas'
+    'ocean_20': 'openness',         // 'I have a rich vocabulary'
+    'ocean_25': 'openness',         // 'I have difficulty understanding abstract ideas' (reverse scored)
+    'ocean_30': 'openness',         // 'I have a vivid imagination'
+    'ocean_35': 'openness',         // 'I am not interested in abstract ideas' (reverse scored)
+    'ocean_40': 'openness'          // 'I have excellent ideas'
   };
   
-  // Calculate scores based on responses
-  // This is a simplified calculation - you can make it more sophisticated
+  const scores = { openness: 0, conscientiousness: 0, extraversion: 0, agreeableness: 0, neuroticism: 0 };
+  const counts = { openness: 0, conscientiousness: 0, extraversion: 0, agreeableness: 0, neuroticism: 0 };
+  
   Object.entries(oceanResponses).forEach(([questionId, response]) => {
-    const score = response;
-    if (questionId.includes('openness') || questionId === 'ocean_5') {
-      scores.openness += score;
-    } else if (questionId.includes('conscientiousness') || questionId === 'ocean_3') {
-      scores.conscientiousness += score;
-    } else if (questionId.includes('extraversion') || questionId === 'ocean_1') {
-      scores.extraversion += score;
-    } else if (questionId.includes('agreeableness') || questionId === 'ocean_2') {
-      scores.agreeableness += score;
-    } else if (questionId.includes('neuroticism') || questionId === 'ocean_4') {
-      scores.neuroticism += score;
+    const dimension = oceanMapping[questionId];
+    if (dimension) {
+      // Handle reverse-scored questions (1-5 scale becomes 5-1)
+      let adjustedResponse = response;
+      const reverseScoredQuestions = ['ocean_6', 'ocean_7', 'ocean_8', 'ocean_9', 'ocean_10', 'ocean_16', 'ocean_17', 'ocean_18', 'ocean_19', 'ocean_22', 'ocean_25', 'ocean_26', 'ocean_27', 'ocean_28', 'ocean_31', 'ocean_32', 'ocean_33', 'ocean_34', 'ocean_35', 'ocean_36', 'ocean_37', 'ocean_38', 'ocean_39'];
+      if (reverseScoredQuestions.includes(questionId)) {
+        adjustedResponse = 6 - response; // Convert 1->5, 2->4, 3->3, 4->2, 5->1
+      }
+      
+      scores[dimension] += adjustedResponse;
+      counts[dimension]++;
     }
   });
   
-  // Convert to 0-100 scale
-  Object.keys(scores).forEach(key => {
-    scores[key as keyof typeof scores] = Math.min(100, Math.max(0, scores[key as keyof typeof scores] * 20));
+  // Calculate averages and convert to percentage (0-100)
+  Object.keys(scores).forEach(dimension => {
+    const key = dimension as keyof typeof scores;
+    if (counts[key] > 0) {
+      scores[key] = Math.round((scores[key] / counts[key]) * 20); // Convert 1-5 scale to 0-100
+    } else {
+      console.warn(`No responses found for ${dimension}, setting to 0`);
+      scores[key] = 0;
+    }
   });
   
+  console.log('Final OCEAN scores:', scores);
+  console.log('Counts per dimension:', counts);
   return scores;
 }
 

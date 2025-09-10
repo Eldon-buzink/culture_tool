@@ -117,6 +117,8 @@ export default function SectionCompletePage() {
   // Helper functions to calculate scores
   const calculateOceanScores = (responses: Record<string, number>) => {
     console.log('Calculating OCEAN scores from responses:', responses);
+    console.log('Response keys:', Object.keys(responses));
+    console.log('Response values:', Object.values(responses));
     
     // Map question IDs to OCEAN dimensions
     const oceanMapping: Record<string, 'openness' | 'conscientiousness' | 'extraversion' | 'agreeableness' | 'neuroticism'> = {
@@ -194,10 +196,14 @@ export default function SectionCompletePage() {
       const key = dimension as keyof typeof scores;
       if (counts[key] > 0) {
         scores[key] = Math.round((scores[key] / counts[key]) * 20); // Convert 1-5 scale to 0-100
+      } else {
+        console.warn(`No responses found for ${dimension}, setting to 0`);
+        scores[key] = 0;
       }
     });
     
     console.log('Final OCEAN scores:', scores);
+    console.log('Counts per dimension:', counts);
     return scores;
   };
 
