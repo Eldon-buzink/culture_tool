@@ -37,7 +37,7 @@ import {
 } from 'lucide-react';
 
 
-import { ModernSpinner } from '@/components/LoadingSpinner';
+import LoadingSpinner from '@/components/LoadingSpinner';
 import ShareModal from '@/components/ShareModal';
 import InviteModal from '@/components/InviteModal';
 import CandidateInviteModal from '@/components/CandidateInviteModal';
@@ -650,8 +650,10 @@ export default function TeamDashboardPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <ModernSpinner text="Loading team dashboard..." />
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <LoadingSpinner size="xl" text="Loading team dashboard..." />
+        </div>
       </div>
     );
   }
@@ -990,8 +992,7 @@ export default function TeamDashboardPage() {
               <CardContent>
                 {recommendationsLoading ? (
                   <div className="text-center py-8">
-                    <ModernSpinner />
-                    <p className="text-gray-600 mt-2">Generating AI-powered team insights...</p>
+                    <LoadingSpinner size="lg" text="Generating AI-powered team insights..." />
                   </div>
                 ) : teamRecommendations ? (
                   <div className="space-y-6">

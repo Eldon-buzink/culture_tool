@@ -51,6 +51,16 @@ export interface CandidateInvitationEmailData {
   assessmentUrl: string;
 }
 
+export interface TeamMemberCompletionEmailData {
+  teamCreatorName: string;
+  teamCreatorEmail: string;
+  teamName: string;
+  memberName: string;
+  memberEmail: string;
+  teamCode: string;
+  dashboardUrl: string;
+}
+
 export async function sendEmail(emailData: EmailData) {
   try {
     console.log('Email service - Starting email send to:', emailData.to);
@@ -331,5 +341,88 @@ export async function sendTeamInvitation(data: TeamInvitationEmailData) {
 
 export async function sendCandidateInvitation(data: CandidateInvitationEmailData) {
   const emailData = generateCandidateInvitationEmail(data);
+  return await sendEmail(emailData);
+}
+
+export function generateTeamMemberCompletionEmail(data: TeamMemberCompletionEmailData): EmailData {
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Team Member Assessment Complete</title>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+        .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+        .completion-badge { background: #e8f5e8; padding: 15px; margin: 20px 0; border-radius: 8px; text-align: center; border: 2px solid #4caf50; }
+        .member-info { background: white; padding: 20px; margin: 20px 0; border-radius: 8px; border-left: 4px solid #667eea; }
+        .cta-button { display: inline-block; background: #667eea; color: white !important; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: bold; }
+        .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+        .next-steps { background: #f0f8ff; padding: 15px; border-radius: 5px; margin: 20px 0; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>🎉 Team Member Assessment Complete!</h1>
+          <p>Great news! A team member has completed their assessment.</p>
+        </div>
+        
+        <div class="content">
+          <div class="completion-badge">
+            <h2 style="color: #4caf50; margin: 0;">✅ Assessment Completed</h2>
+            <p style="margin: 5px 0 0 0; color: #2e7d32;">Your team member has successfully finished their personality assessment</p>
+          </div>
+          
+          <div class="member-info">
+            <h3 style="margin-top: 0; color: #333;">Team Member Details</h3>
+            <p><strong>Name:</strong> ${data.memberName}</p>
+            <p><strong>Email:</strong> ${data.memberEmail}</p>
+            <p><strong>Team:</strong> ${data.teamName}</p>
+          </div>
+          
+          <h3>What's Next?</h3>
+          <div class="next-steps">
+            <p>Now that your team member has completed their assessment, you can:</p>
+            <ul>
+              <li>View their individual results and personality insights</li>
+              <li>See how they contribute to your team's overall culture profile</li>
+              <li>Access AI-powered recommendations for team collaboration</li>
+              <li>Generate comprehensive team reports and insights</li>
+            </ul>
+          </div>
+          
+          <div style="text-align: center;">
+            <a href="${data.dashboardUrl}" class="cta-button">View Team Dashboard</a>
+          </div>
+          
+          <p style="margin-top: 30px;">
+            <strong>Team Code:</strong> <code style="background: #f0f0f0; padding: 4px 8px; border-radius: 3px;">${data.teamCode}</code>
+          </p>
+          
+          <p>You can share this team code with other members to invite them to join your team assessment.</p>
+        </div>
+        
+        <div class="footer">
+          <p>This email was sent because you created a team assessment. If you have any questions, please contact our support team.</p>
+          <p>&copy; 2024 Culture Mapping Tool. All rights reserved.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  return {
+    to: data.teamCreatorEmail,
+    subject: `🎉 Team Member Assessment Complete - ${data.memberName} has finished their assessment`,
+    html: html
+  };
+}
+
+export async function sendTeamMemberCompletionNotification(data: TeamMemberCompletionEmailData) {
+  const emailData = generateTeamMemberCompletionEmail(data);
   return await sendEmail(emailData);
 }
