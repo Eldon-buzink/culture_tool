@@ -76,7 +76,7 @@ export class AIService {
         messages: [
           {
             role: "system",
-            content: `You are an expert organizational psychologist and career coach specializing in personality assessments, cultural work preferences, and workplace values. Provide insightful, actionable, and personalized recommendations based on assessment results. Be specific, practical, and encouraging.`
+            content: `You are a personal development coach who helps people understand themselves and create meaningful habits. You focus on behaviors, rituals, and personal growth rather than job titles or corporate jargon. You write in a warm, encouraging, and immediately actionable way. You avoid generic career advice and instead provide specific, personal recommendations that people can start today.`
           },
           {
             role: "user",
@@ -100,58 +100,89 @@ export class AIService {
   }
 
   private static buildPrompt(scores: AssessmentScores): string {
+    // Create user intent block
+    const userIntent = {
+      career_titles: false,
+      personal_life: true,
+      behavioral_focus: true
+    };
+
+    // Identify high traits for special handling
+    const highOpenness = scores.ocean.openness >= 70;
+    const highIndividualism = scores.culture.individualism >= 65;
+    const lowPowerDistance = scores.culture.powerDistance <= 45;
+    const highAgreeableness = scores.ocean.agreeableness >= 70;
+    const lowNeuroticism = scores.ocean.neuroticism <= 40;
+
     return `
-Based on the following assessment results, provide comprehensive insights and recommendations:
+You write practical, non-jargony guidance. Focus on behaviors, rituals, and environments. Avoid job titles, departments, and methodologies unless user_intent.career_titles=true. Include at least one personal-life suggestion when creativity/openness is high. Output valid JSON matching the provided schema only—no prose outside JSON.
 
-OCEAN Personality Scores (0-100):
-- Openness: ${scores.ocean.openness}
-- Conscientiousness: ${scores.ocean.conscientiousness}
-- Extraversion: ${scores.ocean.extraversion}
-- Agreeableness: ${scores.ocean.agreeableness}
-- Neuroticism: ${scores.ocean.neuroticism}
+ASSESSMENT DATA:
+OCEAN: Openness ${scores.ocean.openness}, Conscientiousness ${scores.ocean.conscientiousness}, Extraversion ${scores.ocean.extraversion}, Agreeableness ${scores.ocean.agreeableness}, Neuroticism ${scores.ocean.neuroticism}
+CULTURE: Power Distance ${scores.culture.powerDistance}, Individualism ${scores.culture.individualism}, Uncertainty Avoidance ${scores.culture.uncertaintyAvoidance}
+VALUES: Innovation ${scores.values.innovation}, Collaboration ${scores.values.collaboration}, Quality ${scores.values.quality}
 
-Cultural Work Preferences (0-100):
-- Power Distance: ${scores.culture.powerDistance}
-- Individualism: ${scores.culture.individualism}
-- Masculinity: ${scores.culture.masculinity}
-- Uncertainty Avoidance: ${scores.culture.uncertaintyAvoidance}
-- Long-term Orientation: ${scores.culture.longTermOrientation}
-- Indulgence: ${scores.culture.indulgence}
+USER INTENT: ${JSON.stringify(userIntent)}
 
-Work Values (0-100):
-- Innovation: ${scores.values.innovation}
-- Collaboration: ${scores.values.collaboration}
-- Autonomy: ${scores.values.autonomy}
-- Quality: ${scores.values.quality}
-- Customer Focus: ${scores.values.customerFocus}
+REQUIREMENTS:
+${highOpenness ? "- Include at least one personal creative activity (e.g., weekly exploration time, creative journaling)" : ""}
+${highIndividualism ? "- Include one personal autonomy habit and one team alignment habit" : ""}
+${lowPowerDistance ? "- Include one peer-to-peer collaboration ritual" : ""}
+${highAgreeableness ? "- Include boundary-setting practices" : ""}
+${lowNeuroticism ? "- Include stretch goals with recovery rituals" : ""}
 
-Please provide your response in the following JSON format:
+BANNED PHRASES: "innovation team", "product squad", "agile", "MVP", "hackathon", "join a team", "find a role", "career path", "department", "methodology"
 
+EXAMPLES OF GOOD VS BAD:
+Bad: "Join an innovation team to channel your creativity."
+Good: "Block a 60-minute weekly 'curiosity window' to explore a topic you picked—sketch it, write a one-pager, or record a 2-minute voice note. Share one takeaway with a colleague."
+
+Bad: "Find a collaborative environment."
+Good: "Start a weekly 'idea exchange' with 2-3 colleagues where you each share one thing you learned and one challenge you're facing."
+
+Bad: "Develop leadership skills."
+Good: "Practice saying 'I need to think about this' before making decisions, and schedule 15 minutes daily to reflect on what went well."
+
+JSON SCHEMA:
 {
   "ocean": {
-    "insights": ["3-4 key insights about their personality"],
-    "recommendations": ["3-4 specific recommendations"],
-    "nextSteps": ["3-4 actionable next steps"]
+    "context": "Brief personality summary (1-2 sentences)",
+    "recommendations": [
+      {
+        "title": "Action-oriented title starting with verb",
+        "description": "Specific behavioral instruction with timing/frequency",
+        "nextSteps": ["Immediate action items (max 3)"]
+      }
+    ]
   },
   "culture": {
-    "insights": ["3-4 key insights about their work style preferences"],
-    "recommendations": ["3-4 specific recommendations"],
-    "nextSteps": ["3-4 actionable next steps"]
+    "context": "Brief work style summary (1-2 sentences)",
+    "recommendations": [
+      {
+        "title": "Action-oriented title starting with verb",
+        "description": "Specific behavioral instruction with timing/frequency", 
+        "nextSteps": ["Immediate action items (max 3)"]
+      }
+    ]
   },
   "values": {
-    "insights": ["3-4 key insights about their work values"],
-    "recommendations": ["3-4 specific recommendations"],
-    "nextSteps": ["3-4 actionable next steps"]
-  },
-  "overall": {
-    "summary": "A comprehensive summary paragraph",
-    "keyStrengths": ["3-4 key strengths"],
-    "developmentAreas": ["3-4 areas for development"],
-    "careerSuggestions": ["3-4 career path suggestions"]
+    "context": "Brief values summary (1-2 sentences)",
+    "recommendations": [
+      {
+        "title": "Action-oriented title starting with verb",
+        "description": "Specific behavioral instruction with timing/frequency",
+        "nextSteps": ["Immediate action items (max 3)"]
+      }
+    ]
   }
 }
 
-Make the recommendations specific, actionable, and tailored to their scores. Focus on practical advice they can implement immediately.
+Each recommendation must:
+- Start with an action verb
+- Include specific timing/frequency
+- Be immediately actionable
+- Focus on behaviors, not job titles
+- Be personal and relatable
     `;
   }
 
@@ -170,6 +201,39 @@ Make the recommendations specific, actionable, and tailored to their scores. Foc
       console.error('Error parsing AI response:', error);
       throw new Error('Failed to parse AI response');
     }
+  }
+
+  private static validateRecommendationQuality(recommendations: any): boolean {
+    const bannedPhrases = [
+      'innovation team', 'product squad', 'agile', 'mvp', 'hackathon',
+      'join a team', 'find a role', 'career path', 'department', 'methodology',
+      'become a', 'work in', 'pursue a career', 'get into'
+    ];
+
+    const text = JSON.stringify(recommendations).toLowerCase();
+    
+    // Check for banned phrases
+    for (const phrase of bannedPhrases) {
+      if (text.includes(phrase)) {
+        console.warn(`Found banned phrase in recommendations: ${phrase}`);
+        return false;
+      }
+    }
+
+    // Check for action verbs in titles
+    const actionVerbs = ['schedule', 'block', 'practice', 'start', 'create', 'build', 'develop', 'explore', 'dedicate', 'set', 'establish'];
+    let hasActionVerbs = false;
+    
+    if (recommendations.ocean?.recommendations) {
+      for (const rec of recommendations.ocean.recommendations) {
+        if (rec.title && actionVerbs.some(verb => rec.title.toLowerCase().startsWith(verb))) {
+          hasActionVerbs = true;
+          break;
+        }
+      }
+    }
+
+    return hasActionVerbs;
   }
 
   private static validateAndFormatRecommendations(data: any): AIRecommendations {
@@ -335,7 +399,7 @@ IMPORTANT: Write 3-4 short, clear insights (max 100 characters each). Use simple
 - How the team works best together
 - Key dynamics to leverage
 
-Avoid complex sentences and jargon. Make it scannable and actionable.
+Avoid complex sentences and jargon. Make it scannable and actionable. Focus on behaviors and team dynamics, not job titles or corporate structures.
       `;
 
       const completion = await getOpenAI().chat.completions.create({
@@ -343,7 +407,7 @@ Avoid complex sentences and jargon. Make it scannable and actionable.
         messages: [
           {
             role: "system",
-            content: "You are an expert in team dynamics. Write concise, readable insights that are easy to scan and understand. Use simple language and short sentences. Focus on practical, actionable observations about team dynamics."
+            content: "You are an expert in team dynamics. Write concise, readable insights that are easy to scan and understand. Use simple language and short sentences. Focus on practical, actionable observations about team dynamics and behaviors. Avoid corporate jargon and focus on how people actually work together."
           },
           {
             role: "user",
