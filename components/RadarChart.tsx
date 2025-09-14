@@ -21,14 +21,25 @@ type Item = {
 const getTrait = (d: Item) => (d.trait ?? d.name ?? "");
 const getScore = (d: Item) => (typeof d.score === "number" ? d.score : (d.value ?? 0));
 
-// Multi-line tick for long labels
+// Multi-line tick for long labels with more human styling
 const PolarTick: React.FC<any> = ({ x, y, payload }) => {
   const text = String(payload.value);
   const words = text.split(" ");
   return (
-    <text x={x} y={y} textAnchor="middle" dominantBaseline="central" style={{ fontSize: 12 }}>
+    <text 
+      x={x} 
+      y={y} 
+      textAnchor="middle" 
+      dominantBaseline="central" 
+      style={{ 
+        fontSize: 13,
+        fontWeight: 500,
+        fill: '#374151',
+        fontFamily: 'system-ui, -apple-system, sans-serif'
+      }}
+    >
       {words.map((w: string, i: number) => (
-        <tspan key={i} x={x} dy={i === 0 ? 0 : 14}>
+        <tspan key={i} x={x} dy={i === 0 ? 0 : 16}>
           {w}
         </tspan>
       ))}
@@ -68,18 +79,44 @@ export default function RadarChart({ data, title, size = 500, color = '#3B82F6' 
         <div className="w-full h-[340px] overflow-visible">
           <ResponsiveContainer width="100%" height="100%">
             <RechartsRadarChart data={mapped} margin={{ top: 24, right: 32, bottom: 36, left: 32 }}>
-              <PolarGrid />
-              <PolarAngleAxis dataKey="trait" tick={<PolarTick />} />
-              <PolarRadiusAxis angle={30} domain={[0, 100]} />
+              <PolarGrid 
+                stroke="#E5E7EB" 
+                strokeWidth={1}
+                opacity={0.3}
+              />
+              <PolarAngleAxis 
+                dataKey="trait" 
+                tick={<PolarTick />}
+                axisLine={false}
+                tickLine={false}
+              />
+              <PolarRadiusAxis 
+                angle={30} 
+                domain={[0, 100]}
+                axisLine={false}
+                tick={false}
+                tickLine={false}
+              />
               <Radar 
                 name="You" 
                 dataKey="score" 
                 stroke={color}
                 fill={color}
-                fillOpacity={0.2}
-                strokeWidth={2}
+                fillOpacity={0.15}
+                strokeWidth={3}
+                dot={{ fill: color, strokeWidth: 0, r: 6 }}
+                activeDot={{ r: 8, stroke: color, strokeWidth: 2, fill: '#fff' }}
               />
-              <Tooltip />
+              <Tooltip 
+                contentStyle={{
+                  backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                  border: '1px solid #E5E7EB',
+                  borderRadius: '8px',
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                  fontSize: '14px'
+                }}
+                formatter={(value, name) => [`${value}%`, 'Score']}
+              />
             </RechartsRadarChart>
           </ResponsiveContainer>
         </div>
