@@ -57,3 +57,11 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* ---- Recharts fixes ---- */
+.recharts-wrapper {
+  overflow: visible !important; /* allow long axis labels to render fully */
+}
+.recharts-surface {
+  overflow: visible !important;
+}

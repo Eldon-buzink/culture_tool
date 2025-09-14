@@ -340,36 +340,37 @@ export default function DemoTeamDashboardHybridPage() {
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">{demoTeamData.name}</h1>
-            <p className="text-gray-600">{demoTeamData.description}</p>
-            <div className="flex items-center gap-4 mt-2">
-              <Badge variant="outline" className="font-mono">{demoTeamData.code}</Badge>
-              <span className="text-sm text-gray-500">
-                Created {new Date(demoTeamData.createdAt).toLocaleDateString('en-US')}
-              </span>
+        <div className="space-y-6">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">{demoTeamData.name}</h1>
+              <p className="text-gray-600">{demoTeamData.description}</p>
+              <div className="flex items-center gap-4 mt-2">
+                <Badge variant="outline" className="font-mono">{demoTeamData.code}</Badge>
+                <span className="text-sm text-gray-500">
+                  Created {new Date(demoTeamData.createdAt).toLocaleDateString('en-US')}
+                </span>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              {isClient && (
+                <Button variant="outline" onClick={() => setShowShareModal(true)}>
+                  <Share2 className="h-4 w-4 mr-2" />
+                  Share
+                </Button>
+              )}
+              {isClient && (
+                <Button onClick={() => setShowInviteModal(true)}>
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Invite Members
+                </Button>
+              )}
             </div>
           </div>
-          <div className="flex gap-3">
-            {isClient && (
-              <Button variant="outline" onClick={() => setShowShareModal(true)}>
-                <Share2 className="h-4 w-4 mr-2" />
-                Share
-              </Button>
-            )}
-            {isClient && (
-              <Button onClick={() => setShowInviteModal(true)}>
-                <UserPlus className="h-4 w-4 mr-2" />
-                Invite Members
-              </Button>
-            )}
-          </div>
-        </div>
 
-        {/* Context Banner */}
-        <ContextBanner />
+          {/* Context Banner */}
+          <ContextBanner />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
@@ -426,9 +427,9 @@ export default function DemoTeamDashboardHybridPage() {
                   {/* Left Column: Radar Chart + Detailed Scores */}
                   <div className="space-y-8">
                     {/* Radar Chart */}
-                    <div className="mb-12">
+                    <div className="mb-8">
                       <h3 className="text-lg font-semibold mb-4">Team Personality Dimensions</h3>
-                      <div className="w-full h-72 p-4">
+                      <div className="w-full h-80 p-4 bg-white rounded-lg border border-gray-200">
                         <RadarChart 
                           data={demoTeamData.aggregateScores.ocean} 
                           color="#3B82F6"
@@ -438,7 +439,7 @@ export default function DemoTeamDashboardHybridPage() {
                     </div>
 
                     {/* Team Style Preferences */}
-                    <div className="mt-12">
+                    <div className="mt-8">
                       <h3 className="text-lg font-semibold mb-4">Team Style Preferences</h3>
                       <div className="space-y-4">
                         {Object.entries(demoTeamData.aggregateScores.ocean).map(([trait, score]) => (
@@ -562,9 +563,9 @@ export default function DemoTeamDashboardHybridPage() {
                   {/* Left Column: Radar Chart + Detailed Scores */}
                   <div className="space-y-8">
                     {/* Radar Chart */}
-                    <div className="mb-12">
+                    <div className="mb-8">
                       <h3 className="text-lg font-semibold mb-4">Team Cultural Dimensions</h3>
-                      <div className="w-full h-72 p-4">
+                      <div className="w-full h-80 p-4 bg-white rounded-lg border border-gray-200">
                         <RadarChart 
                           data={demoTeamData.aggregateScores.culture} 
                           color="#10B981"
@@ -574,7 +575,7 @@ export default function DemoTeamDashboardHybridPage() {
                     </div>
 
                     {/* Team Style Preferences */}
-                    <div className="mt-12">
+                    <div className="mt-8">
                       <h3 className="text-lg font-semibold mb-4">Team Style Preferences</h3>
                       <div className="space-y-4">
                         {Object.entries(demoTeamData.aggregateScores.culture).map(([dimension, score]) => (
@@ -698,9 +699,9 @@ export default function DemoTeamDashboardHybridPage() {
                   {/* Left Column: Radar Chart + Detailed Scores */}
                   <div className="space-y-8">
                     {/* Radar Chart */}
-                    <div className="mb-12">
+                    <div className="mb-8">
                       <h3 className="text-lg font-semibold mb-4">Team Work Values</h3>
-                      <div className="w-full h-72 p-4">
+                      <div className="w-full h-80 p-4 bg-white rounded-lg border border-gray-200">
                         <RadarChart 
                           data={demoTeamData.aggregateScores.values} 
                           color="#F59E0B"
@@ -710,7 +711,7 @@ export default function DemoTeamDashboardHybridPage() {
                     </div>
 
                     {/* Team Style Preferences */}
-                    <div className="mt-12">
+                    <div className="mt-8">
                       <h3 className="text-lg font-semibold mb-4">Team Style Preferences</h3>
                       <div className="space-y-4">
                         {Object.entries(demoTeamData.aggregateScores.values).map(([value, score]) => (
@@ -1141,6 +1142,7 @@ export default function DemoTeamDashboardHybridPage() {
               </CardContent>
             </Card>
 
+          </div>
           </div>
         </div>
       </div>

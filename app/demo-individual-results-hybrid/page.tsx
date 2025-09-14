@@ -139,6 +139,20 @@ export default function DemoIndividualResultsHybridPage() {
     return bandInfo.tagline || 'No explanation available.';
   };
 
+  // Get detailed explanation for style preferences
+  const getDetailedStyleExplanation = (trait: string, score: number) => {
+    const traitKey = trait as Trait;
+    const band = scoreToBand(score);
+    const meta = traitMeta[traitKey];
+    if (!meta) return 'No detailed explanation available.';
+    
+    const bandInfo = meta.bands[band];
+    if (!bandInfo) return 'No detailed explanation available.';
+    
+    // Use tagline as the detailed explanation since description doesn't exist
+    return bandInfo.tagline || 'No detailed explanation available.';
+  };
+
   const getScoreBadgeColor = (score: number) => {
     if (score >= 70) return 'bg-green-100 text-green-800';
     if (score >= 40) return 'bg-yellow-100 text-yellow-800';
@@ -229,29 +243,30 @@ export default function DemoIndividualResultsHybridPage() {
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="container mx-auto px-4 max-w-6xl">
-        {/* Header */}
-        <div className="text-center mb-8 px-4">
-          <div className="inline-flex items-center gap-2 bg-blue-100 text-blue-800 px-4 py-2 rounded-full text-sm font-medium mb-4">
-            <Lightbulb className="h-4 w-4" />
-            Demo Results
+        <div className="space-y-6">
+          {/* Header */}
+          <div className="text-center mb-8 px-4">
+            <div className="inline-flex items-center gap-2 bg-blue-100 text-blue-800 px-4 py-2 rounded-full text-sm font-medium mb-4">
+              <Lightbulb className="h-4 w-4" />
+              Demo Results
+            </div>
+            <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">See What You'll Get</h1>
+            <p className="text-lg md:text-xl text-gray-600 max-w-3xl mx-auto">
+              This is an example of the comprehensive results you'll receive after completing your personality assessment
+            </p>
+            <div className="mt-6">
+              <Button 
+                size="lg" 
+                className="bg-green-600 hover:bg-green-700 px-8 py-3"
+                onClick={() => window.location.href = '/assessment/start-assessment'}
+              >
+                Start Your Assessment Now
+              </Button>
+            </div>
           </div>
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">See What You'll Get</h1>
-          <p className="text-lg md:text-xl text-gray-600 max-w-3xl mx-auto">
-            This is an example of the comprehensive results you'll receive after completing your personality assessment
-          </p>
-          <div className="mt-6">
-            <Button 
-              size="lg" 
-              className="bg-green-600 hover:bg-green-700 px-8 py-3"
-              onClick={() => window.location.href = '/assessment/start-assessment'}
-            >
-              Start Your Assessment Now
-            </Button>
-          </div>
-        </div>
 
-        {/* Context Banner */}
-        <ContextBanner />
+          {/* Context Banner */}
+          <ContextBanner />
 
         {/* OCEAN Section */}
         <Card className="mb-8">
@@ -270,10 +285,10 @@ export default function DemoIndividualResultsHybridPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* Left Column: Radar Chart + Detailed Scores */}
               <div className="space-y-8">
-                {/* Radar Chart - Remove percentage values */}
-                <div className="mb-12">
+                {/* Radar Chart */}
+                <div className="mb-8">
                   <h3 className="text-lg font-semibold mb-4">Your Personality Dimensions</h3>
-                  <div className="w-full h-72 p-4">
+                  <div className="w-full h-80 p-4 bg-white rounded-lg border border-gray-200">
                     <RadarChart
                       data={{
                         'Openness': demoResults.oceanScores.openness,
@@ -287,8 +302,8 @@ export default function DemoIndividualResultsHybridPage() {
                   </div>
                 </div>
 
-                {/* Your Style Preferences - Replace High/Moderate/Low with style labels */}
-                <div className="mt-12">
+                {/* Your Style Preferences */}
+                <div className="mt-8">
                   <h3 className="text-lg font-semibold mb-4">Your Style Preferences</h3>
                   <div className="space-y-4">
                     {Object.entries(demoResults.oceanScores).map(([trait, score]) => (
@@ -327,7 +342,7 @@ export default function DemoIndividualResultsHybridPage() {
                             </Badge>
                           </div>
                           <div className="text-sm text-gray-600 italic">
-                            {getStyleExplanation(trait, score)}
+                            {getDetailedStyleExplanation(trait, score)}
                           </div>
                         </div>
                         <Progress value={score} className="h-2" />
@@ -417,38 +432,6 @@ export default function DemoIndividualResultsHybridPage() {
                   )}
                 </div>
 
-                {/* Conversation Starters - Replace Section Summary */}
-                <div>
-                  <h3 className="text-lg font-semibold mb-4">Conversation Starters</h3>
-                  <div className="space-y-4">
-                    {conversationStarters.map((starter, index) => (
-                      <div key={index} className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                        <button
-                          onClick={() => toggleConversationStarter(index)}
-                          className="w-full p-4 text-left hover:bg-gray-50 transition-colors"
-                        >
-                          <div className="flex items-center justify-between">
-                            <p className="text-gray-700 font-medium">
-                              {starter.question}
-                            </p>
-                            {expandedConversationStarters[index] ? (
-                              <ChevronUp className="h-4 w-4 text-gray-500" />
-                            ) : (
-                              <ChevronDown className="h-4 w-4 text-gray-500" />
-                            )}
-                          </div>
-                        </button>
-                        {expandedConversationStarters[index] && (
-                          <div className="px-4 pb-4 border-t border-gray-100">
-                            <p className="text-sm text-gray-600 mt-2 italic">
-                              {starter.context}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
               </div>
             </div>
           </CardContent>
@@ -472,9 +455,9 @@ export default function DemoIndividualResultsHybridPage() {
               {/* Left Column: Radar Chart + Detailed Scores */}
               <div className="space-y-8">
                 {/* Radar Chart */}
-                <div className="mb-12">
+                <div className="mb-8">
                   <h3 className="text-lg font-semibold mb-4">Your Cultural Dimensions</h3>
-                  <div className="w-full h-72 p-4">
+                  <div className="w-full h-80 p-4 bg-white rounded-lg border border-gray-200">
                     <RadarChart
                       data={{
                         'Power Distance': demoResults.cultureScores.powerDistance,
@@ -490,7 +473,7 @@ export default function DemoIndividualResultsHybridPage() {
                 </div>
 
                 {/* Your Style Preferences */}
-                <div className="mt-12">
+                <div className="mt-8">
                   <h3 className="text-lg font-semibold mb-4">Your Style Preferences</h3>
                   <div className="space-y-4">
                     {Object.entries(demoResults.cultureScores).map(([dimension, score]) => (
@@ -529,7 +512,7 @@ export default function DemoIndividualResultsHybridPage() {
                             </Badge>
                           </div>
                           <div className="text-sm text-gray-600 italic">
-                            {getStyleExplanation(dimension, score)}
+                            {getDetailedStyleExplanation(dimension, score)}
                           </div>
                         </div>
                         <Progress value={score} className="h-2" />
@@ -608,38 +591,6 @@ export default function DemoIndividualResultsHybridPage() {
                   )}
                 </div>
 
-                {/* Conversation Starters */}
-                <div>
-                  <h3 className="text-lg font-semibold mb-4">Conversation Starters</h3>
-                  <div className="space-y-4">
-                    {conversationStarters.map((starter, index) => (
-                      <div key={index} className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                        <button
-                          onClick={() => toggleConversationStarter(index)}
-                          className="w-full p-4 text-left hover:bg-gray-50 transition-colors"
-                        >
-                          <div className="flex items-center justify-between">
-                            <p className="text-gray-700 font-medium">
-                              {starter.question}
-                            </p>
-                            {expandedConversationStarters[index] ? (
-                              <ChevronUp className="h-4 w-4 text-gray-500" />
-                            ) : (
-                              <ChevronDown className="h-4 w-4 text-gray-500" />
-                            )}
-                          </div>
-                        </button>
-                        {expandedConversationStarters[index] && (
-                          <div className="px-4 pb-4 border-t border-gray-100">
-                            <p className="text-sm text-gray-600 mt-2 italic">
-                              {starter.context}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
               </div>
             </div>
           </CardContent>
@@ -663,9 +614,9 @@ export default function DemoIndividualResultsHybridPage() {
               {/* Left Column: Radar Chart + Detailed Scores */}
               <div className="space-y-8">
                 {/* Radar Chart */}
-                <div className="mb-12">
+                <div className="mb-8">
                   <h3 className="text-lg font-semibold mb-4">Your Work Values</h3>
-                  <div className="w-full h-72 p-4">
+                  <div className="w-full h-80 p-4 bg-white rounded-lg border border-gray-200">
                     <RadarChart
                       data={{
                         'Innovation': demoResults.valuesScores.innovation,
@@ -680,7 +631,7 @@ export default function DemoIndividualResultsHybridPage() {
                 </div>
 
                 {/* Your Style Preferences */}
-                <div className="mt-12">
+                <div className="mt-8">
                   <h3 className="text-lg font-semibold mb-4">Your Style Preferences</h3>
                   <div className="space-y-4">
                     {Object.entries(demoResults.valuesScores).map(([value, score]) => (
@@ -719,7 +670,7 @@ export default function DemoIndividualResultsHybridPage() {
                             </Badge>
                           </div>
                           <div className="text-sm text-gray-600 italic">
-                            {getStyleExplanation(value, score)}
+                            {getDetailedStyleExplanation(value, score)}
                           </div>
                         </div>
                         <Progress value={score} className="h-2" />
@@ -798,36 +749,452 @@ export default function DemoIndividualResultsHybridPage() {
                   )}
                 </div>
 
-                {/* Conversation Starters */}
-                <div>
-                  <h3 className="text-lg font-semibold mb-4">Conversation Starters</h3>
-                  <div className="space-y-4">
-                    {conversationStarters.map((starter, index) => (
-                      <div key={index} className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                        <button
-                          onClick={() => toggleConversationStarter(index)}
-                          className="w-full p-4 text-left hover:bg-gray-50 transition-colors"
-                        >
-                          <div className="flex items-center justify-between">
-                            <p className="text-gray-700 font-medium">
-                              {starter.question}
-                            </p>
-                            {expandedConversationStarters[index] ? (
-                              <ChevronUp className="h-4 w-4 text-gray-500" />
-                            ) : (
-                              <ChevronDown className="h-4 w-4 text-gray-500" />
-                            )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Overall Summary Section */}
+        <Card className="mb-8">
+          <CardHeader>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-indigo-100 rounded-lg">
+                <Award className="h-6 w-6 text-indigo-600" />
+              </div>
+              <div>
+                <CardTitle className="text-2xl">Your Complete Profile Summary</CardTitle>
+                <p className="text-gray-600">A comprehensive overview of your personality, cultural preferences, and work values</p>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-8">
+              {/* Overall Summary */}
+              <div className="p-6 bg-gradient-to-r from-indigo-50 to-blue-50 rounded-lg border border-indigo-200">
+                <div className="flex items-start gap-4">
+                  <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                    <Lightbulb className="h-5 w-5 text-indigo-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-indigo-900 mb-3">Your Unique Profile</h3>
+                    <p className="text-indigo-800 leading-relaxed">
+                      You're a <strong>Frontier-seeker</strong> with high openness to new experiences and strong extraversion, 
+                      making you naturally drawn to creative, social environments. Your moderate conscientiousness allows you 
+                      to balance planning with flexibility, while your high agreeableness makes you an excellent team player. 
+                      Your low neuroticism indicates emotional stability and stress resilience.
+                    </p>
+                    <p className="text-indigo-800 leading-relaxed mt-3">
+                      Culturally, you prefer <strong>egalitarian work environments</strong> with low power distance and high 
+                      individualism, indicating you value autonomy within collaborative settings. Your work values center around 
+                      <strong>innovation and quality</strong>, with a strong customer focus and appreciation for both collaboration 
+                      and independence.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Key Strengths */}
+              <div>
+                <h4 className="text-lg font-semibold text-gray-900 mb-4">Key Strengths</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-3">
+                    <div className="flex items-start gap-3 p-4 bg-green-50 rounded-lg border border-green-200">
+                      <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
+                      <div>
+                        <h5 className="font-medium text-green-900">Creative Problem Solver</h5>
+                        <p className="text-sm text-green-700">Your high openness and innovation focus make you excellent at finding creative solutions</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3 p-4 bg-green-50 rounded-lg border border-green-200">
+                      <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
+                      <div>
+                        <h5 className="font-medium text-green-900">Natural Collaborator</h5>
+                        <p className="text-sm text-green-700">Your extraversion and agreeableness make you a great team player and communicator</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3 p-4 bg-green-50 rounded-lg border border-green-200">
+                      <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
+                      <div>
+                        <h5 className="font-medium text-green-900">Quality Focused</h5>
+                        <p className="text-sm text-green-700">Your work values emphasize excellence and attention to detail</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="flex items-start gap-3 p-4 bg-green-50 rounded-lg border border-green-200">
+                      <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
+                      <div>
+                        <h5 className="font-medium text-green-900">Adaptable Leader</h5>
+                        <p className="text-sm text-green-700">Your balanced conscientiousness allows you to lead with both structure and flexibility</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3 p-4 bg-green-50 rounded-lg border border-green-200">
+                      <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
+                      <div>
+                        <h5 className="font-medium text-green-900">Customer-Centric</h5>
+                        <p className="text-sm text-green-700">Your strong customer focus drives you to deliver value to others</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3 p-4 bg-green-50 rounded-lg border border-green-200">
+                      <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
+                      <div>
+                        <h5 className="font-medium text-green-900">Emotionally Stable</h5>
+                        <p className="text-sm text-green-700">Your low neuroticism helps you stay calm and focused under pressure</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Development Areas */}
+              <div>
+                <h4 className="text-lg font-semibold text-gray-900 mb-4">Areas for Growth</h4>
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                    <div className="w-2 h-2 bg-yellow-500 rounded-full mt-2 flex-shrink-0"></div>
+                    <div>
+                      <h5 className="font-medium text-yellow-900">Structured Planning</h5>
+                      <p className="text-sm text-yellow-700">Consider developing more detailed planning approaches to complement your flexible nature</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                    <div className="w-2 h-2 bg-yellow-500 rounded-full mt-2 flex-shrink-0"></div>
+                    <div>
+                      <h5 className="font-medium text-yellow-900">Risk Management</h5>
+                      <p className="text-sm text-yellow-700">Your openness to new experiences is great, but consider balancing it with risk assessment</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Top Recommendations */}
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="font-semibold text-gray-900">Top Recommendations</h4>
+                </div>
+                <div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                  <p className="text-sm text-gray-600">
+                    <strong>How we generated these recommendations:</strong> Based on your personality profile, 
+                    cultural preferences, and work values, we identified areas where you can maximize your potential 
+                    and career satisfaction. Each recommendation addresses specific patterns we found in your assessment data.
+                  </p>
+                </div>
+                <div className="space-y-4">
+                  <div className="border border-gray-200 rounded-lg overflow-hidden">
+                    <button
+                      onClick={() => toggleRecommendation('summary', 0)}
+                      className="w-full p-4 text-left hover:bg-gray-50 transition-colors"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between mb-2">
+                            <h5 className="font-medium text-gray-900">Leverage Your Creative and Social Strengths</h5>
+                            <div className="flex gap-2">
+                              <Badge className="bg-green-100 text-green-700 text-xs">High Impact</Badge>
+                              <Badge className="bg-blue-100 text-blue-700 text-xs">Low Effort</Badge>
+                            </div>
                           </div>
-                        </button>
-                        {expandedConversationStarters[index] && (
-                          <div className="px-4 pb-4 border-t border-gray-100">
-                            <p className="text-sm text-gray-600 mt-2 italic">
-                              {starter.context}
-                            </p>
-                          </div>
+                          <p className="text-sm text-gray-600">Focus on roles that combine your high openness, extraversion, and innovation values to maximize your natural talents and job satisfaction.</p>
+                        </div>
+                        {expandedRecommendations['summary-0'] ? (
+                          <ChevronUp className="h-5 w-5 text-gray-500 ml-4" />
+                        ) : (
+                          <ChevronDown className="h-5 w-5 text-gray-500 ml-4" />
                         )}
                       </div>
-                    ))}
+                    </button>
+                    {expandedRecommendations['summary-0'] && (
+                      <div className="px-4 pb-4 border-t border-gray-100 bg-gray-50">
+                        <div className="space-y-4">
+                          <div>
+                            <h6 className="font-medium text-gray-900 text-sm mb-2">Why This Matters</h6>
+                            <p className="text-sm text-gray-600">
+                              This recommendation addresses your unique combination of high openness (78), extraversion (72), 
+                              and innovation values (82). These traits work together to make you naturally effective in creative, 
+                              social, and forward-thinking roles.
+                            </p>
+                          </div>
+                          <div>
+                            <h6 className="font-medium text-gray-900 text-sm mb-2">Next Steps</h6>
+                            <ul className="text-sm text-gray-600 space-y-1 ml-4">
+                              <li className="flex items-start gap-2">
+                                <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                                Identify current projects where you can apply creative problem-solving
+                              </li>
+                              <li className="flex items-start gap-2">
+                                <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                                Seek opportunities to lead brainstorming sessions or innovation initiatives
+                              </li>
+                              <li className="flex items-start gap-2">
+                                <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                                Look for roles that involve client interaction or team collaboration
+                              </li>
+                            </ul>
+                          </div>
+                          <div>
+                            <h6 className="font-medium text-gray-900 text-sm mb-2">Try This</h6>
+                            <ul className="text-sm text-gray-600 space-y-1 ml-4">
+                              <li className="flex items-start gap-2">
+                                <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                                Volunteer for cross-functional projects that require creative solutions
+                              </li>
+                              <li className="flex items-start gap-2">
+                                <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                                Start a monthly "innovation hour" where you explore new ideas or approaches
+                              </li>
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="border border-gray-200 rounded-lg overflow-hidden">
+                    <button
+                      onClick={() => toggleRecommendation('summary', 1)}
+                      className="w-full p-4 text-left hover:bg-gray-50 transition-colors"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between mb-2">
+                            <h5 className="font-medium text-gray-900">Find Your Ideal Work Environment</h5>
+                            <div className="flex gap-2">
+                              <Badge className="bg-green-100 text-green-700 text-xs">High Impact</Badge>
+                              <Badge className="bg-yellow-100 text-yellow-700 text-xs">Medium Effort</Badge>
+                            </div>
+                          </div>
+                          <p className="text-sm text-gray-600">Seek organizations with flat hierarchies, clear communication, and opportunities for both autonomy and collaboration.</p>
+                        </div>
+                        {expandedRecommendations['summary-1'] ? (
+                          <ChevronUp className="h-5 w-5 text-gray-500 ml-4" />
+                        ) : (
+                          <ChevronDown className="h-5 w-5 text-gray-500 ml-4" />
+                        )}
+                      </div>
+                    </button>
+                    {expandedRecommendations['summary-1'] && (
+                      <div className="px-4 pb-4 border-t border-gray-100 bg-gray-50">
+                        <div className="space-y-4">
+                          <div>
+                            <h6 className="font-medium text-gray-900 text-sm mb-2">Why This Matters</h6>
+                            <p className="text-sm text-gray-600">
+                              Your cultural preferences show low power distance (42) and high individualism (71), meaning you 
+                              work best in egalitarian environments where you can contribute independently while collaborating 
+                              with others. This environment will maximize your productivity and job satisfaction.
+                            </p>
+                          </div>
+                          <div>
+                            <h6 className="font-medium text-gray-900 text-sm mb-2">Next Steps</h6>
+                            <ul className="text-sm text-gray-600 space-y-1 ml-4">
+                              <li className="flex items-start gap-2">
+                                <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                                Research company cultures before applying to new positions
+                              </li>
+                              <li className="flex items-start gap-2">
+                                <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                                Ask about organizational structure and communication styles in interviews
+                              </li>
+                              <li className="flex items-start gap-2">
+                                <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                                Look for companies that value individual initiative and transparent communication
+                              </li>
+                            </ul>
+                          </div>
+                          <div>
+                            <h6 className="font-medium text-gray-900 text-sm mb-2">Try This</h6>
+                            <ul className="text-sm text-gray-600 space-y-1 ml-4">
+                              <li className="flex items-start gap-2">
+                                <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                                Network with current employees to understand company culture
+                              </li>
+                              <li className="flex items-start gap-2">
+                                <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                                Look for companies with open-door policies and flat organizational structures
+                              </li>
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="border border-gray-200 rounded-lg overflow-hidden">
+                    <button
+                      onClick={() => toggleRecommendation('summary', 2)}
+                      className="w-full p-4 text-left hover:bg-gray-50 transition-colors"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between mb-2">
+                            <h5 className="font-medium text-gray-900">Develop Structured Planning Skills</h5>
+                            <div className="flex gap-2">
+                              <Badge className="bg-yellow-100 text-yellow-700 text-xs">Medium Impact</Badge>
+                              <Badge className="bg-blue-100 text-blue-700 text-xs">Medium Effort</Badge>
+                            </div>
+                          </div>
+                          <p className="text-sm text-gray-600">Balance your natural flexibility with more structured planning approaches to complement your creative strengths.</p>
+                        </div>
+                        {expandedRecommendations['summary-2'] ? (
+                          <ChevronUp className="h-5 w-5 text-gray-500 ml-4" />
+                        ) : (
+                          <ChevronDown className="h-5 w-5 text-gray-500 ml-4" />
+                        )}
+                      </div>
+                    </button>
+                    {expandedRecommendations['summary-2'] && (
+                      <div className="px-4 pb-4 border-t border-gray-100 bg-gray-50">
+                        <div className="space-y-4">
+                          <div>
+                            <h6 className="font-medium text-gray-900 text-sm mb-2">Why This Matters</h6>
+                            <p className="text-sm text-gray-600">
+                              Your moderate conscientiousness (65) gives you flexibility but could benefit from more structured 
+                              approaches. This will help you balance your creative openness with the discipline needed to bring 
+                              ideas to completion.
+                            </p>
+                          </div>
+                          <div>
+                            <h6 className="font-medium text-gray-900 text-sm mb-2">Next Steps</h6>
+                            <ul className="text-sm text-gray-600 space-y-1 ml-4">
+                              <li className="flex items-start gap-2">
+                                <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                                Learn project management methodologies like Agile or Scrum
+                              </li>
+                              <li className="flex items-start gap-2">
+                                <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                                Create flexible frameworks that allow creativity within structure
+                              </li>
+                              <li className="flex items-start gap-2">
+                                <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                                Set up regular check-ins to track progress on creative projects
+                              </li>
+                            </ul>
+                          </div>
+                          <div>
+                            <h6 className="font-medium text-gray-900 text-sm mb-2">Try This</h6>
+                            <ul className="text-sm text-gray-600 space-y-1 ml-4">
+                              <li className="flex items-start gap-2">
+                                <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                                Use time-blocking to dedicate specific hours to creative work
+                              </li>
+                              <li className="flex items-start gap-2">
+                                <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                                Create milestone-based goals for long-term projects
+                              </li>
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Conversation Starters */}
+              <div>
+                <h4 className="text-lg font-semibold text-gray-900 mb-4">Reflection Questions</h4>
+                <div className="space-y-4">
+                  <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                    <button
+                      onClick={() => toggleConversationStarter(0)}
+                      className="w-full p-4 text-left hover:bg-gray-50 transition-colors"
+                    >
+                      <div className="flex items-center justify-between">
+                        <p className="text-gray-700 font-medium">
+                          How can you leverage your creative and social strengths in your current role?
+                        </p>
+                        {expandedConversationStarters[0] ? (
+                          <ChevronUp className="h-4 w-4 text-gray-500" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4 text-gray-500" />
+                        )}
+                      </div>
+                    </button>
+                    {expandedConversationStarters[0] && (
+                      <div className="px-4 pb-4 border-t border-gray-100">
+                        <p className="text-sm text-gray-600 mt-2 italic">
+                          This question helps you identify specific ways to apply your high openness and extraversion in your work. 
+                          Consider roles that involve brainstorming, client interaction, or leading creative projects.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                    <button
+                      onClick={() => toggleConversationStarter(1)}
+                      className="w-full p-4 text-left hover:bg-gray-50 transition-colors"
+                    >
+                      <div className="flex items-center justify-between">
+                        <p className="text-gray-700 font-medium">
+                          What type of work environment would best support your need for autonomy and collaboration?
+                        </p>
+                        {expandedConversationStarters[1] ? (
+                          <ChevronUp className="h-4 w-4 text-gray-500" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4 text-gray-500" />
+                        )}
+                      </div>
+                    </button>
+                    {expandedConversationStarters[1] && (
+                      <div className="px-4 pb-4 border-t border-gray-100">
+                        <p className="text-sm text-gray-600 mt-2 italic">
+                          Your cultural preferences suggest you work best in flat organizational structures with clear communication 
+                          and opportunities for individual contribution within team contexts.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                    <button
+                      onClick={() => toggleConversationStarter(2)}
+                      className="w-full p-4 text-left hover:bg-gray-50 transition-colors"
+                    >
+                      <div className="flex items-center justify-between">
+                        <p className="text-gray-700 font-medium">
+                          How can you align your career goals with your values of innovation, quality, and customer focus?
+                        </p>
+                        {expandedConversationStarters[2] ? (
+                          <ChevronUp className="h-4 w-4 text-gray-500" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4 text-gray-500" />
+                        )}
+                      </div>
+                    </button>
+                    {expandedConversationStarters[2] && (
+                      <div className="px-4 pb-4 border-t border-gray-100">
+                        <p className="text-sm text-gray-600 mt-2 italic">
+                          Look for roles in product development, innovation teams, or customer-facing positions where you can 
+                          combine your creative problem-solving skills with your commitment to quality and service.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                    <button
+                      onClick={() => toggleConversationStarter(3)}
+                      className="w-full p-4 text-left hover:bg-gray-50 transition-colors"
+                    >
+                      <div className="flex items-center justify-between">
+                        <p className="text-gray-700 font-medium">
+                          What strategies can help you balance your openness to new ideas with structured planning?
+                        </p>
+                        {expandedConversationStarters[3] ? (
+                          <ChevronUp className="h-4 w-4 text-gray-500" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4 text-gray-500" />
+                        )}
+                      </div>
+                    </button>
+                    {expandedConversationStarters[3] && (
+                      <div className="px-4 pb-4 border-t border-gray-100">
+                        <p className="text-sm text-gray-600 mt-2 italic">
+                          Consider creating flexible frameworks that allow for creativity while maintaining some structure. 
+                          This could involve setting broad goals with room for experimentation or using agile methodologies.
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -863,6 +1230,7 @@ export default function DemoIndividualResultsHybridPage() {
             </div>
           </CardContent>
         </Card>
+        </div>
       </div>
     </div>
   );

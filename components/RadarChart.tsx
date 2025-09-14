@@ -1,6 +1,15 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import {
+  ResponsiveContainer,
+  RadarChart as RechartsRadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  Radar,
+  Tooltip,
+} from "recharts";
 
 interface RadarChartProps {
   data: Record<string, number>;
@@ -9,196 +18,158 @@ interface RadarChartProps {
   color?: string;
 }
 
-
+// Break long labels nicely on small widths (split on spaces)
+const PolarTick: React.FC<any> = ({ x, y, payload }) => {
+  const words = String(payload.value).split(" ");
+  return (
+    <text x={x} y={y} textAnchor="middle" dominantBaseline="central" style={{ fontSize: 12 }}>
+      {words.map((w: string, i: number) => (
+        <tspan key={i} x={x} dy={i === 0 ? 0 : 14}>
+          {w}
+        </tspan>
+      ))}
+    </text>
+  );
+};
 
 export default function RadarChart({ data, title, size = 500, color = '#3B82F6' }: RadarChartProps) {
-  const centerX = size / 2;
-  const centerY = size / 2;
-  const radius = (size * 0.18); // Reduced radius to make more room for labels
-  
-  const labels = Object.keys(data);
-  const values = Object.values(data);
-  
-  // Calculate points for the radar chart
-  const points = labels.map((label, index) => {
-    const angle = (index * 2 * Math.PI) / labels.length - Math.PI / 2;
-    const value = values[index] / 100; // Normalize to 0-1
-    const x = centerX + Math.cos(angle) * radius * value;
-    const y = centerY + Math.sin(angle) * radius * value;
-    return { x, y, label, value: values[index] };
-  });
+  const [isClient, setIsClient] = useState(false);
 
-  // Create the polygon path
-  const polygonPoints = points.map(point => `${point.x},${point.y}`).join(' ');
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
-  // Create grid circles
-  const gridCircles = [0.2, 0.4, 0.6, 0.8, 1.0].map((scale, index) => (
-    <circle
-      key={index}
-      cx={centerX}
-      cy={centerY}
-      r={radius * scale}
-      fill="none"
-      stroke="#E5E7EB"
-      strokeWidth="1"
-      opacity="0.5"
-    />
-  ));
+  // Convert data to Recharts format
+  const chartData = Object.entries(data).map(([trait, score]) => ({
+    trait: trait.charAt(0).toUpperCase() + trait.slice(1).replace(/([A-Z])/g, ' $1').trim(),
+    score: score
+  }));
 
-  // Create axis lines
-  const axisLines = labels.map((label, index) => {
-    const angle = (index * 2 * Math.PI) / labels.length - Math.PI / 2;
-    const x = centerX + Math.cos(angle) * radius;
-    const y = centerY + Math.sin(angle) * radius;
+
+  // Fallback if no data
+  if (!chartData || chartData.length === 0) {
     return (
-      <line
-        key={index}
-        x1={centerX}
-        y1={centerY}
-        x2={x}
-        y2={y}
-        stroke="#E5E7EB"
-        strokeWidth="1"
-        opacity="0.5"
-      />
+      <div className="w-full h-80 flex items-center justify-center text-gray-500">
+        <p>No data available for radar chart</p>
+      </div>
     );
-  });
+  }
 
-  // Create labels with better positioning and text wrapping
-  const labelElements = points.map((point, index) => {
-    const angle = (index * 2 * Math.PI) / labels.length - Math.PI / 2;
-    const labelRadius = radius + 70; // Reduced radius for labels to bring them closer
-    const x = centerX + Math.cos(angle) * labelRadius;
-    const y = centerY + Math.sin(angle) * labelRadius;
-    
-    // Determine text anchor and alignment based on position
-    let textAnchor: 'start' | 'middle' | 'end' | 'inherit' | undefined = 'middle';
-    let dominantBaseline:
-      | 'alphabetic'
-      | 'hanging'
-      | 'ideographic'
-      | 'mathematical'
-      | 'middle'
-      | 'auto'
-      | 'inherit'
-      | 'use-script'
-      | 'no-change'
-      | 'reset-size'
-      | 'central'
-      | 'text-after-edge'
-      | 'text-before-edge'
-      | undefined = 'middle';
-    
-    if (Math.abs(Math.cos(angle)) > 0.7) {
-      // Left or right side
-      textAnchor = Math.cos(angle) > 0 ? 'start' : 'end';
-      dominantBaseline = 'middle';
-    } else if (Math.abs(Math.sin(angle)) > 0.7) {
-      // Top or bottom
-      textAnchor = 'middle';
-      dominantBaseline = Math.sin(angle) > 0 ? 'hanging' : 'auto';
-    }
-    
-    // Format label text with better spacing and handle long words
-    const formatLabel = (label: string) => {
-      const formatted = label.replace('_', ' ').split(' ').map(word => 
-        word.charAt(0).toUpperCase() + word.slice(1)
-      ).join(' ');
-      
-      // For very long words, add line breaks
-      if (formatted.length > 8) {
-        const words = formatted.split(' ');
-        if (words.length > 1) {
-          const mid = Math.ceil(words.length / 2);
-          return words.slice(0, mid).join(' ') + '\n' + words.slice(mid).join(' ');
-        }
-      }
-      return formatted;
-    };
-    
-    const labelText = formatLabel(point.label);
-    const lines = labelText.split('\n');
-    
-    // Calculate position for question mark icon
-    const iconOffset = 15; // Distance from label text
-    let iconX = x;
-    let iconY = y;
-    
-    // Position icon based on label position
-    if (Math.abs(Math.cos(angle)) > 0.7) {
-      // Left or right side
-      iconX = x + (Math.cos(angle) > 0 ? iconOffset : -iconOffset);
-      iconY = y;
-    } else if (Math.abs(Math.sin(angle)) > 0.7) {
-      // Top or bottom
-      iconX = x;
-      iconY = y + (Math.sin(angle) > 0 ? iconOffset : -iconOffset);
-    }
-    
+  // Show a simple chart representation during SSR
+  if (!isClient) {
     return (
-      <g key={index}>
-        {lines.map((line, lineIndex) => (
-          <text
-            key={lineIndex}
-            x={x}
-            y={y + (lineIndex - (lines.length - 1) / 2) * 18}
-            textAnchor={textAnchor}
-            dominantBaseline={dominantBaseline}
-            className="text-sm font-medium fill-gray-700"
-            style={{ fontSize: '13px' }}
-          >
-            {line}
-          </text>
-        ))}
-        
-
-      </g>
+      <div className="w-full h-80 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-64 h-64 mx-auto mb-4 relative">
+            <svg width="256" height="256" viewBox="0 0 256 256" className="w-full h-full">
+              {/* Grid circles */}
+              <circle cx="128" cy="128" r="20" fill="none" stroke="#E5E7EB" strokeWidth="1" opacity="0.5" />
+              <circle cx="128" cy="128" r="40" fill="none" stroke="#E5E7EB" strokeWidth="1" opacity="0.5" />
+              <circle cx="128" cy="128" r="60" fill="none" stroke="#E5E7EB" strokeWidth="1" opacity="0.5" />
+              <circle cx="128" cy="128" r="80" fill="none" stroke="#E5E7EB" strokeWidth="1" opacity="0.5" />
+              <circle cx="128" cy="128" r="100" fill="none" stroke="#E5E7EB" strokeWidth="1" opacity="0.5" />
+              
+              {/* Axis lines */}
+              {chartData.map((_, index) => {
+                const angle = (index * 2 * Math.PI) / chartData.length - Math.PI / 2;
+                const x = 128 + Math.cos(angle) * 100;
+                const y = 128 + Math.sin(angle) * 100;
+                return (
+                  <line
+                    key={index}
+                    x1="128"
+                    y1="128"
+                    x2={x}
+                    y2={y}
+                    stroke="#E5E7EB"
+                    strokeWidth="1"
+                    opacity="0.5"
+                  />
+                );
+              })}
+              
+              {/* Data polygon */}
+              <polygon
+                points={chartData.map((item, index) => {
+                  const angle = (index * 2 * Math.PI) / chartData.length - Math.PI / 2;
+                  const value = item.score / 100;
+                  const x = 128 + Math.cos(angle) * 100 * value;
+                  const y = 128 + Math.sin(angle) * 100 * value;
+                  return `${x},${y}`;
+                }).join(' ')}
+                fill={color}
+                fillOpacity="0.2"
+                stroke={color}
+                strokeWidth="2"
+              />
+              
+              {/* Data points */}
+              {chartData.map((item, index) => {
+                const angle = (index * 2 * Math.PI) / chartData.length - Math.PI / 2;
+                const value = item.score / 100;
+                const x = 128 + Math.cos(angle) * 100 * value;
+                const y = 128 + Math.sin(angle) * 100 * value;
+                return (
+                  <circle
+                    key={index}
+                    cx={x}
+                    cy={y}
+                    r="4"
+                    fill={color}
+                    stroke="white"
+                    strokeWidth="2"
+                  />
+                );
+              })}
+              
+              {/* Labels */}
+              {chartData.map((item, index) => {
+                const angle = (index * 2 * Math.PI) / chartData.length - Math.PI / 2;
+                const x = 128 + Math.cos(angle) * 120;
+                const y = 128 + Math.sin(angle) * 120;
+                return (
+                  <text
+                    key={index}
+                    x={x}
+                    y={y}
+                    textAnchor="middle"
+                    dominantBaseline="central"
+                    className="text-xs font-medium fill-gray-700"
+                    style={{ fontSize: '10px' }}
+                  >
+                    {item.trait}
+                  </text>
+                );
+              })}
+            </svg>
+          </div>
+          <p className="text-sm text-gray-500">Interactive chart loading...</p>
+        </div>
+      </div>
     );
-  });
-
-  // Create value labels - moved closer to data points (removed for cleaner look)
-  const valueLabels: JSX.Element[] = [];
+  }
 
   return (
-    <div className="bg-white rounded-lg p-6 pt-4 shadow-sm">
-      {title && <h3 className="text-lg font-semibold text-gray-900 mb-0 text-center">{title}</h3>}
-      <div className="flex justify-center mb-4 -mt-4">
-        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ marginTop: '-20px' }}>
-          {/* Grid circles */}
-          {gridCircles}
-          
-          {/* Axis lines */}
-          {axisLines}
-          
-          {/* Radar polygon */}
-          <polygon
-            points={polygonPoints}
-            fill={color}
-            fillOpacity="0.2"
+    <div className="w-full" style={{ minHeight: 320 }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <RechartsRadarChart
+          data={chartData}
+          margin={{ top: 24, right: 32, bottom: 32, left: 32 }}
+        >
+          <PolarGrid />
+          <PolarAngleAxis dataKey="trait" tick={<PolarTick />} />
+          <PolarRadiusAxis domain={[0, 100]} />
+          <Radar
+            name="Score"
+            dataKey="score"
             stroke={color}
-            strokeWidth="2"
+            fill={color}
+            fillOpacity={0.2}
+            strokeWidth={2}
           />
-          
-          {/* Data points */}
-          {points.map((point, index) => (
-            <circle
-              key={index}
-              cx={point.x}
-              cy={point.y}
-              r="4"
-              fill={color}
-              stroke="white"
-              strokeWidth="2"
-            />
-          ))}
-          
-          {/* Labels */}
-          {labelElements}
-          
-          {/* Value labels */}
-          {valueLabels}
-        </svg>
-      </div>
+          <Tooltip />
+        </RechartsRadarChart>
+      </ResponsiveContainer>
     </div>
   );
 }

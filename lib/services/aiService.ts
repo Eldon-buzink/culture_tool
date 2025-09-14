@@ -72,7 +72,7 @@ export class AIService {
       // Pre-processing: Apply rules engine to set prompt toggles
       const promptConfig = this.applyPreProcessingRules(scores);
       
-      const prompt = this.buildPrompt(scores, promptConfig);
+      let prompt = this.buildPrompt(scores, promptConfig);
       
       let attempts = 0;
       const maxAttempts = 3;
@@ -86,7 +86,7 @@ export class AIService {
           messages: [
             {
               role: "system",
-              content: `You are a personal development coach who helps people understand themselves and create meaningful habits. You focus on behaviors, rituals, and personal growth rather than job titles or corporate jargon. You write in a warm, encouraging, and immediately actionable way. You avoid generic career advice and instead provide specific, personal recommendations that people can start today.`
+              content: `You are a personal development coach who helps people understand themselves and create meaningful habits. You focus on behaviors, rituals, and personal growth rather than job titles or corporate jargon. You write in a warm, encouraging, and immediately actionable way. You avoid generic career advice and instead provide specific, personal recommendations that people can start today.`                
             },
             {
               role: "user",
@@ -112,11 +112,11 @@ export class AIService {
           const improvedRecommendations = await this.applyCriticPass(recommendations, scores);
           return improvedRecommendations;
         } else {
-          console.warn(`Recommendation quality check failed (attempt ${attempts}):`, validationResult.issues);
+          console.warn(`Recommendation quality check failed (attempt ${attempts}):`, validationResult.issues);                                                                                                   
           
           if (attempts < maxAttempts) {
             // Add feedback to prompt for next attempt
-            prompt += `\n\nIMPORTANT: Previous attempt had these issues: ${validationResult.issues.join(', ')}. Please address these specific problems.`;
+            prompt += `\n\nIMPORTANT: Previous attempt had these issues: ${validationResult.issues.join(', ')}. Please address these specific problems.`;                                                        
           }
         }
       }
