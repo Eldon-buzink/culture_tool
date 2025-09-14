@@ -156,20 +156,8 @@ export default function RadarChart({ data, title, size = 500, color = '#3B82F6' 
     );
   });
 
-  // Create value labels - moved closer to data points
-  const valueLabels = points.map((point, index) => (
-    <text
-      key={`value-${index}`}
-      x={point.x}
-      y={point.y - 4}
-      textAnchor="middle"
-      dominantBaseline="middle"
-      className="text-xs font-bold fill-gray-800"
-      style={{ fontSize: '11px' }}
-    >
-      {point.value}%
-    </text>
-  ));
+  // Create value labels - moved closer to data points (removed for cleaner look)
+  const valueLabels: JSX.Element[] = [];
 
   return (
     <div className="bg-white rounded-lg p-6 pt-4 shadow-sm">
