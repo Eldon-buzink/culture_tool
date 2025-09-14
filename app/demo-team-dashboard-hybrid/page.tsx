@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import RadarChart from '@/components/RadarChart';
+import dynamic from "next/dynamic";
+const RadarChart = dynamic(() => import("@/components/RadarChart"), { ssr: false });
 import ContextBanner from '@/components/ContextBanner';
 import { RecList } from '@/components/RecList';
 import { scoreToBand, traitMeta, Trait } from '@/lib/interpretation';
@@ -427,15 +428,13 @@ export default function DemoTeamDashboardHybridPage() {
                   {/* Left Column: Radar Chart + Detailed Scores */}
                   <div className="space-y-8">
                     {/* Radar Chart */}
-                    <div className="mb-8">
-                      <h3 className="text-lg font-semibold mb-4">Team Personality Dimensions</h3>
-                      <div className="w-full h-80 p-4 bg-white rounded-lg border border-gray-200">
-                        <RadarChart 
-                          data={demoTeamData.aggregateScores.ocean} 
-                          color="#3B82F6"
-                          size={350}
-                        />
-                      </div>
+                    <div className="mb-8 min-w-0">
+                      <RadarChart 
+                        data={demoTeamData.aggregateScores.ocean} 
+                        color="#3B82F6"
+                        title="Team Personality Dimensions"
+                        size={350}
+                      />
                     </div>
 
                     {/* Team Style Preferences */}
@@ -563,15 +562,13 @@ export default function DemoTeamDashboardHybridPage() {
                   {/* Left Column: Radar Chart + Detailed Scores */}
                   <div className="space-y-8">
                     {/* Radar Chart */}
-                    <div className="mb-8">
-                      <h3 className="text-lg font-semibold mb-4">Team Cultural Dimensions</h3>
-                      <div className="w-full h-80 p-4 bg-white rounded-lg border border-gray-200">
-                        <RadarChart 
-                          data={demoTeamData.aggregateScores.culture} 
-                          color="#10B981"
-                          size={350}
-                        />
-                      </div>
+                    <div className="mb-8 min-w-0">
+                      <RadarChart 
+                        data={demoTeamData.aggregateScores.culture} 
+                        color="#10B981"
+                        title="Team Cultural Dimensions"
+                        size={350}
+                      />
                     </div>
 
                     {/* Team Style Preferences */}
@@ -699,15 +696,13 @@ export default function DemoTeamDashboardHybridPage() {
                   {/* Left Column: Radar Chart + Detailed Scores */}
                   <div className="space-y-8">
                     {/* Radar Chart */}
-                    <div className="mb-8">
-                      <h3 className="text-lg font-semibold mb-4">Team Work Values</h3>
-                      <div className="w-full h-80 p-4 bg-white rounded-lg border border-gray-200">
-                        <RadarChart 
-                          data={demoTeamData.aggregateScores.values} 
-                          color="#F59E0B"
-                          size={350}
-                        />
-                      </div>
+                    <div className="mb-8 min-w-0">
+                      <RadarChart 
+                        data={demoTeamData.aggregateScores.values} 
+                        color="#F59E0B"
+                        title="Team Work Values"
+                        size={350}
+                      />
                     </div>
 
                     {/* Team Style Preferences */}

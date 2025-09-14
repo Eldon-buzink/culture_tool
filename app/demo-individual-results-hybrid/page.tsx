@@ -6,7 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { ChevronDown, ChevronUp, Brain, Users, Target, TrendingUp, TrendingDown, Minus, HelpCircle, Lightbulb, Award, AlertTriangle } from 'lucide-react';
-import RadarChart from '@/components/RadarChart';
+import dynamic from "next/dynamic";
+const RadarChart = dynamic(() => import("@/components/RadarChart"), { ssr: false });
 import ContextBanner from '@/components/ContextBanner';
 import { RecList } from '@/components/RecList';
 import { scoreToBand, traitMeta, Trait } from '@/lib/interpretation';
@@ -286,20 +287,18 @@ export default function DemoIndividualResultsHybridPage() {
               {/* Left Column: Radar Chart + Detailed Scores */}
               <div className="space-y-8">
                 {/* Radar Chart */}
-                <div className="mb-8">
-                  <h3 className="text-lg font-semibold mb-4">Your Personality Dimensions</h3>
-                  <div className="w-full h-80 p-4 bg-white rounded-lg border border-gray-200">
-                    <RadarChart
-                      data={{
-                        'Openness': demoResults.oceanScores.openness,
-                        'Conscientiousness': demoResults.oceanScores.conscientiousness,
-                        'Extraversion': demoResults.oceanScores.extraversion,
-                        'Agreeableness': demoResults.oceanScores.agreeableness,
-                        'Neuroticism': demoResults.oceanScores.neuroticism
-                      }}
-                      size={350}
-                    />
-                  </div>
+                <div className="mb-8 min-w-0">
+                  <RadarChart
+                    data={{
+                      'Openness': demoResults.oceanScores.openness,
+                      'Conscientiousness': demoResults.oceanScores.conscientiousness,
+                      'Extraversion': demoResults.oceanScores.extraversion,
+                      'Agreeableness': demoResults.oceanScores.agreeableness,
+                      'Neuroticism': demoResults.oceanScores.neuroticism
+                    }}
+                    title="Your Personality Dimensions"
+                    size={350}
+                  />
                 </div>
 
                 {/* Your Style Preferences */}
@@ -455,21 +454,19 @@ export default function DemoIndividualResultsHybridPage() {
               {/* Left Column: Radar Chart + Detailed Scores */}
               <div className="space-y-8">
                 {/* Radar Chart */}
-                <div className="mb-8">
-                  <h3 className="text-lg font-semibold mb-4">Your Cultural Dimensions</h3>
-                  <div className="w-full h-80 p-4 bg-white rounded-lg border border-gray-200">
-                    <RadarChart
-                      data={{
-                        'Power Distance': demoResults.cultureScores.powerDistance,
-                        'Individualism': demoResults.cultureScores.individualism,
-                        'Masculinity': demoResults.cultureScores.masculinity,
-                        'Uncertainty Avoidance': demoResults.cultureScores.uncertaintyAvoidance,
-                        'Long-term Orientation': demoResults.cultureScores.longTermOrientation,
-                        'Indulgence': demoResults.cultureScores.indulgence
-                      }}
-                      size={350}
-                    />
-                  </div>
+                <div className="mb-8 min-w-0">
+                  <RadarChart
+                    data={{
+                      'Power Distance': demoResults.cultureScores.powerDistance,
+                      'Individualism': demoResults.cultureScores.individualism,
+                      'Masculinity': demoResults.cultureScores.masculinity,
+                      'Uncertainty Avoidance': demoResults.cultureScores.uncertaintyAvoidance,
+                      'Long-term Orientation': demoResults.cultureScores.longTermOrientation,
+                      'Indulgence': demoResults.cultureScores.indulgence
+                    }}
+                    title="Your Cultural Dimensions"
+                    size={350}
+                  />
                 </div>
 
                 {/* Your Style Preferences */}
@@ -614,20 +611,18 @@ export default function DemoIndividualResultsHybridPage() {
               {/* Left Column: Radar Chart + Detailed Scores */}
               <div className="space-y-8">
                 {/* Radar Chart */}
-                <div className="mb-8">
-                  <h3 className="text-lg font-semibold mb-4">Your Work Values</h3>
-                  <div className="w-full h-80 p-4 bg-white rounded-lg border border-gray-200">
-                    <RadarChart
-                      data={{
-                        'Innovation': demoResults.valuesScores.innovation,
-                        'Collaboration': demoResults.valuesScores.collaboration,
-                        'Autonomy': demoResults.valuesScores.autonomy,
-                        'Quality': demoResults.valuesScores.quality,
-                        'Customer Focus': demoResults.valuesScores.customerFocus
-                      }}
-                      size={350}
-                    />
-                  </div>
+                <div className="mb-8 min-w-0">
+                  <RadarChart
+                    data={{
+                      'Innovation': demoResults.valuesScores.innovation,
+                      'Collaboration': demoResults.valuesScores.collaboration,
+                      'Autonomy': demoResults.valuesScores.autonomy,
+                      'Quality': demoResults.valuesScores.quality,
+                      'Customer Focus': demoResults.valuesScores.customerFocus
+                    }}
+                    title="Your Work Values"
+                    size={350}
+                  />
                 </div>
 
                 {/* Your Style Preferences */}
