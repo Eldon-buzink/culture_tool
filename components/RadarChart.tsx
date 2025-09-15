@@ -73,8 +73,8 @@ export default function RadarChart({ data, title, size = 500, color = '#3B82F6' 
   const mapped = safe.map(d => ({ trait: getTrait(d), score: getScore(d) }));
 
   return (
-    <div className="rounded-2xl border bg-card text-card-foreground shadow-sm">
-      <div className="p-6 overflow-visible">
+    <div className="overflow-visible">
+      <div className="overflow-visible">
         {title && <h3 className="text-lg font-semibold mb-4">{title}</h3>}
         <div className="w-full h-[340px] overflow-visible">
           <ResponsiveContainer width="100%" height="100%">
