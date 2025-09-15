@@ -18,6 +18,8 @@ import {
   Lightbulb,
   Award,
   AlertTriangle,
+  Zap,
+  X,
   Globe,
 } from "lucide-react";
 import RadarBlock from "@/components/Charts/RadarBlock";
@@ -214,8 +216,9 @@ export default function DemoIndividualResultsHybridPage() {
     .map((rec) => rec.replace("Try this • ", ""));
 
   return (
-    <div className="container mx-auto px-4 md:px-6 py-8">
-      <div className="space-y-8">
+    <div className="min-h-screen bg-gray-50">
+      <div className="container mx-auto px-4 md:px-6 py-8">
+        <div className="space-y-8">
         {/* Header */}
         <div className="text-center mb-12 px-4">
           <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-full text-sm font-medium mb-6 border border-blue-200">
@@ -230,8 +233,8 @@ export default function DemoIndividualResultsHybridPage() {
             completing your personality assessment
           </p>
           <div className="mt-8">
-            <Button
-              size="lg"
+            <Button 
+              size="lg" 
               className="bg-blue-600 hover:bg-blue-700 text-white px-10 py-4 text-lg font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
               onClick={() =>
                 (window.location.href = "/assessment/start-assessment")
@@ -269,7 +272,7 @@ export default function DemoIndividualResultsHybridPage() {
               <div className="min-h-0">
                 <h3 className="text-xl font-semibold text-gray-900 mb-6">Your Personality Dimensions</h3>
                 <RadarBlock
-                  data={{
+                      data={{
                     Openness: demoResults.oceanScores.openness,
                     Conscientiousness: demoResults.oceanScores.conscientiousness,
                     Extraversion: demoResults.oceanScores.extraversion,
@@ -277,12 +280,12 @@ export default function DemoIndividualResultsHybridPage() {
                     Neuroticism: demoResults.oceanScores.neuroticism,
                   }}
                 />
-              </div>
+                </div>
 
               {/* Right Column: Style Preferences */}
               <div className="min-w-0 lg:pl-4 xl:pl-6">
                 <h3 className="text-xl font-semibold text-gray-900 mb-6">Your Style Preferences</h3>
-                <div className="space-y-4">
+                  <div className="space-y-4">
                   {Object.entries(demoResults.oceanScores).map(
                     ([trait, score]) => (
                       <div key={trait} className="space-y-2">
@@ -324,7 +327,7 @@ export default function DemoIndividualResultsHybridPage() {
                               <span className="text-sm text-gray-500">
                                 ({score})
                               </span>
-                            </div>
+                          </div>
                           </div>
                           <p className="text-sm text-gray-600">
                             {getTraitDescription(trait, score)}
@@ -334,9 +337,9 @@ export default function DemoIndividualResultsHybridPage() {
                       </div>
                     ),
                   )}
+                  </div>
                 </div>
               </div>
-            </div>
 
             {/* What This Means for You - Full Width Below */}
             <div className="lg:col-span-2">
@@ -366,23 +369,31 @@ export default function DemoIndividualResultsHybridPage() {
                       )}
                     </div>
                   </div>
-
+                  
                   {expandedRecommendations["openness-0"] && (
                     <div className="px-4 pb-4 border-t border-gray-100">
                       <div className="pt-4 space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="bg-green-50 rounded-lg p-4">
-                            <h5 className="font-medium text-green-800 mb-3">✅ What to look for:</h5>
-                            <ul className="text-sm text-green-700 space-y-2">
+                          <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                            <h5 className="font-medium text-gray-800 mb-3 flex items-center gap-2">
+                              <div className="w-5 h-5 bg-green-100 rounded-full flex items-center justify-center">
+                                <span className="text-green-600 text-xs">✓</span>
+                        </div>
+                              What to look for:
+                            </h5>
+                            <ul className="text-sm text-gray-700 space-y-2">
                               <li>• <strong>Creative fields</strong> like teaching, design, writing, or the arts</li>
                               <li>• <strong>Varied responsibilities</strong> where every day brings something different</li>
                               <li>• <strong>Problem-solving roles</strong> that challenge you to find new solutions</li>
                               <li>• <strong>Learning opportunities</strong> where you can continuously grow and explore</li>
                             </ul>
                           </div>
-                          <div className="bg-red-50 rounded-lg p-4">
-                            <h5 className="font-medium text-red-800 mb-3">⚠️ What to avoid:</h5>
-                            <ul className="text-sm text-red-700 space-y-2">
+                          <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                            <h5 className="font-medium text-gray-800 mb-3 flex items-center gap-2">
+                              <X className="w-5 h-5 text-gray-600" />
+                              What to avoid:
+                            </h5>
+                            <ul className="text-sm text-gray-700 space-y-2">
                               <li>• <strong>Routine-heavy jobs</strong> with the same tasks every day</li>
                               <li>• <strong>Rigid environments</strong> that don't allow for new approaches</li>
                               <li>• <strong>Highly structured roles</strong> with little room for creativity</li>
@@ -390,9 +401,12 @@ export default function DemoIndividualResultsHybridPage() {
                             </ul>
                           </div>
                         </div>
-                        <div className="bg-blue-50 rounded-lg p-4">
-                          <h5 className="font-medium text-blue-800 mb-2">💡 Your superpower:</h5>
-                          <p className="text-sm text-blue-700">You naturally see possibilities others miss and can connect ideas in creative ways. You're the person who brings fresh perspectives to any situation.</p>
+                        <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                          <h5 className="font-medium text-gray-800 mb-2 flex items-center gap-2">
+                            <Zap className="w-5 h-5 text-blue-600" />
+                            Your superpower:
+                          </h5>
+                          <p className="text-sm text-gray-700">You naturally see possibilities others miss and can connect ideas in creative ways. You're the person who brings fresh perspectives to any situation.</p>
                         </div>
                       </div>
                     </div>
@@ -412,7 +426,7 @@ export default function DemoIndividualResultsHybridPage() {
                         <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
                           <Users className="h-4 w-4 text-green-600" />
                         </div>
-                        <div>
+                            <div>
                           <h4 className="font-semibold text-gray-900">High Extraversion - The People Energizer</h4>
                           <p className="text-sm text-gray-600">You bring energy and enthusiasm to group interactions</p>
                         </div>
@@ -429,28 +443,39 @@ export default function DemoIndividualResultsHybridPage() {
                     <div className="px-4 pb-4 border-t border-gray-100">
                       <div className="pt-4 space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="bg-green-50 rounded-lg p-4">
-                            <h5 className="font-medium text-green-800 mb-3">✅ What to look for:</h5>
-                            <ul className="text-sm text-green-700 space-y-2">
+                          <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                            <h5 className="font-medium text-gray-800 mb-3 flex items-center gap-2">
+                              <div className="w-5 h-5 bg-green-100 rounded-full flex items-center justify-center">
+                                <span className="text-green-600 text-xs">✓</span>
+                              </div>
+                              What to look for:
+                            </h5>
+                            <ul className="text-sm text-gray-700 space-y-2">
                               <li>• <strong>People-focused roles</strong> like teaching, healthcare, or customer service</li>
                               <li>• <strong>Team leadership positions</strong> where you can motivate and inspire others</li>
                               <li>• <strong>Public-facing jobs</strong> like sales, hospitality, or event planning</li>
                               <li>• <strong>Community building</strong> opportunities in any field you're passionate about</li>
-                            </ul>
-                          </div>
-                          <div className="bg-red-50 rounded-lg p-4">
-                            <h5 className="font-medium text-red-800 mb-3">⚠️ What to avoid:</h5>
-                            <ul className="text-sm text-red-700 space-y-2">
+                              </ul>
+                            </div>
+                          <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                            <h5 className="font-medium text-gray-800 mb-3 flex items-center gap-2">
+                              <X className="w-5 h-5 text-gray-600" />
+                              What to avoid:
+                            </h5>
+                            <ul className="text-sm text-gray-700 space-y-2">
                               <li>• <strong>Isolated work</strong> with minimal human interaction</li>
                               <li>• <strong>Behind-the-scenes roles</strong> that keep you away from people</li>
                               <li>• <strong>Solo projects</strong> that don't involve collaboration</li>
                               <li>• <strong>Quiet environments</strong> that don't match your energy level</li>
-                            </ul>
+                              </ul>
+                            </div>
                           </div>
-                        </div>
-                        <div className="bg-green-50 rounded-lg p-4">
-                          <h5 className="font-medium text-green-800 mb-2">💡 Your superpower:</h5>
-                          <p className="text-sm text-green-700">You naturally energize others and build connections. You're the person who makes teams work better together and brings out the best in people.</p>
+                        <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                          <h5 className="font-medium text-gray-800 mb-2 flex items-center gap-2">
+                            <Zap className="w-5 h-5 text-blue-600" />
+                            Your superpower:
+                          </h5>
+                          <p className="text-sm text-gray-700">You naturally energize others and build connections. You're the person who makes teams work better together and brings out the best in people.</p>
                         </div>
                       </div>
                     </div>
@@ -464,8 +489,8 @@ export default function DemoIndividualResultsHybridPage() {
                   <div 
                     className="p-4 cursor-pointer hover:bg-gray-50 transition-all duration-200 rounded-lg hover:shadow-sm"
                     onClick={() => toggleRecommendation("neuroticism", 0)}
-                  >
-                    <div className="flex items-center justify-between">
+                        >
+                          <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
                           <Target className="h-4 w-4 text-purple-600" />
@@ -479,37 +504,48 @@ export default function DemoIndividualResultsHybridPage() {
                         <ChevronUp className="h-5 w-5 text-gray-500" />
                       ) : (
                         <ChevronDown className="h-5 w-5 text-gray-500" />
-                      )}
-                    </div>
+                            )}
+                          </div>
                   </div>
 
                   {expandedRecommendations["neuroticism-0"] && (
-                    <div className="px-4 pb-4 border-t border-gray-100">
+                          <div className="px-4 pb-4 border-t border-gray-100">
                       <div className="pt-4 space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="bg-green-50 rounded-lg p-4">
-                            <h5 className="font-medium text-green-800 mb-3">✅ What to look for:</h5>
-                            <ul className="text-sm text-green-700 space-y-2">
+                          <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                            <h5 className="font-medium text-gray-800 mb-3 flex items-center gap-2">
+                              <div className="w-5 h-5 bg-green-100 rounded-full flex items-center justify-center">
+                                <span className="text-green-600 text-xs">✓</span>
+                          </div>
+                              What to look for:
+                            </h5>
+                            <ul className="text-sm text-gray-700 space-y-2">
                               <li>• <strong>High-pressure roles</strong> like emergency services, healthcare, or teaching</li>
                               <li>• <strong>Leadership positions</strong> where calm decision-making is crucial</li>
                               <li>• <strong>Problem-solving jobs</strong> that require steady focus under stress</li>
                               <li>• <strong>Support roles</strong> where others rely on your stability</li>
                             </ul>
-                          </div>
-                          <div className="bg-red-50 rounded-lg p-4">
-                            <h5 className="font-medium text-red-800 mb-3">⚠️ What to avoid:</h5>
-                            <ul className="text-sm text-red-700 space-y-2">
+                      </div>
+                          <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                            <h5 className="font-medium text-gray-800 mb-3 flex items-center gap-2">
+                              <X className="w-5 h-5 text-gray-600" />
+                              What to avoid:
+                            </h5>
+                            <ul className="text-sm text-gray-700 space-y-2">
                               <li>• <strong>Drama-heavy environments</strong> with constant emotional ups and downs</li>
                               <li>• <strong>High-conflict situations</strong> that drain your energy</li>
                               <li>• <strong>Unstable workplaces</strong> with frequent changes and uncertainty</li>
                               <li>• <strong>Criticism-heavy roles</strong> that focus on what's wrong rather than solutions</li>
                             </ul>
-                          </div>
-                        </div>
-                        <div className="bg-purple-50 rounded-lg p-4">
-                          <h5 className="font-medium text-purple-800 mb-2">💡 Your superpower:</h5>
-                          <p className="text-sm text-purple-700">You're a natural stabilizer who keeps everyone calm and focused. You're the person others turn to when things get chaotic or stressful.</p>
-                        </div>
+                  </div>
+                </div>
+                        <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                          <h5 className="font-medium text-gray-800 mb-2 flex items-center gap-2">
+                            <Zap className="w-5 h-5 text-blue-600" />
+                            Your superpower:
+                          </h5>
+                          <p className="text-sm text-gray-700">You're a natural stabilizer who keeps everyone calm and focused. You're the person others turn to when things get chaotic or stressful.</p>
+              </div>
                       </div>
                     </div>
                   )}
@@ -543,7 +579,7 @@ export default function DemoIndividualResultsHybridPage() {
               <div className="min-h-0">
                 <h3 className="text-xl font-semibold text-gray-900 mb-6">Your Cultural Dimensions</h3>
                 <RadarBlock
-                  data={{
+                      data={{
                     "Power Distance": demoResults.cultureScores.powerDistance,
                     Individualism: demoResults.cultureScores.individualism,
                     Masculinity: demoResults.cultureScores.masculinity,
@@ -552,12 +588,12 @@ export default function DemoIndividualResultsHybridPage() {
                     Indulgence: demoResults.cultureScores.indulgence,
                   }}
                 />
-              </div>
+                </div>
 
               {/* Right Column: Style Preferences */}
               <div className="min-w-0 lg:pl-4 xl:pl-6">
                 <h3 className="text-xl font-semibold text-gray-900 mb-6">Your Cultural Preferences</h3>
-                <div className="space-y-4">
+                  <div className="space-y-4">
                   {Object.entries(demoResults.cultureScores).map(
                     ([dimension, score]) => (
                       <div key={dimension} className="space-y-2">
@@ -603,7 +639,7 @@ export default function DemoIndividualResultsHybridPage() {
                               <span className="text-sm text-gray-500">
                                 ({score})
                               </span>
-                            </div>
+                          </div>
                           </div>
                           <p className="text-sm text-gray-600">
                             {score >= 70
@@ -617,9 +653,9 @@ export default function DemoIndividualResultsHybridPage() {
                       </div>
                     ),
                   )}
+                  </div>
                 </div>
               </div>
-            </div>
 
 
             {/* What This Means for You - Full Width Below */}
@@ -650,23 +686,31 @@ export default function DemoIndividualResultsHybridPage() {
                       )}
                     </div>
                   </div>
-
+                  
                   {expandedRecommendations["individualism-0"] && (
                     <div className="px-4 pb-4 border-t border-gray-100">
                       <div className="pt-4 space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="bg-green-50 rounded-lg p-4">
-                            <h5 className="font-medium text-green-800 mb-3">✅ What to look for:</h5>
-                            <ul className="text-sm text-green-700 space-y-2">
+                          <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                            <h5 className="font-medium text-gray-800 mb-3 flex items-center gap-2">
+                              <div className="w-5 h-5 bg-green-100 rounded-full flex items-center justify-center">
+                                <span className="text-green-600 text-xs">✓</span>
+                        </div>
+                              What to look for:
+                            </h5>
+                            <ul className="text-sm text-gray-700 space-y-2">
                               <li>• <strong>Individual contributor roles</strong> where you can own projects and outcomes</li>
                               <li>• <strong>Performance-based recognition</strong> systems that reward personal achievements</li>
                               <li>• <strong>Flexible work arrangements</strong> that allow you to work at your own pace</li>
                               <li>• <strong>Clear career progression paths</strong> based on individual merit and skills</li>
-                            </ul>
-                          </div>
-                          <div className="bg-red-50 rounded-lg p-4">
-                            <h5 className="font-medium text-red-800 mb-3">⚠️ What to avoid:</h5>
-                            <ul className="text-sm text-red-700 space-y-2">
+                              </ul>
+                            </div>
+                          <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                            <h5 className="font-medium text-gray-800 mb-3 flex items-center gap-2">
+                              <X className="w-5 h-5 text-gray-600" />
+                              What to avoid:
+                            </h5>
+                            <ul className="text-sm text-gray-700 space-y-2">
                               <li>• <strong>Highly collectivist environments</strong> that prioritize group harmony over individual achievement</li>
                               <li>• <strong>Roles with heavy group decision-making</strong> where individual input gets lost</li>
                               <li>• <strong>Seniority-based promotion systems</strong> that don't recognize individual performance</li>
@@ -674,9 +718,12 @@ export default function DemoIndividualResultsHybridPage() {
                             </ul>
                           </div>
                         </div>
-                        <div className="bg-green-50 rounded-lg p-4">
-                          <h5 className="font-medium text-green-800 mb-2">💡 Your superpower:</h5>
-                          <p className="text-sm text-green-700">You're a natural self-starter who excels when given autonomy and clear goals. You're the person who can take ownership and deliver results independently.</p>
+                        <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                          <h5 className="font-medium text-gray-800 mb-2 flex items-center gap-2">
+                            <Zap className="w-5 h-5 text-blue-600" />
+                            Your superpower:
+                          </h5>
+                          <p className="text-sm text-gray-700">You're a natural self-starter who excels when given autonomy and clear goals. You're the person who can take ownership and deliver results independently.</p>
                         </div>
                       </div>
                     </div>
@@ -690,8 +737,8 @@ export default function DemoIndividualResultsHybridPage() {
                   <div 
                     className="p-4 cursor-pointer hover:bg-gray-50 transition-all duration-200 rounded-lg hover:shadow-sm"
                     onClick={() => toggleRecommendation("powerDistance", 0)}
-                  >
-                    <div className="flex items-center justify-between">
+                        >
+                          <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
                           <Users className="h-4 w-4 text-blue-600" />
@@ -705,37 +752,48 @@ export default function DemoIndividualResultsHybridPage() {
                         <ChevronUp className="h-5 w-5 text-gray-500" />
                       ) : (
                         <ChevronDown className="h-5 w-5 text-gray-500" />
-                      )}
-                    </div>
+                            )}
+                          </div>
                   </div>
 
                   {expandedRecommendations["powerDistance-0"] && (
-                    <div className="px-4 pb-4 border-t border-gray-100">
+                          <div className="px-4 pb-4 border-t border-gray-100">
                       <div className="pt-4 space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="bg-green-50 rounded-lg p-4">
-                            <h5 className="font-medium text-green-800 mb-3">✅ What to look for:</h5>
-                            <ul className="text-sm text-green-700 space-y-2">
+                          <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                            <h5 className="font-medium text-gray-800 mb-3 flex items-center gap-2">
+                              <div className="w-5 h-5 bg-green-100 rounded-full flex items-center justify-center">
+                                <span className="text-green-600 text-xs">✓</span>
+                          </div>
+                              What to look for:
+                            </h5>
+                            <ul className="text-sm text-gray-700 space-y-2">
                               <li>• <strong>Flat organizational structures</strong> with minimal hierarchy and open communication</li>
                               <li>• <strong>Startup or tech company cultures</strong> that value merit over seniority</li>
                               <li>• <strong>Collaborative leadership roles</strong> where you can influence without authority</li>
                               <li>• <strong>Cross-functional teams</strong> where everyone contributes equally</li>
                             </ul>
-                          </div>
-                          <div className="bg-red-50 rounded-lg p-4">
-                            <h5 className="font-medium text-red-800 mb-3">⚠️ What to avoid:</h5>
-                            <ul className="text-sm text-red-700 space-y-2">
+                      </div>
+                          <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                            <h5 className="font-medium text-gray-800 mb-3 flex items-center gap-2">
+                              <X className="w-5 h-5 text-gray-600" />
+                              What to avoid:
+                            </h5>
+                            <ul className="text-sm text-gray-700 space-y-2">
                               <li>• <strong>Highly hierarchical organizations</strong> with strict reporting structures</li>
                               <li>• <strong>Traditional corporate environments</strong> with formal protocols and deference</li>
                               <li>• <strong>Roles requiring strict chain of command</strong> and top-down decision making</li>
                               <li>• <strong>Organizations that discourage questioning</strong> or challenging authority</li>
                             </ul>
-                          </div>
-                        </div>
-                        <div className="bg-blue-50 rounded-lg p-4">
-                          <h5 className="font-medium text-blue-800 mb-2">💡 Your superpower:</h5>
-                          <p className="text-sm text-blue-700">You're a natural bridge-builder who can work effectively with people at all levels. You're the person who makes everyone feel heard and valued.</p>
-                        </div>
+                  </div>
+                </div>
+                        <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                          <h5 className="font-medium text-gray-800 mb-2 flex items-center gap-2">
+                            <Zap className="w-5 h-5 text-blue-600" />
+                            Your superpower:
+                          </h5>
+                          <p className="text-sm text-gray-700">You're a natural bridge-builder who can work effectively with people at all levels. You're the person who makes everyone feel heard and valued.</p>
+              </div>
                       </div>
                     </div>
                   )}
@@ -767,7 +825,7 @@ export default function DemoIndividualResultsHybridPage() {
               <div className="min-h-0">
                 <h3 className="text-xl font-semibold text-gray-900 mb-6">Your Work Values</h3>
                 <RadarBlock
-                  data={{
+                      data={{
                     Innovation: demoResults.valuesScores.innovation,
                     Collaboration: demoResults.valuesScores.collaboration,
                     Autonomy: demoResults.valuesScores.autonomy,
@@ -775,12 +833,12 @@ export default function DemoIndividualResultsHybridPage() {
                     "Customer Focus": demoResults.valuesScores.customerFocus,
                   }}
                 />
-              </div>
+                </div>
 
               {/* Right Column: Style Preferences */}
               <div className="min-w-0 lg:pl-4 xl:pl-6">
                 <h3 className="text-xl font-semibold text-gray-900 mb-6">Your Value Priorities</h3>
-                <div className="space-y-4">
+                  <div className="space-y-4">
                   {Object.entries(demoResults.valuesScores).map(
                     ([value, score]) => (
                       <div key={value} className="space-y-2">
@@ -828,7 +886,7 @@ export default function DemoIndividualResultsHybridPage() {
                               <span className="text-sm text-gray-500">
                                 ({score})
                               </span>
-                            </div>
+                          </div>
                           </div>
                           <p className="text-sm text-gray-600">
                             {score >= 80
@@ -844,9 +902,9 @@ export default function DemoIndividualResultsHybridPage() {
                       </div>
                     ),
                   )}
+                  </div>
                 </div>
               </div>
-            </div>
 
 
             {/* What This Means for You - Full Width Below */}
@@ -877,23 +935,31 @@ export default function DemoIndividualResultsHybridPage() {
                       )}
                     </div>
                   </div>
-
+                  
                   {expandedRecommendations["innovation-0"] && (
                     <div className="px-4 pb-4 border-t border-gray-100">
                       <div className="pt-4 space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="bg-green-50 rounded-lg p-4">
-                            <h5 className="font-medium text-green-800 mb-3">✅ What to look for:</h5>
-                            <ul className="text-sm text-green-700 space-y-2">
+                          <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                            <h5 className="font-medium text-gray-800 mb-3 flex items-center gap-2">
+                              <div className="w-5 h-5 bg-green-100 rounded-full flex items-center justify-center">
+                                <span className="text-green-600 text-xs">✓</span>
+                        </div>
+                              What to look for:
+                            </h5>
+                            <ul className="text-sm text-gray-700 space-y-2">
                               <li>• <strong>Innovation-focused roles</strong> like product development, R&D, or creative positions</li>
                               <li>• <strong>Companies that invest in R&D</strong> and encourage experimentation and new ideas</li>
                               <li>• <strong>Cross-functional teams</strong> where you can collaborate on creative solutions</li>
                               <li>• <strong>Roles with creative freedom</strong> and minimal bureaucratic constraints</li>
                             </ul>
                           </div>
-                          <div className="bg-red-50 rounded-lg p-4">
-                            <h5 className="font-medium text-red-800 mb-3">⚠️ What to avoid:</h5>
-                            <ul className="text-sm text-red-700 space-y-2">
+                          <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                            <h5 className="font-medium text-gray-800 mb-3 flex items-center gap-2">
+                              <X className="w-5 h-5 text-gray-600" />
+                              What to avoid:
+                            </h5>
+                            <ul className="text-sm text-gray-700 space-y-2">
                               <li>• <strong>Highly regulated industries</strong> with strict compliance requirements and limited creativity</li>
                               <li>• <strong>Roles focused on maintaining status quo</strong> rather than driving change</li>
                               <li>• <strong>Organizations resistant to change</strong> or new approaches</li>
@@ -901,9 +967,12 @@ export default function DemoIndividualResultsHybridPage() {
                             </ul>
                           </div>
                         </div>
-                        <div className="bg-purple-50 rounded-lg p-4">
-                          <h5 className="font-medium text-purple-800 mb-2">💡 Your superpower:</h5>
-                          <p className="text-sm text-purple-700">You're a natural innovator who can see opportunities others miss and turn ideas into reality. You're the person who brings fresh perspectives and creative solutions to any challenge.</p>
+                        <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                          <h5 className="font-medium text-gray-800 mb-2 flex items-center gap-2">
+                            <Zap className="w-5 h-5 text-blue-600" />
+                            Your superpower:
+                          </h5>
+                          <p className="text-sm text-gray-700">You're a natural innovator who can see opportunities others miss and turn ideas into reality. You're the person who brings fresh perspectives and creative solutions to any challenge.</p>
                         </div>
                       </div>
                     </div>
@@ -923,7 +992,7 @@ export default function DemoIndividualResultsHybridPage() {
                         <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
                           <Users className="h-4 w-4 text-blue-600" />
                         </div>
-                        <div>
+                            <div>
                           <h4 className="font-semibold text-gray-900">High Collaboration - The Team Catalyst</h4>
                           <p className="text-sm text-gray-600">You excel when working with others and building strong team dynamics</p>
                         </div>
@@ -940,18 +1009,26 @@ export default function DemoIndividualResultsHybridPage() {
                     <div className="px-4 pb-4 border-t border-gray-100">
                       <div className="pt-4 space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="bg-green-50 rounded-lg p-4">
-                            <h5 className="font-medium text-green-800 mb-3">✅ What to look for:</h5>
-                            <ul className="text-sm text-green-700 space-y-2">
+                          <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                            <h5 className="font-medium text-gray-800 mb-3 flex items-center gap-2">
+                              <div className="w-5 h-5 bg-green-100 rounded-full flex items-center justify-center">
+                                <span className="text-green-600 text-xs">✓</span>
+                              </div>
+                              What to look for:
+                            </h5>
+                            <ul className="text-sm text-gray-700 space-y-2">
                               <li>• <strong>Team-based roles</strong> like project management, team leadership, or coordination positions</li>
                               <li>• <strong>Cross-functional projects</strong> that require working with diverse groups</li>
                               <li>• <strong>Organizations that value teamwork</strong> and collaborative culture</li>
                               <li>• <strong>Roles involving relationship building</strong> with clients, partners, or stakeholders</li>
-                            </ul>
-                          </div>
-                          <div className="bg-red-50 rounded-lg p-4">
-                            <h5 className="font-medium text-red-800 mb-3">⚠️ What to avoid:</h5>
-                            <ul className="text-sm text-red-700 space-y-2">
+                              </ul>
+                            </div>
+                          <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                            <h5 className="font-medium text-gray-800 mb-3 flex items-center gap-2">
+                              <X className="w-5 h-5 text-gray-600" />
+                              What to avoid:
+                            </h5>
+                            <ul className="text-sm text-gray-700 space-y-2">
                               <li>• <strong>Solo contributor roles</strong> with minimal team interaction</li>
                               <li>• <strong>Highly competitive environments</strong> that pit individuals against each other</li>
                               <li>• <strong>Roles with limited collaboration</strong> or isolated work arrangements</li>
@@ -959,9 +1036,12 @@ export default function DemoIndividualResultsHybridPage() {
                             </ul>
                           </div>
                         </div>
-                        <div className="bg-blue-50 rounded-lg p-4">
-                          <h5 className="font-medium text-blue-800 mb-2">💡 Your superpower:</h5>
-                          <p className="text-sm text-blue-700">You're a natural team builder who can bring people together and create synergy. You're the person who makes teams work better and achieve more than the sum of their parts.</p>
+                        <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                          <h5 className="font-medium text-gray-800 mb-2 flex items-center gap-2">
+                            <Zap className="w-5 h-5 text-blue-600" />
+                            Your superpower:
+                          </h5>
+                          <p className="text-sm text-gray-700">You're a natural team builder who can bring people together and create synergy. You're the person who makes teams work better and achieve more than the sum of their parts.</p>
                         </div>
                       </div>
                     </div>
@@ -1096,33 +1176,33 @@ export default function DemoIndividualResultsHybridPage() {
                   </h4>
                   <div className="space-y-4">
                     <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                      <button
+                        <button
                         onClick={() => toggleConversationStarter(0)}
-                        className="w-full p-4 text-left hover:bg-gray-50 transition-colors"
-                      >
-                        <div className="flex items-center justify-between">
-                          <p className="text-gray-700 font-medium">
+                          className="w-full p-4 text-left hover:bg-gray-50 transition-colors"
+                        >
+                          <div className="flex items-center justify-between">
+                            <p className="text-gray-700 font-medium">
                             How can you leverage your creative and social
                             strengths in your current role?
-                          </p>
+                            </p>
                           {expandedConversationStarters[0] ? (
-                            <ChevronUp className="h-4 w-4 text-gray-500" />
-                          ) : (
-                            <ChevronDown className="h-4 w-4 text-gray-500" />
-                          )}
-                        </div>
-                      </button>
+                              <ChevronUp className="h-4 w-4 text-gray-500" />
+                            ) : (
+                              <ChevronDown className="h-4 w-4 text-gray-500" />
+                            )}
+                          </div>
+                        </button>
                       {expandedConversationStarters[0] && (
-                        <div className="px-4 pb-4 border-t border-gray-100">
-                          <p className="text-sm text-gray-600 mt-2 italic">
+                          <div className="px-4 pb-4 border-t border-gray-100">
+                            <p className="text-sm text-gray-600 mt-2 italic">
                             This question helps you identify specific ways to
                             apply your high openness and extraversion in your
                             work. Consider roles that involve brainstorming,
                             client interaction, or leading creative projects.
-                          </p>
-                        </div>
-                      )}
-                    </div>
+                            </p>
+                          </div>
+                        )}
+                      </div>
 
                     <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
                       <button
@@ -1139,7 +1219,7 @@ export default function DemoIndividualResultsHybridPage() {
                           ) : (
                             <ChevronDown className="h-4 w-4 text-gray-500" />
                           )}
-                        </div>
+                  </div>
                       </button>
                       {expandedConversationStarters[1] && (
                         <div className="px-4 pb-4 border-t border-gray-100">
@@ -1224,11 +1304,11 @@ export default function DemoIndividualResultsHybridPage() {
                         </div>
                       </div>
                     </div>
-                  </div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </CardContent>
+        </Card>
         </section>
 
         {/* Call to Action */}
@@ -1243,8 +1323,8 @@ export default function DemoIndividualResultsHybridPage() {
                 personalized results and insights.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button
-                  size="lg"
+                <Button 
+                  size="lg" 
                   className="bg-blue-600 hover:bg-blue-700 px-8 py-3"
                   onClick={() =>
                     (window.location.href = "/assessment/start-assessment")
@@ -1252,9 +1332,9 @@ export default function DemoIndividualResultsHybridPage() {
                 >
                   Start Your Assessment
                 </Button>
-                <Button
-                  variant="outline"
-                  size="lg"
+                <Button 
+                  variant="outline" 
+                  size="lg" 
                   className="px-8 py-3"
                   onClick={() => (window.location.href = "/about")}
                 >
@@ -1264,6 +1344,7 @@ export default function DemoIndividualResultsHybridPage() {
             </div>
           </CardContent>
         </Card>
+        </div>
       </div>
     </div>
   );
