@@ -486,12 +486,11 @@ export default function DemoTeamDashboardHybridPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                       {/* Left: Radar Chart */}
                       <div className="overflow-visible">
-                        <h3 className="text-lg font-semibold mb-4 text-gray-900">Team Personality Dimensions</h3>
                         <div className="w-full h-[400px] overflow-visible">
                           <RadarChart
                             data={demoTeamData.aggregateScores.ocean}
                             color="#3B82F6"
-                            title="Team Personality Dimensions"
+                            title=""
                             size={350}
                           />
                         </div>
@@ -656,12 +655,11 @@ export default function DemoTeamDashboardHybridPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                       {/* Left: Radar Chart */}
                       <div className="overflow-visible">
-                        <h3 className="text-lg font-semibold mb-4 text-gray-900">Team Work Values</h3>
                         <div className="w-full h-[400px] overflow-visible">
                           <RadarChart 
                             data={demoTeamData.aggregateScores.values} 
                             color="#10B981"
-                            title="Team Work Values"
+                            title=""
                             size={350}
                           />
                         </div>
@@ -802,12 +800,11 @@ export default function DemoTeamDashboardHybridPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                       {/* Left: Radar Chart */}
                       <div className="overflow-visible">
-                        <h3 className="text-lg font-semibold mb-4 text-gray-900">Team Cultural Dimensions</h3>
                         <div className="w-full h-[400px] overflow-visible">
                           <RadarChart
                             data={demoTeamData.aggregateScores.culture}
                             color="#8B5CF6"
-                            title="Team Cultural Dimensions"
+                            title=""
                             size={350}
                           />
                         </div>
