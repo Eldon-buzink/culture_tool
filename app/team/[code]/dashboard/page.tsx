@@ -29,11 +29,14 @@ import {
   Zap,
   Award,
   ChevronDown,
+  ChevronUp,
   Lightbulb,
   AlertTriangle,
   Plus,
   User,
-  Eye
+  Eye,
+  HelpCircle,
+  X
 } from 'lucide-react';
 
 
@@ -192,6 +195,91 @@ function detectPersonalityConflicts(members: TeamMember[]): PersonalityConflict[
   return conflicts;
 }
 
+// Calculate team fit score for individual member
+function calculateTeamFitScore(member: TeamMember, teamAverages: any): number {
+  let totalDifference = 0;
+  let totalMetrics = 0;
+
+  // Compare OCEAN scores
+  if (member.oceanScores && teamAverages.ocean) {
+    Object.keys(teamAverages.ocean).forEach(metric => {
+      const memberScore = member.oceanScores![metric] || 0;
+      const teamScore = teamAverages.ocean[metric] || 0;
+      const difference = Math.abs(memberScore - teamScore);
+      totalDifference += difference;
+      totalMetrics++;
+    });
+  }
+
+  // Compare Culture scores
+  if (member.cultureScores && teamAverages.culture) {
+    Object.keys(teamAverages.culture).forEach(metric => {
+      const memberScore = member.cultureScores![metric] || 0;
+      const teamScore = teamAverages.culture[metric] || 0;
+      const difference = Math.abs(memberScore - teamScore);
+      totalDifference += difference;
+      totalMetrics++;
+    });
+  }
+
+  // Compare Values scores
+  if (member.valuesScores && teamAverages.values) {
+    Object.keys(teamAverages.values).forEach(metric => {
+      const memberScore = member.valuesScores![metric] || 0;
+      const teamScore = teamAverages.values[metric] || 0;
+      const difference = Math.abs(memberScore - teamScore);
+      totalDifference += difference;
+      totalMetrics++;
+    });
+  }
+
+  if (totalMetrics === 0) return 50; // Default if no data
+  const averageDifference = totalDifference / totalMetrics;
+  const fitScore = Math.max(0, Math.min(100, 100 - (averageDifference * 1.5)));
+  return Math.round(fitScore);
+}
+
+// Generate role suggestions based on personality profile
+function generateRoleSuggestions(member: TeamMember): { primary: string; secondary: string; uniqueContribution: string } {
+  const ocean = member.oceanScores || {};
+  const culture = member.cultureScores || {};
+  const values = member.valuesScores || {};
+
+  // Primary role based on strongest traits
+  let primary = "Team Contributor";
+  let secondary = "Support Role";
+  let uniqueContribution = "Brings balanced perspective";
+
+  if (ocean.openness > 70 && values.innovation > 70) {
+    primary = "Innovation Leader";
+    secondary = "Creative Problem Solver";
+    uniqueContribution = "Drives creative thinking and new approaches";
+  } else if (ocean.conscientiousness > 70 && values.quality > 70) {
+    primary = "Quality Assurance Lead";
+    secondary = "Process Optimizer";
+    uniqueContribution = "Ensures excellence and attention to detail";
+  } else if (ocean.extraversion > 70 && values.collaboration > 70) {
+    primary = "Team Facilitator";
+    secondary = "Communication Bridge";
+    uniqueContribution = "Energizes team and facilitates collaboration";
+  } else if (ocean.agreeableness > 70 && culture.individualism < 40) {
+    primary = "Team Harmonizer";
+    secondary = "Conflict Mediator";
+    uniqueContribution = "Maintains team cohesion and resolves conflicts";
+  } else if (ocean.neuroticism < 30 && culture.uncertaintyAvoidance < 40) {
+    primary = "Change Champion";
+    secondary = "Risk Navigator";
+    uniqueContribution = "Stays calm under pressure and embraces uncertainty";
+  } else if (ocean.conscientiousness > 60 && culture.longTermOrientation > 60) {
+    primary = "Strategic Planner";
+    secondary = "Goal Tracker";
+    uniqueContribution = "Provides long-term vision and systematic planning";
+  }
+
+  return { primary, secondary, uniqueContribution };
+}
+
+
 export default function TeamDashboardPage() {
   const params = useParams();
   const [teamData, setTeamData] = useState<TeamData | null>(null);
@@ -200,16 +288,15 @@ export default function TeamDashboardPage() {
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showCandidateModal, setShowCandidateModal] = useState(false);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
-  const [expandedRecommendations, setExpandedRecommendations] = useState({
-    communication: false,
-    innovation: false,
-    quality: false,
-  });
+  const [expandedRecommendations, setExpandedRecommendations] = useState<Record<string, boolean>>({});
   const [expandedConflicts, setExpandedConflicts] = useState<{ [key: number]: boolean }>({});
   const [teamRecommendations, setTeamRecommendations] = useState<any>(null);
+  const [activeTooltip, setActiveTooltip] = useState<string | null>(null);
   const [recommendationsLoading, setRecommendationsLoading] = useState(false);
   const [aiInsights, setAiInsights] = useState<{[key: string]: string[]}>({});
   const [insightsLoading, setInsightsLoading] = useState(false);
+  const [selectedMember, setSelectedMember] = useState<string | null>(null);
+  const [comparisonView, setComparisonView] = useState<'fit' | 'roles'>('fit');
 
   useEffect(() => {
     const fetchTeamData = async () => {
@@ -420,6 +507,137 @@ export default function TeamDashboardPage() {
     };
     
     return explanations[term.toLowerCase()] || 'No explanation available for this term.';
+  };
+
+  const toggleRecommendation = (section: string, index: number) => {
+    const key = `${section}-${index}`;
+    setExpandedRecommendations(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
+  };
+
+  const getScoreLabel = (trait: string, score: number) => {
+    const descriptiveLabels: Record<string, Record<string, string>> = {
+      // OCEAN traits
+      openness: { high: 'Creative Explorer', moderate: 'Balanced Innovator', low: 'Practical Realist' },
+      conscientiousness: { high: 'Structured Achiever', moderate: 'Flexible Planner', low: 'Adaptive Performer' },
+      extraversion: { high: 'People Energizer', moderate: 'Situational Connector', low: 'Thoughtful Observer' },
+      agreeableness: { high: 'Team Harmonizer', moderate: 'Balanced Collaborator', low: 'Direct Challenger' },
+      neuroticism: { high: 'Emotionally Aware', moderate: 'Resilient Realist', low: 'Steady Anchor' },
+      // Cultural dimensions
+      powerDistance: { high: 'Hierarchy Appreciator', moderate: 'Structure Balancer', low: 'Equality Advocate' },
+      individualism: { high: 'Independent Achiever', moderate: 'Balanced Contributor', low: 'Team Collective' },
+      masculinity: { high: 'Achievement Focused', moderate: 'Balanced Competitor', low: 'Relationship Focused' },
+      uncertaintyAvoidance: { high: 'Structure Seeker', moderate: 'Adaptive Planner', low: 'Change Embracer' },
+      longTermOrientation: { high: 'Future Strategist', moderate: 'Balanced Planner', low: 'Present Focused' },
+      indulgence: { high: 'Life Enjoyer', moderate: 'Balanced Liver', low: 'Disciplined Restrainer' },
+      // Work values
+      innovation: { high: 'Creative Problem Solver', moderate: 'Practical Innovator', low: 'Proven Method Follower' },
+      collaboration: { high: 'Team Player', moderate: 'Flexible Collaborator', low: 'Independent Worker' },
+      autonomy: { high: 'Freedom Seeker', moderate: 'Guided Independent', low: 'Structure Preferrer' },
+      quality: { high: 'Excellence Pursuer', moderate: 'Quality Balancer', low: 'Efficiency Focused' },
+      customerFocus: { high: 'Customer Champion', moderate: 'Balanced Advocate', low: 'Process Focused' }
+    };
+    
+    const level = score >= 70 ? 'high' : score >= 40 ? 'moderate' : 'low';
+    return descriptiveLabels[trait]?.[level] || `${level.charAt(0).toUpperCase() + level.slice(1)}`;
+  };
+
+  const getStyleExplanation = (trait: string, score: number) => {
+    const band = score <= 35 ? 'lower' : score >= 65 ? 'higher' : 'balanced';
+    const explanations: Record<string, Record<string, string>> = {
+      openness: {
+        lower: 'Your team prefers proven approaches over constant novelty.',
+        balanced: 'Your team mixes new ideas with practical guardrails.',
+        higher: 'Your team is energized by new ideas and experiments.'
+      },
+      conscientiousness: {
+        lower: 'Your team thrives in flexible, dynamic environments.',
+        balanced: 'Your team mixes structure with flexibility as needed.',
+        higher: 'Your team excels with clear structure and detailed planning.'
+      },
+      extraversion: {
+        lower: 'Your team thrives in focused, thoughtful environments.',
+        balanced: 'Your team adapts energy to the situation and people.',
+        higher: 'Your team brings energy and enthusiasm to group dynamics.'
+      },
+      agreeableness: {
+        lower: 'Your team is comfortable with healthy conflict and direct feedback.',
+        balanced: 'Your team mixes cooperation with healthy assertiveness.',
+        higher: 'Your team is naturally supportive and collaborative.'
+      },
+      neuroticism: {
+        lower: 'Your team maintains calm and focus in challenging situations.',
+        balanced: 'Your team balances optimism with realistic assessment of challenges.',
+        higher: 'Your team is highly attuned to emotions and potential challenges.'
+      }
+    };
+    
+    return explanations[trait]?.[band] || "No explanation available.";
+  };
+
+  const getValueExplanation = (value: string, score: number) => {
+    const valueExplanations: Record<string, Record<string, string>> = {
+      innovation: {
+        lower: "Your team prefers proven methods and established processes over experimental approaches.",
+        balanced: "Your team balances innovative thinking with practical implementation considerations.",
+        higher: "Your team naturally seeks creative solutions and embraces new approaches to challenges."
+      },
+      collaboration: {
+        lower: "Your team works effectively independently and prefers clear individual responsibilities.",
+        balanced: "Your team collaborates when needed while maintaining personal accountability.",
+        higher: "Your team thrives in collaborative environments and values collective decision-making."
+      },
+      autonomy: {
+        lower: "Your team prefers clear guidance and structured work environments.",
+        balanced: "Your team values both independence and support as appropriate.",
+        higher: "Your team excels when given freedom to determine approach and priorities."
+      },
+      quality: {
+        lower: "Your team focuses on efficiency and meeting core requirements effectively.",
+        balanced: "Your team balances quality standards with practical delivery timelines.",
+        higher: "Your team prioritizes excellence and attention to detail in all work outputs."
+      },
+      customerFocus: {
+        lower: "Your team focuses on internal processes and technical excellence.",
+        balanced: "Your team considers both customer needs and internal capabilities.",
+        higher: "Your team strongly prioritizes customer satisfaction and user experience."
+      },
+      powerDistance: {
+        lower: "Your team prefers flat, egalitarian structures where all voices are valued equally.",
+        balanced: "Your team adapts to different leadership styles while maintaining agency.",
+        higher: "Your team is comfortable with hierarchical structures and clear authority lines."
+      },
+      individualism: {
+        lower: "Your team values collective goals and team success over individual recognition.",
+        balanced: "Your team balances personal achievement with team collaboration.",
+        higher: "Your team strongly values personal achievement and individual recognition."
+      },
+      masculinity: {
+        lower: "Your team values collaboration, support, and quality of life over competition.",
+        balanced: "Your team balances competitive drive with collaborative approaches.",
+        higher: "Your team values competition, achievement, and assertive approaches to work."
+      },
+      uncertaintyAvoidance: {
+        lower: "Your team is comfortable with ambiguity and enjoys exploring new possibilities.",
+        balanced: "Your team manages uncertainty by gathering information and planning adaptively.",
+        higher: "Your team prefers clear rules, structured environments, and predictable outcomes."
+      },
+      longTermOrientation: {
+        lower: "Your team focuses on immediate results and short-term practical outcomes.",
+        balanced: "Your team balances immediate needs with long-term strategic considerations.",
+        higher: "Your team prioritizes long-term planning and sustainable growth strategies."
+      },
+      indulgence: {
+        lower: "Your team values discipline, restraint, and professional focus.",
+        balanced: "Your team balances work dedication with quality of life considerations.",
+        higher: "Your team values work-life balance and enjoying professional achievements."
+      }
+    };
+
+    const band = score <= 35 ? 'lower' : score >= 65 ? 'higher' : 'balanced';
+    return valueExplanations[value]?.[band] || "No explanation available.";
   };
 
   const generateDynamicKeyInsights = (scores: any, memberCount: number) => {
@@ -749,368 +967,1070 @@ export default function TeamDashboardPage() {
               </CardContent>
             </Card>
 
-            {/* Team Aggregate Results */}
+            {/* OCEAN Section */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5" />
-                  Team Aggregate Results
-                </CardTitle>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                    <Brain className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-2xl">Team Personality Profile</CardTitle>
+                    <p className="text-gray-600">Your team's OCEAN personality traits reveal how you naturally think, feel, and behave in work environments.</p>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="space-y-8">
-                  {/* OCEAN Aggregate */}
-                  <div>
-                    <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                      <Brain className="h-4 w-4" />
-                      Team Personality Profile
-                    </h4>
-                    <div className="relative">
+                <div className="space-y-6">
+                  {/* Two-column layout for radar chart and style preferences */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                    {/* Left: Radar Chart */}
+                    <div className="overflow-visible">
+                      <h3 className="text-lg font-semibold mb-4 text-gray-900">Team Personality Dimensions</h3>
+                      <div className="w-full h-[400px] overflow-visible">
                       <RadarChart 
                         data={teamData.aggregateScores.ocean} 
                         color="#3B82F6"
-                      />
-                                              <div className="mt-4">
-                          <h5 className="text-base font-semibold text-gray-800 text-center mb-2">Trait Scores</h5>
-                          <p className="text-xs text-gray-500 text-center mb-4">Click on any score for detailed explanation</p>
-                          <div className="flex flex-wrap gap-2 justify-center">
+                          title=""
+                          size={350}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Right: Style Preferences */}
+                    <div>
+                      <h3 className="text-lg font-semibold mb-4 text-gray-900">Team Style Preferences</h3>
+                      <div className="space-y-4">
                             {Object.entries(teamData.aggregateScores.ocean).map(([trait, score]) => (
-                              <Tooltip key={trait}>
-                                <TooltipTrigger asChild>
-                                  <div className="inline-flex items-center px-3 py-2 rounded-full text-sm font-medium bg-white text-gray-700 border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors shadow-sm">
-                                    {trait.charAt(0).toUpperCase() + trait.slice(1)}: {score}
+                          <div key={trait} className="space-y-2">
+                            <div className="space-y-2">
+                              <div className="flex justify-between items-center">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium capitalize">{trait}</span>
+                                  <div className="relative">
+                                    <button
+                                      onClick={() => setActiveTooltip(activeTooltip === trait ? null : trait)}
+                                      className="text-gray-400 hover:text-gray-600 transition-colors"
+                                    >
+                                      <HelpCircle className="h-4 w-4" />
+                                    </button>
+                                    {activeTooltip === trait && (
+                                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 p-3 bg-white border border-gray-200 rounded-lg shadow-lg z-10 w-80">
+                                        <div className="text-sm text-gray-700 leading-relaxed">
+                                          {getTermExplanation(trait)}
                                   </div>
-                                </TooltipTrigger>
-                                <TooltipContent className="max-w-xs">
-                                  <p>{getTermExplanation(trait)}</p>
-                                </TooltipContent>
-                              </Tooltip>
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setActiveTooltip(null);
+                                          }}
+                                          className="absolute top-2 right-2 text-gray-400 hover:text-gray-600"
+                                        >
+                                          ×
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-medium text-gray-900">
+                                    {getScoreLabel(trait, score)}
+                                  </span>
+                                  <span className="text-sm text-gray-500">({score})</span>
+                                </div>
+                              </div>
+                              <p className="text-sm text-gray-600">{getStyleExplanation(trait, score)}</p>
+                              <Progress value={score} className="h-2" />
+                            </div>
+                          </div>
                             ))}
                           </div>
                         </div>
                     </div>
-                    {completedMembers.length > 0 ? (
-                      <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                        <div className="flex items-start gap-3">
-                          <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                            <Lightbulb className="h-4 w-4 text-blue-600" />
+
+                  {/* What This Means for Your Team - OCEAN */}
+                  {completedMembers.length > 0 && (
+                    <div className="mt-8">
+                      <h3 className="text-2xl font-semibold mb-6 text-gray-900">What This Means for Your Team</h3>
+                      
+                      {/* Generate team insights based on actual scores */}
+                      {(() => {
+                        const oceanScores = teamData.aggregateScores.ocean;
+                        const insights = [];
+                        
+                        if (oceanScores.openness >= 70) {
+                          insights.push({
+                            title: "High Openness - The Creative Team",
+                            description: "Your team naturally embraces new ideas and creative solutions",
+                            key: "openness-high",
+                            icon: Brain,
+                            color: "blue",
+                            content: {
+                              strengths: [
+                                "Innovative projects that challenge your team to think creatively",
+                                "Flexible work environments that allow for experimentation and new approaches",
+                                "Cross-functional collaboration where diverse perspectives can flourish",
+                                "Learning opportunities that keep your team engaged and growing"
+                              ],
+                              avoid: [
+                                "Rigid processes that stifle creativity and innovation",
+                                "Highly structured environments with little room for new ideas",
+                                "Repetitive tasks that don't challenge your team's creative potential",
+                                "Conservative leadership that resists change or new approaches"
+                              ],
+                              superpower: "Your team naturally sees possibilities others miss and can connect ideas in creative ways. You're the team that brings fresh perspectives to any situation and thrives on innovation."
+                            }
+                          });
+                        }
+
+                        if (oceanScores.agreeableness >= 70) {
+                          insights.push({
+                            title: "High Agreeableness - The Harmonious Team", 
+                            description: "Your team excels at collaboration and maintaining positive relationships",
+                            key: "agreeableness-high",
+                            icon: Users,
+                            color: "green",
+                            content: {
+                              strengths: [
+                                "Collaborative environments where everyone's voice is heard",
+                                "Team-based projects that leverage collective strengths",
+                                "Supportive work culture that values empathy and understanding",
+                                "Conflict resolution through open dialogue and compromise"
+                              ],
+                              avoid: [
+                                "Highly competitive environments that pit team members against each other",
+                                "Aggressive leadership styles that create tension",
+                                "Isolated work arrangements that limit team interaction",
+                                "High-pressure situations that compromise team harmony"
+                              ],
+                              superpower: "Your team creates an environment where everyone feels valued and supported, leading to higher engagement and better collective outcomes."
+                            }
+                          });
+                        }
+
+                        // Add empty state if no insights
+                        if (insights.length === 0) {
+                          return (
+                            <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
+                              <div className="text-center">
+                                <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                  <Brain className="h-6 w-6 text-gray-400" />
+                                </div>
+                                <h4 className="font-semibold text-gray-900 mb-2">Building Your Team Profile</h4>
+                                <p className="text-sm text-gray-600">
+                                  Your team shows balanced personality traits. As more members complete assessments, we'll provide more specific insights.
+                                </p>
+                              </div>
+                            </div>
+                          );
+                        }
+
+                        return insights.slice(0, 2).map((insight, index) => (
+                          <div key={index} className="border border-gray-200 rounded-lg mb-4">
+                            <div 
+                              className="p-4 cursor-pointer hover:bg-gray-50 transition-all duration-200 rounded-lg hover:shadow-sm"
+                              onClick={() => toggleRecommendation(insight.key, 0)}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                  <div className={`w-8 h-8 bg-${insight.color}-100 rounded-full flex items-center justify-center`}>
+                                    <insight.icon className={`h-4 w-4 text-${insight.color}-600`} />
                           </div>
                           <div>
-                            <p className="text-sm font-medium text-blue-900 mb-2">Key Insights</p>
-                            {insightsLoading ? (
-                              <div className="flex items-center gap-2">
-                                <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                                <span className="text-sm text-blue-600">Generating AI insights...</span>
+                                    <h4 className="font-semibold text-gray-900">{insight.title}</h4>
+                                    <p className="text-sm text-gray-600">{insight.description}</p>
                               </div>
-                            ) : (
-                              <div className="space-y-1">
-                                {(aiInsights.ocean || generateDynamicKeyInsights(teamData.aggregateScores, completedMembers.length)).slice(0, 3).map((insight, index) => (
-                                  <p key={index} className="text-sm text-blue-700">
-                                    • {insight}
-                                  </p>
-                                ))}
+                                </div>
+                                {expandedRecommendations[`${insight.key}-0`] ? (
+                                  <ChevronUp className="h-5 w-5 text-gray-500" />
+                                ) : (
+                                  <ChevronDown className="h-5 w-5 text-gray-500" />
+                                )}
                               </div>
-                            )}
+                            </div>
+                            
+                            {expandedRecommendations[`${insight.key}-0`] && (
+                              <div className="px-4 pb-4 border-t border-gray-100">
+                                <div className="pt-4 space-y-4">
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                                      <h5 className="font-medium text-gray-800 mb-3 flex items-center gap-2">
+                                        <div className="w-5 h-5 bg-green-100 rounded-full flex items-center justify-center">
+                                          <span className="text-green-600 text-xs">✓</span>
+                                        </div>
+                                        What to look for:
+                                      </h5>
+                                      <ul className="text-sm text-gray-700 space-y-2">
+                                        {insight.content.strengths.map((strength, i) => (
+                                          <li key={i}>• <strong>{strength.split(' ')[0]} {strength.split(' ')[1]}</strong> {strength.split(' ').slice(2).join(' ')}</li>
+                                        ))}
+                                      </ul>
+                              </div>
+                                    <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                                      <h5 className="font-medium text-gray-800 mb-3 flex items-center gap-2">
+                                        <X className="w-5 h-5 text-gray-600" />
+                                        What to avoid:
+                                      </h5>
+                                      <ul className="text-sm text-gray-700 space-y-2">
+                                        {insight.content.avoid.map((avoid, i) => (
+                                          <li key={i}>• <strong>{avoid.split(' ')[0]} {avoid.split(' ')[1]}</strong> {avoid.split(' ').slice(2).join(' ')}</li>
+                                        ))}
+                                      </ul>
                           </div>
                         </div>
+                                  <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                                    <h5 className="font-medium text-gray-800 mb-2 flex items-center gap-2">
+                                      <Zap className={`w-5 h-5 text-${insight.color}-600`} />
+                                      Your team superpower:
+                                    </h5>
+                                    <p className="text-sm text-gray-700">{insight.content.superpower}</p>
                       </div>
-                    ) : (
-                      <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                        <div className="flex items-start gap-3">
-                          <div className="w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                            <Clock className="h-4 w-4 text-gray-600" />
                           </div>
-                          <div>
-                            <p className="text-sm font-medium text-gray-900 mb-1">No Data Yet</p>
-                            <p className="text-sm text-gray-700">
-                              Team insights will be generated once members complete their assessments. 
-                              Invite your team members to get started!
-                            </p>
                           </div>
+                            )}
                         </div>
+                        ));
+                      })()}
                       </div>
                     )}
                   </div>
+              </CardContent>
+            </Card>
 
-                  {/* Culture Aggregate */}
+            {/* Culture Section */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                    <Globe className="h-5 w-5 text-green-600" />
+                  </div>
                   <div>
-                    <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                      <Globe className="h-4 w-4" />
-                      Team Cultural Preferences
-                    </h4>
-                    <div className="relative">
+                    <CardTitle className="text-2xl">Team Cultural Preferences</CardTitle>
+                    <p className="text-gray-600">Your team's cultural preferences indicate how you prefer to work within organizational structures.</p>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  {/* Two-column layout for radar chart and style preferences */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                    {/* Left: Radar Chart */}
+                    <div className="overflow-visible">
+                      <h3 className="text-lg font-semibold mb-4 text-gray-900">Team Cultural Dimensions</h3>
+                      <div className="w-full h-[400px] overflow-visible">
                       <RadarChart 
                         data={teamData.aggregateScores.culture} 
                         color="#10B981"
-                      />
-                                              <div className="mt-4">
-                          <h5 className="text-base font-semibold text-gray-800 text-center mb-2">Cultural Dimensions</h5>
-                          <p className="text-xs text-gray-500 text-center mb-4">Click on any score for detailed explanation</p>
-                          <div className="flex flex-wrap gap-2 justify-center">
-                            {Object.entries(teamData.aggregateScores.culture).map(([trait, score]) => (
-                              <Tooltip key={trait}>
-                                <TooltipTrigger asChild>
-                                  <div className="inline-flex items-center px-3 py-2 rounded-full text-sm font-medium bg-white text-gray-700 border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors shadow-sm">
-                                    {trait.replace(/_/g, ' ').charAt(0).toUpperCase() + trait.replace(/_/g, ' ').slice(1)}: {score}
+                          title=""
+                          size={350}
+                        />
                                   </div>
-                                </TooltipTrigger>
-                                <TooltipContent className="max-w-xs">
-                                  <p>{getTermExplanation(trait)}</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            ))}
                           </div>
-                        </div>
-                    </div>
-                    {completedMembers.length > 0 ? (
-                      <div className="mt-4 p-4 bg-green-50 rounded-lg border border-green-200">
-                        <div className="flex items-start gap-3">
-                          <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                            <Globe className="h-4 w-4 text-green-600" />
-                          </div>
+
+                    {/* Right: Style Preferences */}
                           <div>
-                            <p className="text-sm font-medium text-green-900 mb-2">Cultural Insights</p>
-                            {insightsLoading ? (
+                      <h3 className="text-lg font-semibold mb-4 text-gray-900">Team Style Preferences</h3>
+                      <div className="space-y-4">
+                        {Object.entries(teamData.aggregateScores.culture).map(([trait, score]) => (
+                          <div key={trait} className="space-y-2">
+                            <div className="space-y-2">
+                              <div className="flex justify-between items-center">
                               <div className="flex items-center gap-2">
-                                <div className="w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full animate-spin"></div>
-                                <span className="text-sm text-green-600">Generating AI insights...</span>
+                                  <span className="font-medium capitalize">{trait.replace(/([A-Z])/g, ' $1').trim()}</span>
+                                  <div className="relative">
+                                    <button
+                                      onClick={() => setActiveTooltip(activeTooltip === trait ? null : trait)}
+                                      className="text-gray-400 hover:text-gray-600 transition-colors"
+                                    >
+                                      <HelpCircle className="h-4 w-4" />
+                                    </button>
+                                    {activeTooltip === trait && (
+                                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 p-3 bg-white border border-gray-200 rounded-lg shadow-lg z-10 w-80">
+                                        <div className="text-sm text-gray-700 leading-relaxed">
+                                          {getTermExplanation(trait)}
                               </div>
-                            ) : (
-                              <div className="space-y-1">
-                                {(aiInsights.culture || generateDynamicKeyInsights(teamData.aggregateScores, completedMembers.length)).slice(0, 2).map((insight, index) => (
-                                  <p key={index} className="text-sm text-green-700">
-                                    • {insight}
-                                  </p>
-                                ))}
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setActiveTooltip(null);
+                                          }}
+                                          className="absolute top-2 right-2 text-gray-400 hover:text-gray-600"
+                                        >
+                                          ×
+                                        </button>
                               </div>
                             )}
                           </div>
                         </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-medium text-gray-900">
+                                    {getScoreLabel(trait, score)}
+                                  </span>
+                                  <span className="text-sm text-gray-500">({score})</span>
                       </div>
-                    ) : (
-                      <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                        <div className="flex items-start gap-3">
-                          <div className="w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                            <Clock className="h-4 w-4 text-gray-600" />
                           </div>
-                          <div>
-                            <p className="text-sm font-medium text-gray-900 mb-1">No Data Yet</p>
-                            <p className="text-sm text-gray-700">
-                              Cultural insights will be generated once members complete their assessments. 
-                              Invite your team members to get started!
-                            </p>
+                              <p className="text-sm text-gray-600">{getValueExplanation(trait, score)}</p>
+                              <Progress value={score} className="h-2" />
                           </div>
                         </div>
+                        ))}
                       </div>
-                    )}
+                    </div>
                   </div>
 
-                  {/* Values Aggregate */}
-                  <div>
-                    <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                      <Target className="h-4 w-4" />
-                      Team Values Profile
-                    </h4>
-                    <div className="relative">
-                      <RadarChart 
-                        data={teamData.aggregateScores.values} 
-                        color="#F59E0B"
-                      />
-                                              <div className="mt-4">
-                          <h5 className="text-base font-semibold text-gray-800 text-center mb-2">Work Values</h5>
-                          <p className="text-xs text-gray-500 text-center mb-4">Click on any score for detailed explanation</p>
-                          <div className="flex flex-wrap gap-2 justify-center">
-                            {Object.entries(teamData.aggregateScores.values).map(([trait, score]) => (
-                              <Tooltip key={trait}>
-                                <TooltipTrigger asChild>
-                                  <div className="inline-flex items-center px-3 py-2 rounded-full text-sm font-medium bg-white text-gray-700 border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors shadow-sm">
-                                    {trait.charAt(0).toUpperCase() + trait.slice(1)}: {score}
+                  {/* What This Means for Your Team - Culture */}
+                  {completedMembers.length > 0 && (
+                    <div className="mt-8">
+                      <h3 className="text-2xl font-semibold mb-6 text-gray-900">What This Means for Your Team</h3>
+                      
+                      {/* Generate cultural insights based on actual scores */}
+                      {(() => {
+                        const cultureScores = teamData.aggregateScores.culture;
+                        const insights = [];
+                        
+                        if (cultureScores.powerDistance <= 40) {
+                          insights.push({
+                            title: "Low Power Distance - The Collaborative Team",
+                            description: "Your team creates flat, collaborative decision-making structures",
+                            key: "powerDistance-low",
+                            icon: Globe,
+                            color: "green",
+                            content: {
+                              strengths: [
+                                "Flat organizational structures where everyone's input is valued equally",
+                                "Collaborative decision-making processes that include all team members",
+                                "Open communication channels that encourage direct feedback and discussion",
+                                "Merit-based recognition that rewards individual contributions and achievements"
+                              ],
+                              avoid: [
+                                "Hierarchical structures that create barriers between team members",
+                                "Top-down decision making that excludes team input and collaboration",
+                                "Formal communication channels that discourage open dialogue",
+                                "Seniority-based systems that don't recognize individual merit and contributions"
+                              ],
+                              superpower: "Your team creates an environment where everyone's voice matters while maintaining high individual standards. You naturally balance autonomy with collaboration and create inclusive decision-making processes."
+                            }
+                          });
+                        }
+
+                        // Add empty state if no insights
+                        if (insights.length === 0) {
+                          return (
+                            <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
+                              <div className="text-center">
+                                <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                  <Globe className="h-6 w-6 text-gray-400" />
                                   </div>
-                                </TooltipTrigger>
-                                <TooltipContent className="max-w-xs">
-                                  <p>{getTermExplanation(trait)}</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            ))}
+                                <h4 className="font-semibold text-gray-900 mb-2">Building Your Cultural Profile</h4>
+                                <p className="text-sm text-gray-600">
+                                  Your team shows balanced cultural preferences. As more members complete assessments, we'll provide more specific insights.
+                                </p>
                           </div>
                         </div>
-                    </div>
-                    {completedMembers.length > 0 ? (
-                      <div className="mt-4 p-4 bg-orange-50 rounded-lg border border-orange-200">
-                        <div className="flex items-start gap-3">
-                          <div className="w-6 h-6 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                            <Target className="h-4 w-4 text-orange-600" />
+                          );
+                        }
+
+                        return insights.slice(0, 1).map((insight, index) => (
+                          <div key={index} className="border border-gray-200 rounded-lg mb-4">
+                            <div 
+                              className="p-4 cursor-pointer hover:bg-gray-50 transition-all duration-200 rounded-lg hover:shadow-sm"
+                              onClick={() => toggleRecommendation(insight.key, 0)}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                  <div className={`w-8 h-8 bg-${insight.color}-100 rounded-full flex items-center justify-center`}>
+                                    <insight.icon className={`h-4 w-4 text-${insight.color}-600`} />
                           </div>
                           <div>
-                            <p className="text-sm font-medium text-orange-900 mb-2">Values Insights</p>
-                            {insightsLoading ? (
-                              <div className="flex items-center gap-2">
-                                <div className="w-4 h-4 border-2 border-orange-600 border-t-transparent rounded-full animate-spin"></div>
-                                <span className="text-sm text-orange-600">Generating AI insights...</span>
+                                    <h4 className="font-semibold text-gray-900">{insight.title}</h4>
+                                    <p className="text-sm text-gray-600">{insight.description}</p>
                               </div>
-                            ) : (
-                              <div className="space-y-1">
-                                {(aiInsights.values || generateDynamicKeyInsights(teamData.aggregateScores, completedMembers.length)).slice(0, 2).map((insight, index) => (
-                                  <p key={index} className="text-sm text-orange-700">
-                                    • {insight}
-                                  </p>
-                                ))}
                               </div>
+                                {expandedRecommendations[`${insight.key}-0`] ? (
+                                  <ChevronUp className="h-5 w-5 text-gray-500" />
+                                ) : (
+                                  <ChevronDown className="h-5 w-5 text-gray-500" />
                             )}
                           </div>
                         </div>
+                            
+                            {expandedRecommendations[`${insight.key}-0`] && (
+                              <div className="px-4 pb-4 border-t border-gray-100">
+                                <div className="pt-4 space-y-4">
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                                      <h5 className="font-medium text-gray-800 mb-3 flex items-center gap-2">
+                                        <div className="w-5 h-5 bg-green-100 rounded-full flex items-center justify-center">
+                                          <span className="text-green-600 text-xs">✓</span>
                       </div>
-                    ) : (
-                      <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                        <div className="flex items-start gap-3">
-                          <div className="w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                            <Clock className="h-4 w-4 text-gray-600" />
+                                        What to look for:
+                                      </h5>
+                                      <ul className="text-sm text-gray-700 space-y-2">
+                                        {insight.content.strengths.map((strength, i) => (
+                                          <li key={i}>• <strong>{strength.split(' ')[0]} {strength.split(' ')[1]}</strong> {strength.split(' ').slice(2).join(' ')}</li>
+                                        ))}
+                                      </ul>
                           </div>
-                          <div>
-                            <p className="text-sm font-medium text-gray-900 mb-1">No Data Yet</p>
-                            <p className="text-sm text-gray-700">
-                              Values insights will be generated once members complete their assessments. 
-                              Invite your team members to get started!
-                            </p>
+                                    <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                                      <h5 className="font-medium text-gray-800 mb-3 flex items-center gap-2">
+                                        <X className="w-5 h-5 text-gray-600" />
+                                        What to avoid:
+                                      </h5>
+                                      <ul className="text-sm text-gray-700 space-y-2">
+                                        {insight.content.avoid.map((avoid, i) => (
+                                          <li key={i}>• <strong>{avoid.split(' ')[0]} {avoid.split(' ')[1]}</strong> {avoid.split(' ').slice(2).join(' ')}</li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                  </div>
+                                  <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                                    <h5 className="font-medium text-gray-800 mb-2 flex items-center gap-2">
+                                      <Zap className={`w-5 h-5 text-${insight.color}-600`} />
+                                      Your team superpower:
+                                    </h5>
+                                    <p className="text-sm text-gray-700">{insight.content.superpower}</p>
                           </div>
                         </div>
                       </div>
                     )}
                   </div>
+                        ));
+                      })()}
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
 
-            {/* Combined Team Insights & Recommendations */}
+            {/* Values Section */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Lightbulb className="h-5 w-5" />
-                  Team Insights & Recommendations
-                </CardTitle>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                    <Target className="h-5 w-5 text-purple-600" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-2xl">Team Work Values</CardTitle>
+                    <p className="text-gray-600">Your team's work values represent what motivates and drives you professionally.</p>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
-                {recommendationsLoading ? (
-                  <div className="text-center py-8">
-                    <LoadingSpinner size="lg" text="Generating AI-powered team insights..." />
-                  </div>
-                ) : teamRecommendations ? (
-                  <div className="space-y-6">
-                    {/* AI Summary */}
-                    {teamRecommendations.summary && (
-                      <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                        <div className="flex items-start gap-3">
-                          <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                            <Lightbulb className="h-4 w-4 text-blue-600" />
+                <div className="space-y-6">
+                  {/* Two-column layout for radar chart and style preferences */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                    {/* Left: Radar Chart */}
+                    <div className="overflow-visible">
+                      <h3 className="text-lg font-semibold mb-4 text-gray-900">Team Work Values</h3>
+                      <div className="w-full h-[400px] overflow-visible">
+                        <RadarChart
+                          data={teamData.aggregateScores.values}
+                          color="#A855F7"
+                          title=""
+                          size={350}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Right: Style Preferences */}
+                  <div>
+                      <h3 className="text-lg font-semibold mb-4 text-gray-900">Team Style Preferences</h3>
+                      <div className="space-y-4">
+                        {Object.entries(teamData.aggregateScores.values).map(([trait, score]) => (
+                          <div key={trait} className="space-y-2">
+                            <div className="space-y-2">
+                              <div className="flex justify-between items-center">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium capitalize">{trait.replace(/([A-Z])/g, ' $1').trim()}</span>
+                                  <div className="relative">
+                                    <button
+                                      onClick={() => setActiveTooltip(activeTooltip === trait ? null : trait)}
+                                      className="text-gray-400 hover:text-gray-600 transition-colors"
+                                    >
+                                      <HelpCircle className="h-4 w-4" />
+                                    </button>
+                                    {activeTooltip === trait && (
+                                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 p-3 bg-white border border-gray-200 rounded-lg shadow-lg z-10 w-80">
+                                        <div className="text-sm text-gray-700 leading-relaxed">
+                                          {getTermExplanation(trait)}
                           </div>
-                          <div>
-                            <p className="text-sm font-medium text-blue-900 mb-1">AI Team Analysis</p>
-                            <p className="text-sm text-blue-700">{teamRecommendations.summary}</p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Team Strengths */}
-                    {teamRecommendations.strengths && teamRecommendations.strengths.length > 0 && (
-                      <div>
-                        <h4 className="font-semibold text-green-900 mb-3">Team Strengths</h4>
-                        <div className="space-y-2">
-                          {teamRecommendations.strengths.map((strength: string, index: number) => (
-                            <div key={index} className="flex items-start gap-3 p-3 bg-green-50 rounded-lg">
-                              <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
-                              <p className="text-gray-700 text-sm">{strength}</p>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Development Areas (Combined from Areas for Attention and Development Areas) */}
-                    {((teamRecommendations.challenges && teamRecommendations.challenges.length > 0) || 
-                      (teamData.insights.challenges && teamData.insights.challenges.length > 0)) && (
-                      <div>
-                        <h4 className="font-semibold text-yellow-900 mb-3">Areas for Development</h4>
-                        <div className="space-y-2">
-                          {teamRecommendations.challenges?.map((challenge: string, index: number) => (
-                            <div key={`rec-${index}`} className="flex items-start gap-3 p-3 bg-yellow-50 rounded-lg">
-                              <div className="w-2 h-2 bg-yellow-500 rounded-full mt-2 flex-shrink-0"></div>
-                              <p className="text-gray-700 text-sm">{challenge}</p>
-                            </div>
-                          ))}
-                          {teamData.insights.challenges?.map((challenge: string, index: number) => (
-                            <div key={`insight-${index}`} className="flex items-start gap-3 p-3 bg-yellow-50 rounded-lg">
-                              <div className="w-2 h-2 bg-yellow-500 rounded-full mt-2 flex-shrink-0"></div>
-                              <p className="text-gray-700 text-sm">{challenge}</p>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Opportunities */}
-                    {((teamRecommendations.opportunities && teamRecommendations.opportunities.length > 0) || 
-                      (teamData.insights.opportunities && teamData.insights.opportunities.length > 0)) && (
-                      <div>
-                        <h4 className="font-semibold text-blue-900 mb-3">Opportunities</h4>
-                        <div className="space-y-2">
-                          {teamRecommendations.opportunities?.map((opportunity: string, index: number) => (
-                            <div key={`rec-${index}`} className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg">
-                              <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-                              <p className="text-gray-700 text-sm">{opportunity}</p>
-                            </div>
-                          ))}
-                          {teamData.insights.opportunities?.map((opportunity: string, index: number) => (
-                            <div key={`insight-${index}`} className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg">
-                              <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-                              <p className="text-gray-700 text-sm">{opportunity}</p>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Top Recommendations */}
-                    {teamRecommendations.recommendations && teamRecommendations.recommendations.length > 0 && (
-                      <div>
-                        <h4 className="font-semibold text-gray-900 mb-4">Top Recommendations</h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {teamRecommendations.recommendations.slice(0, 4).map((rec: any, index: number) => (
-                            <div key={index} className="border border-gray-200 rounded-lg overflow-hidden">
-                              <div className="p-4 bg-white">
-                                <div className="flex items-center justify-between mb-2">
-                                  <h5 className="font-medium text-gray-900">{rec.title}</h5>
-                                  <div className="flex gap-2">
-                                    <Badge className="bg-green-100 text-green-700 text-xs">High Impact</Badge>
-                                    <Badge className="bg-blue-100 text-blue-700 text-xs">Medium Effort</Badge>
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setActiveTooltip(null);
+                                          }}
+                                          className="absolute top-2 right-2 text-gray-400 hover:text-gray-600"
+                                        >
+                                          ×
+                                        </button>
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
-                                <p className="text-sm text-gray-600">{rec.description}</p>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-medium text-gray-900">
+                                    {getScoreLabel(trait, score)}
+                              </span>
+                              <span className="text-sm text-gray-500">({score})</span>
+                            </div>
+                              </div>
+                              <p className="text-sm text-gray-600">{getValueExplanation(trait, score)}</p>
+                              <Progress value={score} className="h-2" />
+                          </div>
+                        </div>
+                      ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* What This Means for Your Team - Values */}
+                  {completedMembers.length > 0 && (
+                    <div className="mt-8">
+                      <h3 className="text-2xl font-semibold mb-6 text-gray-900">What This Means for Your Team</h3>
+                      
+                      {/* Generate values insights based on actual scores */}
+                      {(() => {
+                        const valuesScores = teamData.aggregateScores.values;
+                        const insights = [];
+                        
+                        if (valuesScores.innovation >= 70) {
+                          insights.push({
+                            title: "High Innovation - The Creative Problem Solvers",
+                            description: "Your team naturally seeks creative solutions and embraces new approaches",
+                            key: "innovation-high",
+                            icon: Lightbulb,
+                            color: "purple",
+                            content: {
+                              strengths: [
+                                "Innovation-focused projects that challenge conventional thinking",
+                                "Experimental environments that allow for creative exploration",
+                                "Cross-industry collaboration that brings fresh perspectives",
+                                "Continuous learning opportunities that fuel creative growth"
+                              ],
+                              avoid: [
+                                "Rigid processes that limit creative exploration",
+                                "Conservative environments that resist new ideas",
+                                "Repetitive tasks that don't challenge innovation",
+                                "Risk-averse leadership that stifles experimentation"
+                              ],
+                              superpower: "Your team transforms challenges into opportunities through creative thinking and innovative solutions."
+                            }
+                          });
+                        }
+
+                        if (valuesScores.collaboration >= 70) {
+                          insights.push({
+                            title: "High Collaboration - The Team Players",
+                            description: "Your team thrives in collaborative environments and values collective success",
+                            key: "collaboration-high",
+                            icon: Users,
+                            color: "green",
+                            content: {
+                              strengths: [
+                                "Team-based projects that leverage collective strengths",
+                                "Collaborative environments where everyone contributes",
+                                "Shared decision-making processes that include all voices",
+                                "Group problem-solving that combines diverse perspectives"
+                              ],
+                              avoid: [
+                                "Highly competitive individual-focused environments",
+                                "Isolated work arrangements that limit team interaction",
+                                "Winner-takes-all systems that create internal competition",
+                                "Hierarchical structures that limit collaborative input"
+                              ],
+                              superpower: "Your team achieves more together than the sum of individual contributions through effective collaboration."
+                            }
+                          });
+                        }
+
+                        // Add empty state if no insights
+                        if (insights.length === 0) {
+                          return (
+                            <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
+                              <div className="text-center">
+                                <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                  <Target className="h-6 w-6 text-gray-400" />
+                                </div>
+                                <h4 className="font-semibold text-gray-900 mb-2">Building Your Values Profile</h4>
+                                <p className="text-sm text-gray-600">
+                                  Your team shows balanced work values. As more members complete assessments, we'll provide more specific insights.
+                                </p>
                               </div>
                             </div>
-                          ))}
+                          );
+                        }
+
+                        return insights.slice(0, 2).map((insight, index) => (
+                          <div key={index} className="border border-gray-200 rounded-lg mb-4">
+                            <div 
+                              className="p-4 cursor-pointer hover:bg-gray-50 transition-all duration-200 rounded-lg hover:shadow-sm"
+                              onClick={() => toggleRecommendation(insight.key, 0)}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                  <div className={`w-8 h-8 bg-${insight.color}-100 rounded-full flex items-center justify-center`}>
+                                    <insight.icon className={`h-4 w-4 text-${insight.color}-600`} />
+                                  </div>
+                  <div>
+                                    <h4 className="font-semibold text-gray-900">{insight.title}</h4>
+                                    <p className="text-sm text-gray-600">{insight.description}</p>
+                          </div>
+                            </div>
+                                {expandedRecommendations[`${insight.key}-0`] ? (
+                                  <ChevronUp className="h-5 w-5 text-gray-500" />
+                                ) : (
+                                  <ChevronDown className="h-5 w-5 text-gray-500" />
+                                )}
+                          </div>
                         </div>
+                            
+                            {expandedRecommendations[`${insight.key}-0`] && (
+                              <div className="px-4 pb-4 border-t border-gray-100">
+                                <div className="pt-4 space-y-4">
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                                      <h5 className="font-medium text-gray-800 mb-3 flex items-center gap-2">
+                                        <div className="w-5 h-5 bg-green-100 rounded-full flex items-center justify-center">
+                                          <span className="text-green-600 text-xs">✓</span>
+                                        </div>
+                                        What to look for:
+                                      </h5>
+                                      <ul className="text-sm text-gray-700 space-y-2">
+                                        {insight.content.strengths.map((strength, i) => (
+                                          <li key={i}>• <strong>{strength.split(' ')[0]} {strength.split(' ')[1]}</strong> {strength.split(' ').slice(2).join(' ')}</li>
+                                        ))}
+                                      </ul>
+                    </div>
+                                    <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                                      <h5 className="font-medium text-gray-800 mb-3 flex items-center gap-2">
+                                        <X className="w-5 h-5 text-gray-600" />
+                                        What to avoid:
+                                      </h5>
+                                      <ul className="text-sm text-gray-700 space-y-2">
+                                        {insight.content.avoid.map((avoid, i) => (
+                                          <li key={i}>• <strong>{avoid.split(' ')[0]} {avoid.split(' ')[1]}</strong> {avoid.split(' ').slice(2).join(' ')}</li>
+                                        ))}
+                                      </ul>
+                  </div>
+                          </div>
+                                  <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                                    <h5 className="font-medium text-gray-800 mb-2 flex items-center gap-2">
+                                      <Zap className={`w-5 h-5 text-${insight.color}-600`} />
+                                      Your team superpower:
+                                    </h5>
+                                    <p className="text-sm text-gray-700">{insight.content.superpower}</p>
+                            </div>
+                          </div>
+                        </div>
+                            )}
+                    </div>
+                        ));
+                      })()}
+                  </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Overall Team Summary */}
+            {completedMembers.length > 0 && (
+            <Card>
+              <CardHeader>
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                      <Users className="h-5 w-5 text-purple-600" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-2xl font-semibold text-gray-900">Overall Team Summary</CardTitle>
+                      <p className="text-sm text-gray-600">Your complete team personality and work style profile</p>
+                    </div>
+                  </div>
+              </CardHeader>
+              <CardContent>
+                  <div className="space-y-8">
+                    {/* Team Profile Summary */}
+                    <div>
+                      <h3 className="text-xl font-semibold mb-4 text-gray-900">Your Team Profile</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {(() => {
+                          const profiles = [];
+                      const oceanScores = teamData.aggregateScores.ocean;
+                      const cultureScores = teamData.aggregateScores.culture;
+                          const valuesScores = teamData.aggregateScores.values;
+
+                          // Generate dynamic profiles based on actual scores
+                          if (oceanScores.openness >= 70 && valuesScores.collaboration >= 60) {
+                            profiles.push({
+                              icon: Brain,
+                              title: "Creative & Collaborative",
+                              description: "High openness and collaboration skills make you natural innovators who work well together.",
+                              color: "blue"
+                            });
+                          }
+
+                          if (cultureScores.powerDistance <= 40 || valuesScores.collaboration >= 70) {
+                            profiles.push({
+                              icon: Users,
+                              title: "Collaborative",
+                              description: "You thrive in team environments and value flat organizational structures.",
+                              color: "green"
+                            });
+                          }
+
+                          if (valuesScores.quality >= 70 || valuesScores.innovation >= 70) {
+                            profiles.push({
+                              icon: Award,
+                              title: "Quality-Focused",
+                              description: "You prioritize excellence and innovation in everything you do.",
+                              color: "purple"
+                            });
+                          }
+
+                          // Fill with default profiles if needed
+                          if (profiles.length < 3) {
+                            const defaults = [
+                              {
+                                icon: Brain,
+                                title: "Analytical",
+                                description: "Your team approaches challenges with thoughtful analysis and strategic thinking.",
+                                color: "blue"
+                              },
+                              {
+                                icon: Users,
+                                title: "Team-Oriented",
+                                description: "You value collaboration and work well together toward common goals.",
+                                color: "green"
+                              },
+                              {
+                                icon: Award,
+                                title: "Results-Driven",
+                                description: "Your team is focused on achieving high-quality outcomes and continuous improvement.",
+                                color: "purple"
+                              }
+                            ];
+                            
+                            for (const defaultProfile of defaults) {
+                              if (profiles.length < 3) {
+                                profiles.push(defaultProfile);
+                              }
+                            }
+                          }
+
+                          return profiles.slice(0, 3).map((profile, index) => (
+                            <div key={index} className="bg-white rounded-lg p-6 border border-gray-200 shadow-sm">
+                              <div className="flex flex-col items-center text-center">
+                                <div className={`w-12 h-12 bg-${profile.color}-100 rounded-full flex items-center justify-center mb-4`}>
+                                  <profile.icon className={`h-6 w-6 text-${profile.color}-600`} />
+                                </div>
+                                <h4 className="font-semibold text-gray-900 mb-2">{profile.title}</h4>
+                                <p className="text-sm text-gray-600">{profile.description}</p>
+                              </div>
+                            </div>
+                          ));
+                        })()}
+                      </div>
+                    </div>
+
+                    {/* Key Strengths and Areas for Growth */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      <div className="bg-white rounded-lg p-6 border border-gray-200 shadow-sm">
+                        <h3 className="text-lg font-semibold mb-4 text-gray-900 flex items-center gap-2">
+                          <TrendingUp className="h-5 w-5 text-green-600" />
+                          Key Strengths
+                        </h3>
+                        <ul className="space-y-3">
+                          {(() => {
+                            const strengths = [];
+                            const oceanScores = teamData.aggregateScores.ocean;
+                            const valuesScores = teamData.aggregateScores.values;
+
+                            if (oceanScores.openness >= 70) strengths.push("Creative problem-solving and innovation");
+                            if (oceanScores.agreeableness >= 70) strengths.push("Strong team collaboration and communication");
+                            if (oceanScores.neuroticism <= 30) strengths.push("Emotional stability and stress resilience");
+                            if (valuesScores.quality >= 70) strengths.push("Quality focus and attention to detail");
+                            if (valuesScores.collaboration >= 70) strengths.push("Excellent teamwork and coordination");
+
+                            // Default strengths if none identified
+                            if (strengths.length === 0) {
+                              strengths.push(
+                                "Balanced approach to challenges and opportunities",
+                                "Adaptable to different work situations and requirements",
+                                "Collaborative mindset with individual accountability"
+                              );
+                            }
+
+                            return strengths.slice(0, 4).map((strength, index) => (
+                        <li key={index} className="flex items-start gap-3">
+                                <div className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
+                                <span className="text-sm text-gray-700">{strength}</span>
+                              </li>
+                            ));
+                          })()}
+                        </ul>
+                            </div>
+                      
+                      <div className="bg-white rounded-lg p-6 border border-gray-200 shadow-sm">
+                        <h3 className="text-lg font-semibold mb-4 text-gray-900 flex items-center gap-2">
+                          <AlertTriangle className="h-5 w-5 text-orange-500" />
+                          Areas for Growth
+                        </h3>
+                        <ul className="space-y-3">
+                          {(() => {
+                            const growthAreas = [];
+                            const oceanScores = teamData.aggregateScores.ocean;
+                            const cultureScores = teamData.aggregateScores.culture;
+
+                            if (oceanScores.conscientiousness <= 50) growthAreas.push("Balancing structure with flexibility");
+                            if (oceanScores.openness <= 40) growthAreas.push("Embracing new ideas and approaches");
+                            if (cultureScores.uncertaintyAvoidance >= 70) growthAreas.push("Managing time and priorities effectively");
+                            if (oceanScores.agreeableness >= 80) growthAreas.push("Setting boundaries and saying no");
+
+                            // Default growth areas
+                            if (growthAreas.length === 0) {
+                              growthAreas.push(
+                                "Balancing individual and team priorities",
+                                "Managing competing demands effectively",
+                                "Maintaining focus during busy periods",
+                                "Communicating expectations clearly"
+                              );
+                            }
+
+                            return growthAreas.slice(0, 4).map((area, index) => (
+                              <li key={index} className="flex items-start gap-3">
+                                <div className="w-1.5 h-1.5 bg-orange-500 rounded-full mt-2 flex-shrink-0"></div>
+                                <span className="text-sm text-gray-700">{area}</span>
+                        </li>
+                      ));
+                    })()}
+                  </ul>
+                </div>
+                    </div>
+
+                    {/* Team Reflection Questions */}
+                    <div>
+                      <h3 className="text-lg font-semibold mb-4 text-gray-900">Team Reflection Questions</h3>
+                <div className="space-y-4">
+                    {(() => {
+                          const oceanScores = teamData.aggregateScores.ocean;
+                          const cultureScores = teamData.aggregateScores.culture;
+                          const valuesScores = teamData.aggregateScores.values;
+                          
+                      const questions = [
+                        {
+                              question: "How can you leverage your creative and social strengths in your current role?",
+                              explanation: `Consider how your team's ${oceanScores.openness >= 70 ? 'high openness' : 'balanced openness'} and ${valuesScores.collaboration >= 70 ? 'strong collaboration' : 'collaboration'} skills can be applied to current projects. Look for opportunities to lead brainstorming sessions, mentor colleagues, or take on cross-functional initiatives.`,
+                              badges: [`Openness (${oceanScores.openness})`, `Collaboration (${valuesScores.collaboration})`]
+                            },
+                            {
+                              question: "What type of work environment would best support your team's values and working style?",
+                              explanation: `Your team thrives in environments that offer ${cultureScores.powerDistance <= 40 ? 'flat structures' : 'clear structure'}, collaborative spaces, and opportunities for ${valuesScores.innovation >= 70 ? 'innovation' : 'growth'}. Look for organizations with open communication channels and cultures that value both individual achievement and team success.`,
+                              badges: [`Power Distance (${cultureScores.powerDistance})`, `Innovation (${valuesScores.innovation})`]
+                            },
+                            {
+                              question: "How does your team prefer to process and share ideas during meetings?",
+                              explanation: `This question helps surface different communication preferences in your team. ${oceanScores.extraversion >= 60 ? 'Your higher extraversion suggests you enjoy interactive discussions' : 'Your balanced extraversion means some prefer thinking time while others like spontaneous discussion'}. Consider establishing both real-time and asynchronous ways to contribute ideas.`,
+                              badges: [`Extraversion (${oceanScores.extraversion})`]
+                            },
+                            {
+                              question: "What balance of structure and flexibility helps each team member do their best work?",
+                              explanation: `This discussion helps identify individual work style preferences. ${oceanScores.conscientiousness >= 70 ? 'Your higher conscientiousness suggests appreciation for structure' : 'Your balanced conscientiousness means flexibility is important'}, while ${oceanScores.openness >= 70 ? 'high openness values creative freedom' : 'openness suggests some structure is helpful'}. Find ways to accommodate both preferences.`,
+                              badges: [`Openness (${oceanScores.openness})`, `Conscientiousness (${oceanScores.conscientiousness})`]
+                            },
+                            {
+                              question: "How comfortable is your team with uncertainty and how do you prefer to handle unexpected changes?",
+                              explanation: `Understanding your team's comfort with ambiguity helps in planning and crisis management. ${cultureScores.uncertaintyAvoidance >= 60 ? 'Your preference for structure suggests planning ahead for contingencies' : 'Your comfort with uncertainty means you can adapt quickly to changes'}.`,
+                              badges: [`Uncertainty Avoidance (${cultureScores.uncertaintyAvoidance})`]
+                            },
+                            {
+                              question: "How does your team balance individual recognition with collective achievement?",
+                              explanation: `This helps establish recognition practices that motivate everyone. ${cultureScores.individualism >= 60 ? 'Your individualistic tendencies value personal recognition' : 'Your collective orientation values team achievements'}, while ${oceanScores.agreeableness >= 70 ? 'high agreeableness ensures team harmony' : 'balanced agreeableness maintains healthy individual focus'}.`,
+                              badges: [`Individualism (${cultureScores.individualism})`, `Agreeableness (${oceanScores.agreeableness})`]
+                        }
+                      ];
+                      
+                      return questions.map((q, index) => (
+                        <div key={index} className="bg-white rounded-lg border border-gray-200 shadow-sm">
+                          <div 
+                            className="p-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                                onClick={() => toggleRecommendation("reflection", index)}
+                          >
+                            <div className="flex items-center justify-between">
+                              <p className="text-sm font-medium text-gray-900">
+                                {q.question}
+                              </p>
+                                  {expandedRecommendations[`reflection-${index}`] ? (
+                                <ChevronUp className="h-4 w-4 text-gray-500" />
+                              ) : (
+                                <ChevronDown className="h-4 w-4 text-gray-500" />
+                              )}
+                            </div>
+                          </div>
+                              {expandedRecommendations[`reflection-${index}`] && (
+                            <div className="px-4 pb-4 border-t border-gray-100">
+                              <div className="pt-4">
+                                    <p className="text-sm text-gray-700">
+                                  {q.explanation}
+                                </p>
+                                    <div className="mt-2 flex flex-wrap gap-1">
+                                  <span className="text-xs text-gray-500">Because:</span>
+                                      {q.badges.map((badge, i) => (
+                                        <Badge key={i} variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200 ml-1">
+                                          {badge}
+                                  </Badge>
+                                      ))}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ));
+                    })()}
+                  </div>
+                </div>
+
+                    {/* Your Next Steps */}
+                    <div className="bg-white rounded-lg p-6 border border-gray-200 shadow-sm">
+                      <h3 className="text-lg font-semibold mb-2 text-gray-900">Your Next Steps</h3>
+                      <p className="text-sm text-gray-600 mb-6">You can start doing today</p>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div>
+                          <div className="flex items-center gap-3 mb-4">
+                            <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center text-white font-bold text-sm">1</div>
+                            <h4 className="font-semibold text-gray-900">This Week</h4>
+                          </div>
+                          <ul className="space-y-3">
+                            {(() => {
+                              const oceanScores = teamData.aggregateScores.ocean;
+                              const cultureScores = teamData.aggregateScores.culture;
+                              const valuesScores = teamData.aggregateScores.values;
+                              
+                              const thisWeekSteps = [];
+                              
+                              if (oceanScores.openness >= 70) {
+                                thisWeekSteps.push({
+                                  text: 'Create a dedicated "Innovation Hour" during the week for creative & experimental projects',
+                                  trait: 'Openness',
+                                  score: oceanScores.openness
+                                });
+                              }
+                              
+                              if (valuesScores.collaboration >= 70) {
+                                thisWeekSteps.push({
+                                  text: 'Establish rotating meeting facilitation to leverage your collaborative strengths',
+                                  trait: 'Collaboration', 
+                                  score: valuesScores.collaboration
+                                });
+                              }
+                              
+                              if (cultureScores.powerDistance <= 40) {
+                                thisWeekSteps.push({
+                                  text: 'Implement flat decision-making processes that match your low Power Distance preference',
+                                  trait: 'Power Distance',
+                                  score: cultureScores.powerDistance
+                                });
+                              }
+                              
+                              // Default steps if none specific
+                              if (thisWeekSteps.length === 0) {
+                                thisWeekSteps.push(
+                                  { text: 'Schedule team check-ins to discuss working style preferences', trait: 'Team', score: 0 },
+                                  { text: 'Create shared team agreements about communication and collaboration', trait: 'Team', score: 0 },
+                                  { text: 'Establish regular feedback cycles for continuous improvement', trait: 'Team', score: 0 }
+                                );
+                              }
+                              
+                              return thisWeekSteps.slice(0, 3).map((step, index) => (
+                                <li key={index} className="flex items-start gap-3">
+                                  <div className="w-1.5 h-1.5 bg-purple-500 rounded-full mt-2 flex-shrink-0"></div>
+                      <div>
+                                    <span className="text-sm text-gray-700">{step.text}</span>
+                                    {step.score > 0 && (
+                                      <div className="mt-1">
+                                        <span className="text-xs text-gray-500">Because:</span>
+                                        <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200 ml-1">
+                                          {step.trait} ({step.score})
+                                        </Badge>
+                      </div>
+                    )}
+                            </div>
+                                </li>
+                              ));
+                            })()}
+                          </ul>
+                            </div>
+
+                      <div>
+                          <div className="flex items-center gap-3 mb-4">
+                            <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center text-white font-bold text-sm">2</div>
+                            <h4 className="font-semibold text-gray-900">This Month</h4>
+                            </div>
+                          <ul className="space-y-3">
+                            {(() => {
+                              const oceanScores = teamData.aggregateScores.ocean;
+                              const cultureScores = teamData.aggregateScores.culture;
+                              const valuesScores = teamData.aggregateScores.values;
+                              
+                              const thisMonthSteps = [];
+                              
+                              if (valuesScores.quality >= 70) {
+                                thisMonthSteps.push({
+                                  text: 'Set up quality review processes that leverage your high Quality focus',
+                                  trait: 'Quality',
+                                  score: valuesScores.quality
+                                });
+                              }
+                              
+                              if (oceanScores.openness >= 70 && oceanScores.conscientiousness >= 60) {
+                                thisMonthSteps.push({
+                                  text: 'Create innovation time within structured processes to balance creativity with delivery',
+                                  trait: 'Openness + Conscientiousness',
+                                  score: Math.round((oceanScores.openness + oceanScores.conscientiousness) / 2)
+                                });
+                              }
+                              
+                              if (cultureScores.individualism >= 60 && oceanScores.agreeableness >= 60) {
+                                thisMonthSteps.push({
+                                  text: 'Establish regular team reflection sessions to leverage your team dynamics',
+                                  trait: 'Individualism + Agreeableness',
+                                  score: Math.round((cultureScores.individualism + oceanScores.agreeableness) / 2)
+                                });
+                              }
+                              
+                              // Default steps if none specific
+                              if (thisMonthSteps.length === 0) {
+                                thisMonthSteps.push(
+                                  { text: 'Implement team retrospectives to identify improvement opportunities', trait: 'Team', score: 0 },
+                                  { text: 'Create cross-training opportunities to build team versatility', trait: 'Team', score: 0 },
+                                  { text: 'Establish team goals that align with individual strengths', trait: 'Team', score: 0 }
+                                );
+                              }
+                              
+                              return thisMonthSteps.slice(0, 3).map((step, index) => (
+                                <li key={index} className="flex items-start gap-3">
+                                  <div className="w-1.5 h-1.5 bg-purple-500 rounded-full mt-2 flex-shrink-0"></div>
+                      <div>
+                                    <span className="text-sm text-gray-700">{step.text}</span>
+                                    {step.score > 0 && (
+                                      <div className="mt-1">
+                                        <span className="text-xs text-gray-500">Because:</span>
+                                        <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200 ml-1">
+                                          {step.trait} ({step.score})
+                                        </Badge>
                       </div>
                     )}
                   </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <Users className="h-8 w-8 text-gray-400" />
+                                </li>
+                              ));
+                            })()}
+                          </ul>
                     </div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No Insights Yet</h3>
-                    <p className="text-gray-600 text-sm mb-4">
-                      Team insights and recommendations will be generated once at least 2 team members complete their assessments.
-                    </p>
-                    <div className="text-xs text-gray-500">
-                      <p>• AI-powered insights based on team personality dynamics</p>
-                      <p>• Personalized recommendations for team collaboration</p>
-                      <p>• Conflict prevention and communication optimization</p>
                     </div>
                   </div>
-                )}
+                  </div>
               </CardContent>
             </Card>
+            )}
           </div>
 
           {/* Sidebar */}
@@ -1199,102 +2119,160 @@ export default function TeamDashboardPage() {
 
 
 
-            {/* Quick Actions - Matching Individual Assessment Design */}
-            <Card>
-              <CardContent className="pt-8">
-                <div className="max-w-2xl mx-auto">
-                  <h2 className="text-2xl font-bold text-gray-900 mb-4">Ready to Share Your Results?</h2>
-                  <p className="text-gray-600 mb-6">
-                    Share your team results or export them for future reference. You can also invite new members to join the assessment.
-                  </p>
-                  <div className="flex flex-col gap-4">
-                    <Button 
-                      size="lg" 
-                      className="bg-green-600 hover:bg-green-700 px-8 py-3"
-                      onClick={() => setShowShareModal(true)}
-                    >
-                      <Mail className="h-4 w-4 mr-2" />
-                      Share Team Results
-                    </Button>
-                    <Button 
-                      size="lg" 
-                      className="bg-blue-600 hover:bg-blue-700 px-8 py-3"
-                      onClick={() => setShowInviteModal(true)}
-                    >
-                      <UserPlus className="h-4 w-4 mr-2" />
-                      Invite New Members
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="lg" 
-                      className="px-8 py-3"
-                      onClick={exportToPDF}
-                      disabled={isExporting}
-                    >
-                      {isExporting ? (
-                        <>
-                          <div className="w-4 h-4 border-2 border-gray-600 border-t-transparent rounded-full animate-spin mr-2"></div>
-                          Generating PDF...
-                        </>
-                      ) : (
-                        <>
-                          <Download className="h-4 w-4 mr-2" />
-                          Export Report
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
 
-            {/* Individual vs Team Comparison */}
+            {/* Team Synergy Analysis */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5" />
-                  Individual vs Team Comparison
+                  <Users className="h-5 w-5" />
+                  Team Synergy Analysis
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   {completedMembers.length > 0 ? (
-                    <div className="space-y-3">
-                      <p className="text-sm text-gray-600">
-                        Compare individual scores with team averages to understand how each member contributes to the team dynamic.
-                      </p>
-                      {completedMembers.slice(0, 3).map((member) => (
-                        <div key={member.id} className="p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="font-medium text-gray-900">{member.name}</span>
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => window.open(`/assessment/${member.id}/results`, '_blank')}
-                            >
-                              View Comparison
-                            </Button>
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            Click to see detailed comparison with team averages
-                          </div>
-                        </div>
-                      ))}
-                      {completedMembers.length > 3 && (
-                        <div className="text-center">
-                          <Button variant="outline" size="sm">
-                            View All Comparisons ({completedMembers.length - 3} more)
-                          </Button>
+                    <>
+                      {/* View Selector */}
+                      <div className="flex gap-2 p-1 bg-gray-100 rounded-lg">
+                        <Button
+                          variant={comparisonView === 'fit' ? 'default' : 'ghost'}
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => setComparisonView('fit')}
+                        >
+                          <Target className="h-4 w-4 mr-1" />
+                          Team Fit
+                        </Button>
+                        <Button
+                          variant={comparisonView === 'roles' ? 'default' : 'ghost'}
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => setComparisonView('roles')}
+                        >
+                          <Award className="h-4 w-4 mr-1" />
+                          Roles
+                        </Button>
+                      </div>
+
+                      {/* Team Fit Analysis View */}
+                      {comparisonView === 'fit' && (
+                        <div className="space-y-3">
+                          <p className="text-sm text-gray-600">
+                            See how well each member aligns with your team's overall personality and culture profile.
+                          </p>
+                          {completedMembers.map((member) => {
+                            const fitScore = calculateTeamFitScore(member, teamData?.aggregateScores);
+
+                            return (
+                              <div key={member.id} className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                                <div className="flex items-center justify-between mb-3">
+                                  <div className="flex items-center gap-3">
+                                    <span className="font-medium text-gray-900">{member.name}</span>
+                                  </div>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={() => setSelectedMember(selectedMember === member.id ? null : member.id)}
+                                  >
+                                    {selectedMember === member.id ? 'Hide Details' : 'View Details'}
+                                  </Button>
+                                </div>
+                                
+                                {selectedMember === member.id && (
+                                  <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                                    <div className="space-y-4">
+                                      <div>
+                                        <h4 className="font-medium text-blue-900 mb-2">Alignment Strengths</h4>
+                                        <ul className="text-sm text-blue-800 space-y-1">
+                                          {fitScore >= 85 ? (
+                                            <>
+                                              <li>• Excellent cultural alignment</li>
+                                              <li>• Natural team chemistry</li>
+                                              <li>• Reinforces team strengths</li>
+                                            </>
+                                          ) : fitScore >= 70 ? (
+                                            <>
+                                              <li>• Strong personality fit</li>
+                                              <li>• Complements team dynamics</li>
+                                              <li>• Shares core values</li>
+                                            </>
+                                          ) : (
+                                            <>
+                                              <li>• Brings different perspective</li>
+                                              <li>• Challenges team thinking</li>
+                                              <li>• Adds unique strengths</li>
+                                            </>
+                                          )}
+                                        </ul>
+                                      </div>
+                                      <div>
+                                        <h4 className="font-medium text-blue-900 mb-2">Key Contributions</h4>
+                                        <ul className="text-sm text-blue-800 space-y-1">
+                                          {(() => {
+                                            const roles = generateRoleSuggestions(member);
+                                            return (
+                                              <>
+                                                <li>• {roles.primary}</li>
+                                                <li>• {roles.secondary}</li>
+                                                <li>• {roles.uniqueContribution}</li>
+                                              </>
+                                            );
+                                          })()}
+                                        </ul>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
                       )}
-                    </div>
+
+                      {/* Role Optimization View */}
+                      {comparisonView === 'roles' && (
+                        <div className="space-y-3">
+                          <p className="text-sm text-gray-600">
+                            Discover each member's optimal role and unique contributions to maximize team effectiveness.
+                          </p>
+                          {completedMembers.map((member) => {
+                            const roles = generateRoleSuggestions(member);
+                            return (
+                              <div key={member.id} className="p-4 border border-gray-200 rounded-lg">
+                                <div className="flex items-center gap-3 mb-3">
+                                  <span className="font-medium text-gray-900">{member.name}</span>
+                                  <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
+                                    {roles.primary}
+                                  </Badge>
+                                </div>
+                                <div className="space-y-3">
+                                  <div>
+                                    <h4 className="font-medium text-gray-700 mb-1">Primary Role</h4>
+                                    <p className="text-sm text-gray-600">{roles.primary}</p>
+                                  </div>
+                                  <div>
+                                    <h4 className="font-medium text-gray-700 mb-1">Secondary Strength</h4>
+                                    <p className="text-sm text-gray-600">{roles.secondary}</p>
+                                  </div>
+                                  <div>
+                                    <h4 className="font-medium text-gray-700 mb-1">Unique Contribution</h4>
+                                    <p className="text-sm text-gray-600">{roles.uniqueContribution}</p>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                    </>
                   ) : (
                     <div className="text-center py-4">
                       <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
                         <Users className="h-6 w-6 text-gray-400" />
                       </div>
                       <p className="text-sm text-gray-500">
-                        Individual vs team comparisons will be available once members complete their assessments.
+                        Team synergy analysis will be available once members complete their assessments.
                       </p>
                     </div>
                   )}
@@ -1302,21 +2280,21 @@ export default function TeamDashboardPage() {
               </CardContent>
             </Card>
 
-            {/* Personality-Based Conflict Prediction */}
+            {/* Team Dynamics & Collaboration Insights */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <AlertTriangle className="h-5 w-5" />
-                  Potential Team Conflicts
+                  <Users className="h-5 w-5" />
+                  Team Dynamics & Collaboration Insights
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   {(() => {
                     const completedMembers = teamData.members.filter(m => m.status === 'completed');
-                    const conflicts = detectPersonalityConflicts(completedMembers);
+                    const teamDynamics = detectPersonalityConflicts(completedMembers);
                     
-                    if (conflicts.length === 0) {
+                    if (teamDynamics.length === 0) {
                       return (
                         <div className="p-4 bg-green-50 rounded-lg border border-green-200">
                           <div className="flex items-center gap-3">
@@ -1324,9 +2302,9 @@ export default function TeamDashboardPage() {
                               <CheckCircle className="h-4 w-4 text-green-600" />
                             </div>
                             <div>
-                              <h4 className="font-medium text-green-900">Great Team Dynamics!</h4>
+                              <h4 className="font-medium text-green-900">Excellent Team Harmony!</h4>
                               <p className="text-sm text-green-700">
-                                No significant personality conflicts detected. Your team shows good compatibility across personality dimensions.
+                                Your team shows strong compatibility across personality dimensions. Different working styles complement each other well.
                               </p>
                             </div>
                           </div>
@@ -1334,37 +2312,37 @@ export default function TeamDashboardPage() {
                       );
                     }
                     
-                    return conflicts.map((conflict, index) => (
-                      <div key={index} className="border border-orange-200 rounded-lg overflow-hidden">
+                    return teamDynamics.map((dynamic, index) => (
+                      <div key={index} className="border border-blue-200 rounded-lg overflow-hidden">
                         <div 
-                          className="p-4 bg-orange-50 cursor-pointer hover:bg-orange-100 transition-colors"
+                          className="p-4 bg-blue-50 cursor-pointer hover:bg-blue-100 transition-colors"
                           onClick={() => setExpandedConflicts(prev => ({ ...prev, [index]: !prev[index] }))}
                         >
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
-                                <AlertTriangle className="h-4 w-4 text-orange-600" />
+                              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                <Users className="h-4 w-4 text-blue-600" />
                               </div>
                               <div>
-                                <h4 className="font-semibold text-orange-900">{conflict.type}</h4>
-                                <p className="text-sm text-orange-700">{conflict.description}</p>
+                                <h4 className="font-semibold text-blue-900">{dynamic.type.replace('Conflict', 'Opportunity')}</h4>
+                                <p className="text-sm text-blue-700">{dynamic.description.replace('conflicting', 'different').replace('conflict', 'opportunity')}</p>
                               </div>
                             </div>
-                            <ChevronDown className={`h-5 w-5 text-orange-600 transition-transform ${expandedConflicts[index] ? 'rotate-180' : ''}`} />
+                            <ChevronDown className={`h-5 w-5 text-blue-600 transition-transform ${expandedConflicts[index] ? 'rotate-180' : ''}`} />
                           </div>
                         </div>
                         
                         {expandedConflicts[index] && (
-                          <div className="p-4 bg-white border-t border-orange-200">
+                          <div className="p-4 bg-white border-t border-blue-200">
                             <div className="space-y-4">
                               <div>
                                 <div className="flex items-center gap-2 mb-2">
-                                  <Users className="h-4 w-4 text-orange-600" />
+                                  <Users className="h-4 w-4 text-blue-600" />
                                   <span className="font-medium text-gray-900">Team Members Involved</span>
                                 </div>
                                 <div className="flex flex-wrap gap-2">
-                                  {conflict.members.map(member => (
-                                    <Badge key={member.id} className="bg-orange-100 text-orange-700">
+                                  {dynamic.members.map((member: any) => (
+                                    <Badge key={member.id} className="bg-blue-100 text-blue-700">
                                       {member.name}
                                     </Badge>
                                   ))}
@@ -1373,12 +2351,12 @@ export default function TeamDashboardPage() {
                               
                               <div>
                                 <div className="flex items-center gap-2 mb-2">
-                                  <Target className="h-4 w-4 text-orange-600" />
-                                  <span className="font-medium text-gray-900">What This Means</span>
+                                  <Target className="h-4 w-4 text-blue-600" />
+                                  <span className="font-medium text-gray-900">Understanding the Dynamic</span>
                                 </div>
-                                <p className="text-sm text-gray-700 mb-3">{conflict.explanation}</p>
+                                <p className="text-sm text-gray-700 mb-3">{dynamic.explanation.replace('conflict', 'dynamic').replace('Conflict', 'Dynamic')}</p>
                                 <ul className="text-sm text-gray-600 space-y-1 ml-4">
-                                  {conflict.implications.map((implication, idx) => (
+                                  {dynamic.implications.map((implication: any, idx: number) => (
                                     <li key={idx} className="flex items-start gap-2">
                                       <span className="text-gray-400 mt-1">•</span>
                                       <span>{implication}</span>
@@ -1390,10 +2368,10 @@ export default function TeamDashboardPage() {
                               <div>
                                 <div className="flex items-center gap-2 mb-2">
                                   <Lightbulb className="h-4 w-4 text-green-600" />
-                                  <span className="font-medium text-gray-900">Management Strategies</span>
+                                  <span className="font-medium text-gray-900">Collaboration Strategies</span>
                                 </div>
                                 <ul className="text-sm text-gray-600 space-y-1 ml-4">
-                                  {conflict.recommendations.map((rec, idx) => (
+                                  {dynamic.recommendations.map((rec: any, idx: number) => (
                                     <li key={idx} className="flex items-start gap-2">
                                       <span className="text-gray-400 mt-1">•</span>
                                       <span>{rec}</span>
@@ -1496,6 +2474,55 @@ export default function TeamDashboardPage() {
                         </p>
                       </div>
                     </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Ready to Share Your Results - At Bottom of Sidebar */}
+            <Card>
+              <CardContent className="pt-8">
+                <div className="text-center">
+                  <h2 className="text-2xl font-bold text-gray-900 mb-4">Ready to Share Your Results?</h2>
+                  <p className="text-gray-600 mb-6">
+                    Share your team results or export them for future reference. You can also invite new members to join the assessment.
+                  </p>
+                  <div className="flex flex-col gap-4">
+                    <Button 
+                      size="lg" 
+                      className="bg-green-600 hover:bg-green-700 px-8 py-3"
+                      onClick={() => setShowShareModal(true)}
+                    >
+                      <Mail className="h-4 w-4 mr-2" />
+                      Share Team Results
+                    </Button>
+                    <Button 
+                      size="lg" 
+                      className="bg-blue-600 hover:bg-blue-700 px-8 py-3"
+                      onClick={() => setShowInviteModal(true)}
+                    >
+                      <UserPlus className="h-4 w-4 mr-2" />
+                      Invite New Members
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="lg" 
+                      className="px-8 py-3"
+                      onClick={exportToPDF}
+                      disabled={isExporting}
+                    >
+                      {isExporting ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-gray-600 border-t-transparent rounded-full animate-spin mr-2"></div>
+                          Generating PDF...
+                        </>
+                      ) : (
+                        <>
+                          <Download className="h-4 w-4 mr-2" />
+                          Export Report
+                        </>
+                      )}
+                    </Button>
                   </div>
                 </div>
               </CardContent>

@@ -730,4 +730,302 @@ Avoid complex sentences and jargon. Make it scannable and actionable. Focus on b
       return 'Team insights are being processed. Please check back later.';
     }
   }
+
+  // Generate hybrid format team recommendations
+  static async generateHybridTeamRecommendations(teamScores: AssessmentScores, memberCount: number): Promise<any> {
+    try {
+      const prompt = `
+Based on the following team aggregate assessment results for a team of ${memberCount} members, generate team-focused recommendations in the hybrid format:
+
+Team OCEAN Scores (0-100):
+- Openness: ${teamScores.ocean.openness}
+- Conscientiousness: ${teamScores.ocean.conscientiousness}
+- Extraversion: ${teamScores.ocean.extraversion}
+- Agreeableness: ${teamScores.ocean.agreeableness}
+- Neuroticism: ${teamScores.ocean.neuroticism}
+
+Team Cultural Preferences (0-100):
+- Power Distance: ${teamScores.culture.powerDistance}
+- Individualism: ${teamScores.culture.individualism}
+- Masculinity: ${teamScores.culture.masculinity}
+- Uncertainty Avoidance: ${teamScores.culture.uncertaintyAvoidance}
+- Long-term Orientation: ${teamScores.culture.longTermOrientation}
+- Indulgence: ${teamScores.culture.indulgence}
+
+Team Values (0-100):
+- Innovation: ${teamScores.values.innovation}
+- Collaboration: ${teamScores.values.collaboration}
+- Autonomy: ${teamScores.values.autonomy}
+- Quality: ${teamScores.values.quality}
+- Customer Focus: ${teamScores.values.customerFocus}
+
+Generate 4-6 actionable team recommendations. Each recommendation should:
+1. Be specific and actionable for the team
+2. Include a "Because:" explanation with the relevant trait and score
+3. Focus on team dynamics, collaboration, and collective improvement
+4. Be practical and implementable
+
+Format as JSON array of objects with this structure:
+[
+  {
+    "text": "Specific actionable recommendation for the team",
+    "trait": "Relevant trait name (e.g., Openness, Collaboration, etc.)",
+    "score": "The actual score number"
+  }
+]
+
+Focus on team-relevant actions like:
+- Communication improvements
+- Process optimizations
+- Collaboration enhancements
+- Conflict resolution strategies
+- Innovation opportunities
+- Team building activities
+      `;
+
+      const completion = await getOpenAI().chat.completions.create({
+        model: "gpt-4",
+        messages: [
+          {
+            role: "system",
+            content: "You are an expert in team dynamics and organizational development. Generate specific, actionable recommendations that teams can implement to improve their collaboration and performance. Focus on practical, team-oriented solutions that address the specific traits and scores provided."
+          },
+          {
+            role: "user",
+            content: prompt
+          }
+        ],
+        temperature: 0.7,
+        max_tokens: 1500,
+      });
+
+      const response = completion.choices[0]?.message?.content;
+      if (!response) {
+        throw new Error('No response from OpenAI');
+      }
+
+      try {
+        return JSON.parse(response);
+      } catch (parseError) {
+        console.error('Failed to parse AI response as JSON:', parseError);
+        // Return fallback recommendations
+        return this.getFallbackTeamRecommendations(teamScores);
+      }
+    } catch (error) {
+      console.error('Error generating hybrid team recommendations:', error);
+      return this.getFallbackTeamRecommendations(teamScores);
+    }
+  }
+
+  // Generate hybrid format individual recommendations
+  static async generateHybridIndividualRecommendations(scores: AssessmentScores): Promise<any> {
+    try {
+      const prompt = `
+Based on the following individual assessment results, generate personalized recommendations in the hybrid format:
+
+OCEAN Scores (0-100):
+- Openness: ${scores.ocean.openness}
+- Conscientiousness: ${scores.ocean.conscientiousness}
+- Extraversion: ${scores.ocean.extraversion}
+- Agreeableness: ${scores.ocean.agreeableness}
+- Neuroticism: ${scores.ocean.neuroticism}
+
+Cultural Preferences (0-100):
+- Power Distance: ${scores.culture.powerDistance}
+- Individualism: ${scores.culture.individualism}
+- Masculinity: ${scores.culture.masculinity}
+- Uncertainty Avoidance: ${scores.culture.uncertaintyAvoidance}
+- Long-term Orientation: ${scores.culture.longTermOrientation}
+- Indulgence: ${scores.culture.indulgence}
+
+Work Values (0-100):
+- Innovation: ${scores.values.innovation}
+- Collaboration: ${scores.values.collaboration}
+- Autonomy: ${scores.values.autonomy}
+- Quality: ${scores.values.quality}
+- Customer Focus: ${scores.values.customerFocus}
+
+Generate 4-6 actionable personal recommendations. Each recommendation should:
+1. Be specific and actionable for the individual
+2. Include a "Because:" explanation with the relevant trait and score
+3. Focus on personal development, career growth, and team contribution
+4. Be practical and implementable
+
+Format as JSON array of objects with this structure:
+[
+  {
+    "text": "Specific actionable recommendation for the individual",
+    "trait": "Relevant trait name (e.g., Openness, Collaboration, etc.)",
+    "score": "The actual score number"
+  }
+]
+
+Focus on individual-relevant actions like:
+- Career development opportunities
+- Skill building areas
+- Communication style improvements
+- Work environment preferences
+- Leadership development
+- Team contribution strategies
+      `;
+
+      const completion = await getOpenAI().chat.completions.create({
+        model: "gpt-4",
+        messages: [
+          {
+            role: "system",
+            content: "You are a personal development coach who helps people understand themselves and create meaningful habits. Generate specific, actionable recommendations that individuals can implement to improve their personal and professional development. Focus on practical, personalized solutions that address the specific traits and scores provided."
+          },
+          {
+            role: "user",
+            content: prompt
+          }
+        ],
+        temperature: 0.7,
+        max_tokens: 1500,
+      });
+
+      const response = completion.choices[0]?.message?.content;
+      if (!response) {
+        throw new Error('No response from OpenAI');
+      }
+
+      try {
+        return JSON.parse(response);
+      } catch (parseError) {
+        console.error('Failed to parse AI response as JSON:', parseError);
+        // Return fallback recommendations
+        return this.getFallbackIndividualRecommendations(scores);
+      }
+    } catch (error) {
+      console.error('Error generating hybrid individual recommendations:', error);
+      return this.getFallbackIndividualRecommendations(scores);
+    }
+  }
+
+  // Fallback team recommendations
+  static getFallbackTeamRecommendations(teamScores: AssessmentScores): any[] {
+    const recommendations = [];
+    
+    if (teamScores.ocean.openness > 70) {
+      recommendations.push({
+        text: "Create a dedicated 'Innovation Hour' during the week for creative & experimental projects",
+        trait: "Openness",
+        score: teamScores.ocean.openness
+      });
+    }
+    
+    if (teamScores.ocean.conscientiousness > 70) {
+      recommendations.push({
+        text: "Establish clear project timelines and regular check-ins to leverage your team's organizational strengths",
+        trait: "Conscientiousness",
+        score: teamScores.ocean.conscientiousness
+      });
+    }
+    
+    if (teamScores.ocean.extraversion > 70) {
+      recommendations.push({
+        text: "Schedule regular team brainstorming sessions and social activities to energize your team",
+        trait: "Extraversion",
+        score: teamScores.ocean.extraversion
+      });
+    }
+    
+    if (teamScores.values.collaboration > 70) {
+      recommendations.push({
+        text: "Implement pair programming or peer review processes to maximize collaborative potential",
+        trait: "Collaboration",
+        score: teamScores.values.collaboration
+      });
+    }
+    
+    if (teamScores.culture.uncertaintyAvoidance < 30) {
+      recommendations.push({
+        text: "Create structured decision-making processes to help team members who prefer more predictability",
+        trait: "Uncertainty Avoidance",
+        score: teamScores.culture.uncertaintyAvoidance
+      });
+    }
+    
+    // Default recommendations if no specific conditions are met
+    if (recommendations.length === 0) {
+      recommendations.push(
+        {
+          text: "Schedule regular team retrospectives to discuss what's working well and areas for improvement",
+          trait: "Team Dynamics",
+          score: 50
+        },
+        {
+          text: "Create opportunities for team members to share their individual strengths and preferences",
+          trait: "Communication",
+          score: 50
+        }
+      );
+    }
+    
+    return recommendations.slice(0, 4);
+  }
+
+  // Fallback individual recommendations
+  static getFallbackIndividualRecommendations(scores: AssessmentScores): any[] {
+    const recommendations = [];
+    
+    if (scores.ocean.openness > 70) {
+      recommendations.push({
+        text: "Seek roles that allow you to explore new ideas and work with diverse teams",
+        trait: "Openness",
+        score: scores.ocean.openness
+      });
+    }
+    
+    if (scores.ocean.conscientiousness > 70) {
+      recommendations.push({
+        text: "Look for opportunities to create structured processes and mentor others in organization",
+        trait: "Conscientiousness",
+        score: scores.ocean.conscientiousness
+      });
+    }
+    
+    if (scores.ocean.extraversion > 70) {
+      recommendations.push({
+        text: "Consider leadership roles or positions that involve client interaction and team collaboration",
+        trait: "Extraversion",
+        score: scores.ocean.extraversion
+      });
+    }
+    
+    if (scores.values.collaboration > 70) {
+      recommendations.push({
+        text: "Look for team-based projects and roles that emphasize collective success",
+        trait: "Collaboration",
+        score: scores.values.collaboration
+      });
+    }
+    
+    if (scores.culture.uncertaintyAvoidance < 30) {
+      recommendations.push({
+        text: "Consider roles in startups or dynamic environments where you can embrace change",
+        trait: "Uncertainty Avoidance",
+        score: scores.culture.uncertaintyAvoidance
+      });
+    }
+    
+    // Default recommendations if no specific conditions are met
+    if (recommendations.length === 0) {
+      recommendations.push(
+        {
+          text: "Reflect on your strengths and seek opportunities that align with your values",
+          trait: "Self-Development",
+          score: 50
+        },
+        {
+          text: "Consider how your unique combination of traits can benefit different types of teams",
+          trait: "Team Dynamics",
+          score: 50
+        }
+      );
+    }
+    
+    return recommendations.slice(0, 4);
+  }
 }

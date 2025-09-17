@@ -55,7 +55,11 @@ export default function EmailResultsModal({
           oceanScores,
           cultureScores,
           valuesScores,
-          topInsights: insights,
+          topInsights: Array.isArray(insights) ? insights : 
+            (insights && typeof insights === 'object' ? 
+              [...(insights.ocean || []), ...(insights.culture || []), ...(insights.values || [])] : 
+              []
+            ),
           personalMessage
         }),
       });

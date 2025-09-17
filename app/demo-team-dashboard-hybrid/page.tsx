@@ -274,6 +274,70 @@ export default function DemoTeamDashboardHybridPage() {
     return bandInfo.tagline || "No explanation available.";
   };
 
+  // Get explanation for work values and cultural dimensions
+  const getValueExplanation = (value: string, score: number) => {
+    const valueExplanations: Record<string, Record<string, string>> = {
+      innovation: {
+        lower: "Prefers proven methods and established processes over experimental approaches.",
+        balanced: "Balances innovative thinking with practical implementation considerations.",
+        higher: "Naturally seeks creative solutions and embraces new approaches to challenges."
+      },
+      collaboration: {
+        lower: "Works effectively independently and prefers clear individual responsibilities.",
+        balanced: "Collaborates when needed while maintaining personal accountability.",
+        higher: "Thrives in team environments and values collective decision-making."
+      },
+      autonomy: {
+        lower: "Prefers clear guidance and structured work environments.",
+        balanced: "Values both independence and team support as appropriate.",
+        higher: "Excels when given freedom to determine their own approach and priorities."
+      },
+      quality: {
+        lower: "Focuses on efficiency and meeting core requirements effectively.",
+        balanced: "Balances quality standards with practical delivery timelines.",
+        higher: "Prioritizes excellence and attention to detail in all work outputs."
+      },
+      customerFocus: {
+        lower: "Focuses on internal processes and technical excellence.",
+        balanced: "Considers both customer needs and internal capabilities.",
+        higher: "Strongly prioritizes customer satisfaction and user experience."
+      },
+      powerDistance: {
+        lower: "Prefers flat, egalitarian structures where all voices are valued equally.",
+        balanced: "Adapts to different leadership styles while maintaining personal agency.",
+        higher: "Comfortable with hierarchical structures and clear authority lines."
+      },
+      individualism: {
+        lower: "Values collective goals and team success over individual recognition.",
+        balanced: "Balances personal achievement with team collaboration.",
+        higher: "Strongly values personal achievement and individual recognition."
+      },
+      masculinity: {
+        lower: "Values collaboration, support, and quality of life over competition.",
+        balanced: "Balances competitive drive with collaborative approaches.",
+        higher: "Values competition, achievement, and assertive approaches to work."
+      },
+      uncertaintyAvoidance: {
+        lower: "Comfortable with ambiguity and enjoys exploring new possibilities.",
+        balanced: "Manages uncertainty by gathering information and planning adaptively.",
+        higher: "Prefers clear rules, structured environments, and predictable outcomes."
+      },
+      longTermOrientation: {
+        lower: "Focuses on immediate results and short-term practical outcomes.",
+        balanced: "Balances immediate needs with long-term strategic considerations.",
+        higher: "Values long-term planning, sustainable growth, and future-oriented thinking."
+      },
+      indulgence: {
+        lower: "Values self-restraint, discipline, and delayed gratification.",
+        balanced: "Balances enjoyment of life with professional discipline and restraint.",
+        higher: "Values enjoyment, leisure, and immediate gratification in work-life balance."
+      }
+    };
+
+    const band = score <= 35 ? 'lower' : score >= 65 ? 'higher' : 'balanced';
+    return valueExplanations[value]?.[band] || "No explanation available.";
+  };
+
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "completed":
@@ -691,7 +755,7 @@ export default function DemoTeamDashboardHybridPage() {
                                     </div>
                                   </div>
                                   <p className="text-sm text-gray-600">
-                                    {getStyleExplanation(value, score)}
+                                    {getValueExplanation(value, score)}
                                   </p>
                                   <Progress value={score} className="h-2" />
                                 </div>
@@ -837,7 +901,7 @@ export default function DemoTeamDashboardHybridPage() {
                                     </div>
                                   </div>
                                   <p className="text-sm text-gray-600">
-                                    {getStyleExplanation(dimension, score)}
+                                    {getValueExplanation(dimension, score)}
                                   </p>
                                   <Progress value={score} className="h-2" />
                                 </div>
@@ -1063,6 +1127,12 @@ export default function DemoTeamDashboardHybridPage() {
                                   Look for opportunities to lead brainstorming sessions, mentor colleagues, or take on cross-functional initiatives 
                                   that showcase your team's natural strengths.
                                 </p>
+                                <div className="mt-2">
+                                  <span className="text-xs text-gray-500">Because:</span>
+                                  <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200 ml-1">
+                                    Openness (85) + Collaboration (82)
+                                  </Badge>
+                                </div>
                               </div>
                             </div>
                           )}
@@ -1092,6 +1162,148 @@ export default function DemoTeamDashboardHybridPage() {
                                   Look for organizations with flat structures, open communication channels, and cultures that value both 
                                   individual achievement and team success.
                                 </p>
+                                <div className="mt-2">
+                                  <span className="text-xs text-gray-500">Because:</span>
+                                  <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200 ml-1">
+                                    Power Distance (35) + Individualism (78)
+                                  </Badge>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+                          <div 
+                            className="p-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                            onClick={() => toggleRecommendation("reflection", 2)}
+                          >
+                            <div className="flex items-center justify-between">
+                              <p className="text-sm font-medium text-gray-900">
+                                How does your team prefer to process and share ideas during meetings?
+                              </p>
+                              {expandedRecommendations["reflection-2"] ? (
+                                <ChevronUp className="h-4 w-4 text-gray-500" />
+                              ) : (
+                                <ChevronDown className="h-4 w-4 text-gray-500" />
+                              )}
+                            </div>
+                          </div>
+                          {expandedRecommendations["reflection-2"] && (
+                            <div className="px-4 pb-4 border-t border-gray-100">
+                              <div className="pt-4">
+                                <p className="text-sm text-gray-700">
+                                  This question helps surface different communication preferences in your team. Some members may prefer to think through ideas before sharing, 
+                                  while others thrive on spontaneous discussion. Consider establishing both real-time and asynchronous ways to contribute ideas.
+                                </p>
+                                <div className="mt-2">
+                                  <span className="text-xs text-gray-500">Because:</span>
+                                  <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200 ml-1">
+                                    Extraversion (66) - Mixed preferences
+                                  </Badge>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+                          <div 
+                            className="p-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                            onClick={() => toggleRecommendation("reflection", 3)}
+                          >
+                            <div className="flex items-center justify-between">
+                              <p className="text-sm font-medium text-gray-900">
+                                What balance of structure and flexibility helps each team member do their best work?
+                              </p>
+                              {expandedRecommendations["reflection-3"] ? (
+                                <ChevronUp className="h-4 w-4 text-gray-500" />
+                              ) : (
+                                <ChevronDown className="h-4 w-4 text-gray-500" />
+                              )}
+                            </div>
+                          </div>
+                          {expandedRecommendations["reflection-3"] && (
+                            <div className="px-4 pb-4 border-t border-gray-100">
+                              <div className="pt-4">
+                                <p className="text-sm text-gray-700">
+                                  This discussion helps identify individual work style preferences without singling anyone out. Some team members may prefer more 
+                                  structured approaches while others thrive with flexibility. Find ways to accommodate both preferences in your team processes.
+                                </p>
+                                <div className="mt-2">
+                                  <span className="text-xs text-gray-500">Because:</span>
+                                  <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200 ml-1">
+                                    Openness (85) + Conscientiousness (75)
+                                  </Badge>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+                          <div 
+                            className="p-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                            onClick={() => toggleRecommendation("reflection", 4)}
+                          >
+                            <div className="flex items-center justify-between">
+                              <p className="text-sm font-medium text-gray-900">
+                                How comfortable is your team with uncertainty and how do you prefer to handle unexpected changes?
+                              </p>
+                              {expandedRecommendations["reflection-4"] ? (
+                                <ChevronUp className="h-4 w-4 text-gray-500" />
+                              ) : (
+                                <ChevronDown className="h-4 w-4 text-gray-500" />
+                              )}
+                            </div>
+                          </div>
+                          {expandedRecommendations["reflection-4"] && (
+                            <div className="px-4 pb-4 border-t border-gray-100">
+                              <div className="pt-4">
+                                <p className="text-sm text-gray-700">
+                                  This question helps the team discuss how to support different comfort levels with ambiguity. Some members may need more information 
+                                  and planning when things change, while others adapt quickly. Establish communication protocols that work for everyone.
+                                </p>
+                                <div className="mt-2">
+                                  <span className="text-xs text-gray-500">Because:</span>
+                                  <Badge variant="outline" className="text-xs bg-yellow-50 text-yellow-700 border-yellow-200 ml-1">
+                                    Uncertainty Avoidance (45) - Low preference
+                                  </Badge>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+                          <div 
+                            className="p-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                            onClick={() => toggleRecommendation("reflection", 5)}
+                          >
+                            <div className="flex items-center justify-between">
+                              <p className="text-sm font-medium text-gray-900">
+                                How does your team balance individual recognition with collective achievement?
+                              </p>
+                              {expandedRecommendations["reflection-5"] ? (
+                                <ChevronUp className="h-4 w-4 text-gray-500" />
+                              ) : (
+                                <ChevronDown className="h-4 w-4 text-gray-500" />
+                              )}
+                            </div>
+                          </div>
+                          {expandedRecommendations["reflection-5"] && (
+                            <div className="px-4 pb-4 border-t border-gray-100">
+                              <div className="pt-4">
+                                <p className="text-sm text-gray-700">
+                                  This question helps surface different motivations and recognition preferences. Some team members may value individual achievement 
+                                  while others prioritize team success. Find ways to acknowledge both individual contributions and collaborative efforts.
+                                </p>
+                                <div className="mt-2">
+                                  <span className="text-xs text-gray-500">Because:</span>
+                                  <Badge variant="outline" className="text-xs bg-indigo-50 text-indigo-700 border-indigo-200 ml-1">
+                                    Individualism (78) + Agreeableness (76)
+                                  </Badge>
+                                </div>
                               </div>
                             </div>
                           )}
@@ -1113,15 +1325,39 @@ export default function DemoTeamDashboardHybridPage() {
                           <ul className="space-y-3">
                             <li className="flex items-start gap-3">
                               <div className="w-1.5 h-1.5 bg-purple-500 rounded-full mt-2 flex-shrink-0"></div>
-                              <span className="text-sm text-gray-700">Research 3 companies with creative, collaborative cultures that match your team's high openness and collaboration skills</span>
+                              <div>
+                                <span className="text-sm text-gray-700">Create a dedicated "Innovation Hour" during the week for creative & experimental projects</span>
+                                <div className="mt-1">
+                                  <span className="text-xs text-gray-500">Because:</span>
+                                  <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200 ml-1">
+                                    Openness (85)
+                                  </Badge>
+                                </div>
+                              </div>
                             </li>
                             <li className="flex items-start gap-3">
                               <div className="w-1.5 h-1.5 bg-purple-500 rounded-full mt-2 flex-shrink-0"></div>
-                              <span className="text-sm text-gray-700">Identify 2 projects that combine innovation with team collaboration based on your work values</span>
+                              <div>
+                                <span className="text-sm text-gray-700">Establish rotating meeting facilitation to leverage your collaborative strengths</span>
+                                <div className="mt-1">
+                                  <span className="text-xs text-gray-500">Because:</span>
+                                  <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200 ml-1">
+                                    Collaboration (82)
+                                  </Badge>
+                                </div>
+                              </div>
                             </li>
                             <li className="flex items-start gap-3">
                               <div className="w-1.5 h-1.5 bg-purple-500 rounded-full mt-2 flex-shrink-0"></div>
-                              <span className="text-sm text-gray-700">Connect with 2 other teams in flat, merit-based organizations that align with your cultural preferences</span>
+                              <div>
+                                <span className="text-sm text-gray-700">Implement flat decision-making processes that match your low Power Distance preference</span>
+                                <div className="mt-1">
+                                  <span className="text-xs text-gray-500">Because:</span>
+                                  <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200 ml-1">
+                                    Power Distance (35)
+                                  </Badge>
+                                </div>
+                              </div>
                             </li>
                           </ul>
                         </div>
@@ -1134,15 +1370,39 @@ export default function DemoTeamDashboardHybridPage() {
                           <ul className="space-y-3">
                             <li className="flex items-start gap-3">
                               <div className="w-1.5 h-1.5 bg-purple-500 rounded-full mt-2 flex-shrink-0"></div>
-                              <span className="text-sm text-gray-700">Apply to 5 projects at companies that value both innovation and collaborative leadership</span>
+                              <div>
+                                <span className="text-sm text-gray-700">Set up quality review processes that leverage your high Quality focus</span>
+                                <div className="mt-1">
+                                  <span className="text-xs text-gray-500">Because:</span>
+                                  <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700 border-orange-200 ml-1">
+                                    Quality (85)
+                                  </Badge>
+                                </div>
+                              </div>
                             </li>
                             <li className="flex items-start gap-3">
                               <div className="w-1.5 h-1.5 bg-purple-500 rounded-full mt-2 flex-shrink-0"></div>
-                              <span className="text-sm text-gray-700">Join 2 professional groups focused on creative leadership and team dynamics</span>
+                              <div>
+                                <span className="text-sm text-gray-700">Create innovation time within structured processes to balance creativity with delivery</span>
+                                <div className="mt-1">
+                                  <span className="text-xs text-gray-500">Because:</span>
+                                  <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200 ml-1">
+                                    Openness (85) + Conscientiousness (75)
+                                  </Badge>
+                                </div>
+                              </div>
                             </li>
                             <li className="flex items-start gap-3">
                               <div className="w-1.5 h-1.5 bg-purple-500 rounded-full mt-2 flex-shrink-0"></div>
-                              <span className="text-sm text-gray-700">Practice explaining how your team's personality strengths align with your target projects</span>
+                              <div>
+                                <span className="text-sm text-gray-700">Establish regular team reflection sessions to leverage your team dynamics</span>
+                                <div className="mt-1">
+                                  <span className="text-xs text-gray-500">Because:</span>
+                                  <Badge variant="outline" className="text-xs bg-indigo-50 text-indigo-700 border-indigo-200 ml-1">
+                                    Individualism (78) + Agreeableness (76)
+                                  </Badge>
+                                </div>
+                              </div>
                             </li>
                           </ul>
                         </div>
@@ -1169,10 +1429,10 @@ export default function DemoTeamDashboardHybridPage() {
                   {demoTeamData.members.map((member) => (
                     <div 
                       key={member.id} 
-                      className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                      className="flex items-center gap-4 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
                     >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
                           <span className="text-sm font-semibold text-blue-600">
                             {member.name
                               .split(" ")
@@ -1180,26 +1440,26 @@ export default function DemoTeamDashboardHybridPage() {
                               .join("")}
                           </span>
                         </div>
-                        <div>
-                          <div className="font-medium text-gray-900">
+                        <div className="min-w-0 flex-1">
+                          <div className="font-medium text-gray-900 truncate">
                             {member.name}
                           </div>
-                          <div className="text-sm text-gray-500">
+                          <div className="text-sm text-gray-500 truncate">
                             {member.email}
-                              </div>
-                            </div>
-                              </div>
-                      <div className="flex items-center gap-2">
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
                         {member.completedAt ? (
                           <div className="flex items-center gap-2">
-                            <CheckCircle className="h-4 w-4 text-green-500" />
-                            <span className="text-sm text-green-600">
+                            <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
+                            <span className="text-sm text-green-600 whitespace-nowrap">
                               Completed
                             </span>
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="text-blue-600 hover:text-blue-700"
+                              className="text-blue-600 hover:text-blue-700 whitespace-nowrap"
                               onClick={() =>
                                 (window.location.href = `/team/${demoTeamData.code}/candidate/${member.id}/results`)
                               }
@@ -1209,11 +1469,11 @@ export default function DemoTeamDashboardHybridPage() {
                           </div>
                         ) : (
                           <div className="flex items-center gap-2">
-                            <Clock className="h-4 w-4 text-yellow-500" />
-                            <span className="text-sm text-yellow-600">
+                            <Clock className="h-4 w-4 text-yellow-500 flex-shrink-0" />
+                            <span className="text-sm text-yellow-600 whitespace-nowrap">
                               Pending
                             </span>
-                        </div>
+                          </div>
                         )}
                       </div>
                     </div>
@@ -1273,27 +1533,44 @@ export default function DemoTeamDashboardHybridPage() {
               </CardContent>
             </Card>
 
-            {/* New Hire Section */}
+            {/* Potential New Hires */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <UserPlus className="h-5 w-5" />
-                  Ready to Add New Members?
+                  Potential New Hires
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <p className="text-sm text-gray-600">
-                    Invite new team members to take the assessment and see how they fit with your current team dynamics.
-                  </p>
-                  <Button
-                    className="w-full bg-gray-900 hover:bg-gray-800 text-white"
-                    onClick={() => setShowInviteModal(true)}
-                  >
-                    <UserPlus className="h-4 w-4 mr-2" />
-                    Invite New Members
+                  <div className="text-center py-6">
+                    <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <UserPlus className="h-6 w-6 text-gray-400" />
+                    </div>
+                    <h3 className="text-sm font-medium text-gray-900 mb-2">No Candidates Yet</h3>
+                    <p className="text-xs text-gray-500 mb-4">
+                      Invite potential new hires to assess their fit with your team culture.
+                    </p>
+                    <Button size="sm" className="w-full" onClick={() => setShowInviteModal(true)}>
+                      <UserPlus className="h-4 w-4 mr-2" />
+                      Invite Candidate
                     </Button>
                   </div>
+                  
+                  <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
+                    <div className="flex items-start gap-3">
+                      <div className="w-6 h-6 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <span className="text-purple-600 text-xs">🎯</span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-purple-900 mb-1">Candidate Assessment</p>
+                        <p className="text-sm text-purple-700">
+                          Evaluate potential new hires against your team's culture and personality profile to ensure the best fit.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>

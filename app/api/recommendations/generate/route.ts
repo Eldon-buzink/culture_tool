@@ -13,8 +13,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate AI recommendations
-    const recommendations = await AIService.generateRecommendations(scores);
+    // Generate AI recommendations in hybrid format
+    const recommendations = await AIService.generateHybridIndividualRecommendations(scores);
     
     return NextResponse.json({ 
       success: true, 
@@ -28,38 +28,7 @@ export async function POST(request: NextRequest) {
       { 
         success: false, 
         error: 'Failed to generate AI recommendations',
-        recommendations: {
-          ocean: {
-            context: "Based on your OCEAN personality profile, here are some general recommendations for personal and professional development.",
-            recommendations: [
-              {
-                title: "Focus on Personal Growth",
-                description: "Consider areas where you can develop further based on your personality strengths and areas for improvement.",
-                nextSteps: ["Set specific goals", "Seek feedback", "Practice new behaviors"]
-              }
-            ]
-          },
-          culture: {
-            context: "Your cultural preferences suggest how you might work best in different organizational environments.",
-            recommendations: [
-              {
-                title: "Find Your Cultural Fit",
-                description: "Look for work environments that align with your cultural preferences and values.",
-                nextSteps: ["Research company cultures", "Ask about work environment", "Consider cultural alignment"]
-              }
-            ]
-          },
-          values: {
-            context: "Your work values indicate what motivates and drives you in professional settings.",
-            recommendations: [
-              {
-                title: "Align Work with Values",
-                description: "Seek opportunities that align with your core work values and priorities.",
-                nextSteps: ["Identify value-aligned roles", "Communicate your values", "Seek value-driven organizations"]
-              }
-            ]
-          }
-        }
+        recommendations: AIService.getFallbackIndividualRecommendations(scores)
       },
       { status: 500 }
     );

@@ -36,19 +36,14 @@ export async function POST(
       );
     }
 
-    // Generate AI team recommendations
+    // Generate AI team recommendations in hybrid format
     let teamRecommendations;
     try {
-      teamRecommendations = await AIService.generateTeamInsights(teamScores, memberCount);
+      teamRecommendations = await AIService.generateHybridTeamRecommendations(teamScores, memberCount);
     } catch (error) {
       console.error('Failed to generate AI team recommendations:', error);
       // Use fallback recommendations if AI fails
-      teamRecommendations = {
-        strengths: ['Team assessment in progress'],
-        challenges: ['Complete individual assessments to see team insights'],
-        opportunities: ['Invite team members to participate'],
-        summary: 'Team insights are being processed. Please check back later.'
-      };
+      teamRecommendations = AIService.getFallbackTeamRecommendations(teamScores);
     }
 
     // Store team recommendations in the database

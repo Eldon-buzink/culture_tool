@@ -138,7 +138,7 @@ export function generateAssessmentResultsEmail(data: AssessmentResultsEmailData)
           <div class="score-card">
             <h3>🏆 Top Insights</h3>
             <ul>
-              ${data.topInsights.map(insight => `<li>${insight}</li>`).join('')}
+              ${Array.isArray(data.topInsights) ? data.topInsights.map(insight => `<li>${insight}</li>`).join('') : '<li>Comprehensive assessment results available in full report</li>'}
             </ul>
           </div>
           
