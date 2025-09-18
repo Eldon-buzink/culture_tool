@@ -986,7 +986,8 @@ export default function TeamDashboardPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                     {/* Left: Radar Chart */}
                     <div className="overflow-visible">
-                      <h3 className="text-lg font-semibold mb-4 text-gray-900">Team Personality Dimensions</h3>
+                      <h3 className="text-lg font-semibold mb-2 text-gray-900">Team Personality Working Styles</h3>
+                      <p className="text-sm text-gray-600 mb-4">These are preferences, not good/bad. Use them to plan how you work together.</p>
                       <div className="w-full h-[400px] overflow-visible">
                       <RadarChart 
                         data={teamData.aggregateScores.ocean} 
@@ -1216,7 +1217,8 @@ export default function TeamDashboardPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                     {/* Left: Radar Chart */}
                     <div className="overflow-visible">
-                      <h3 className="text-lg font-semibold mb-4 text-gray-900">Team Cultural Dimensions</h3>
+                      <h3 className="text-lg font-semibold mb-2 text-gray-900">Team Cultural Patterns</h3>
+                      <p className="text-sm text-gray-600 mb-4">Range of styles on the team - use to understand different approaches.</p>
                       <div className="w-full h-[400px] overflow-visible">
                       <RadarChart 
                         data={teamData.aggregateScores.culture} 
@@ -1891,142 +1893,132 @@ export default function TeamDashboardPage() {
                     {/* Your Next Steps */}
                     <div className="bg-white rounded-lg p-6 border border-gray-200 shadow-sm">
                       <h3 className="text-lg font-semibold mb-2 text-gray-900">Your Next Steps</h3>
-                      <p className="text-sm text-gray-600 mb-6">You can start doing today</p>
+                      <p className="text-sm text-gray-600 mb-6">Prioritized by effort and impact</p>
                       
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <div>
-                          <div className="flex items-center gap-3 mb-4">
-                            <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center text-white font-bold text-sm">1</div>
-                            <h4 className="font-semibold text-gray-900">This Week</h4>
-                          </div>
-                          <ul className="space-y-3">
-                            {(() => {
-                              const oceanScores = teamData.aggregateScores.ocean;
-                              const cultureScores = teamData.aggregateScores.culture;
-                              const valuesScores = teamData.aggregateScores.values;
-                              
-                              const thisWeekSteps = [];
-                              
-                              if (oceanScores.openness >= 70) {
-                                thisWeekSteps.push({
-                                  text: 'Create a dedicated "Innovation Hour" during the week for creative & experimental projects',
-                                  trait: 'Openness',
-                                  score: oceanScores.openness
-                                });
+                      <div className="space-y-4">
+                        {(() => {
+                          const oceanScores = teamData.aggregateScores.ocean;
+                          const cultureScores = teamData.aggregateScores.culture;
+                          const valuesScores = teamData.aggregateScores.values;
+                          
+                          const steps = [];
+                          
+                          // High Impact, Low Effort (Priority 1)
+                          if (valuesScores.collaboration >= 70) {
+                            steps.push({
+                              text: 'Start next meeting with a 2-minute team check-in round',
+                              priority: 'High Impact, Low Effort',
+                              trait: 'Collaboration',
+                              score: valuesScores.collaboration,
+                              color: 'bg-green-100 text-green-800 border-green-200'
+                            });
+                          }
+                          
+                          if (cultureScores.powerDistance <= 40) {
+                            steps.push({
+                              text: 'Ask "What does everyone think?" before making decisions',
+                              priority: 'High Impact, Low Effort',
+                              trait: 'Power Distance',
+                              score: cultureScores.powerDistance,
+                              color: 'bg-green-100 text-green-800 border-green-200'
+                            });
+                          }
+                          
+                          // High Impact, Medium Effort (Priority 2)
+                          if (oceanScores.openness >= 70) {
+                            steps.push({
+                              text: 'Schedule monthly "What if?" brainstorming sessions',
+                              priority: 'High Impact, Medium Effort',
+                              trait: 'Openness',
+                              score: oceanScores.openness,
+                              color: 'bg-blue-100 text-blue-800 border-blue-200'
+                            });
+                          }
+                          
+                          if (valuesScores.quality >= 70) {
+                            steps.push({
+                              text: 'Create simple quality checklists for key processes',
+                              priority: 'High Impact, Medium Effort',
+                              trait: 'Quality',
+                              score: valuesScores.quality,
+                              color: 'bg-blue-100 text-blue-800 border-blue-200'
+                            });
+                          }
+                          
+                          // Medium Impact, Low Effort (Priority 3)
+                          if (oceanScores.extraversion >= 60) {
+                            steps.push({
+                              text: 'Share meeting agendas 24 hours in advance',
+                              priority: 'Medium Impact, Low Effort',
+                              trait: 'Extraversion',
+                              score: oceanScores.extraversion,
+                              color: 'bg-yellow-100 text-yellow-800 border-yellow-200'
+                            });
+                          }
+                          
+                          if (oceanScores.conscientiousness >= 70) {
+                            steps.push({
+                              text: 'Set up weekly 15-minute planning sessions',
+                              priority: 'Medium Impact, Low Effort',
+                              trait: 'Conscientiousness',
+                              score: oceanScores.conscientiousness,
+                              color: 'bg-yellow-100 text-yellow-800 border-yellow-200'
+                            });
+                          }
+                          
+                          // Default steps if none specific
+                          if (steps.length === 0) {
+                            steps.push(
+                              {
+                                text: 'Hold a 30-minute team preferences discussion',
+                                priority: 'High Impact, Low Effort',
+                                trait: 'Team',
+                                score: 0,
+                                color: 'bg-green-100 text-green-800 border-green-200'
+                              },
+                              {
+                                text: 'Create a shared team communication agreement',
+                                priority: 'High Impact, Medium Effort',
+                                trait: 'Team',
+                                score: 0,
+                                color: 'bg-blue-100 text-blue-800 border-blue-200'
+                              },
+                              {
+                                text: 'Start weekly 10-minute retrospectives',
+                                priority: 'Medium Impact, Low Effort',
+                                trait: 'Team',
+                                score: 0,
+                                color: 'bg-yellow-100 text-yellow-800 border-yellow-200'
                               }
-                              
-                              if (valuesScores.collaboration >= 70) {
-                                thisWeekSteps.push({
-                                  text: 'Establish rotating meeting facilitation to leverage your collaborative strengths',
-                                  trait: 'Collaboration', 
-                                  score: valuesScores.collaboration
-                                });
-                              }
-                              
-                              if (cultureScores.powerDistance <= 40) {
-                                thisWeekSteps.push({
-                                  text: 'Implement flat decision-making processes that match your low Power Distance preference',
-                                  trait: 'Power Distance',
-                                  score: cultureScores.powerDistance
-                                });
-                              }
-                              
-                              // Default steps if none specific
-                              if (thisWeekSteps.length === 0) {
-                                thisWeekSteps.push(
-                                  { text: 'Schedule team check-ins to discuss working style preferences', trait: 'Team', score: 0 },
-                                  { text: 'Create shared team agreements about communication and collaboration', trait: 'Team', score: 0 },
-                                  { text: 'Establish regular feedback cycles for continuous improvement', trait: 'Team', score: 0 }
-                                );
-                              }
-                              
-                              return thisWeekSteps.slice(0, 3).map((step, index) => (
-                                <li key={index} className="flex items-start gap-3">
-                                  <div className="w-1.5 h-1.5 bg-purple-500 rounded-full mt-2 flex-shrink-0"></div>
-                      <div>
-                                    <span className="text-sm text-gray-700">{step.text}</span>
-                                    {step.score > 0 && (
-                                      <div className="mt-1">
-                                        <span className="text-xs text-gray-500">Because:</span>
-                                        <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200 ml-1">
-                                          {step.trait} ({step.score})
-                                        </Badge>
+                            );
+                          }
+                          
+                          return steps.slice(0, 5).map((step, index) => (
+                            <div key={index} className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg">
+                              <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                                {index + 1}
+                              </div>
+                              <div className="flex-1">
+                                <div className="flex items-start justify-between gap-3 mb-2">
+                                  <span className="text-sm font-medium text-gray-900">{step.text}</span>
+                                  <Badge className={`text-xs px-2 py-1 ${step.color}`}>
+                                    {step.priority}
+                                  </Badge>
+                                </div>
+                                {step.score > 0 && (
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xs text-gray-500">Based on:</span>
+                                    <Badge variant="outline" className="text-xs bg-white text-gray-700 border-gray-300">
+                                      {step.trait} ({step.score})
+                                    </Badge>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ));
+                        })()}
                       </div>
-                    )}
-                            </div>
-                                </li>
-                              ));
-                            })()}
-                          </ul>
-                            </div>
-
-                      <div>
-                          <div className="flex items-center gap-3 mb-4">
-                            <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center text-white font-bold text-sm">2</div>
-                            <h4 className="font-semibold text-gray-900">This Month</h4>
-                            </div>
-                          <ul className="space-y-3">
-                            {(() => {
-                              const oceanScores = teamData.aggregateScores.ocean;
-                              const cultureScores = teamData.aggregateScores.culture;
-                              const valuesScores = teamData.aggregateScores.values;
-                              
-                              const thisMonthSteps = [];
-                              
-                              if (valuesScores.quality >= 70) {
-                                thisMonthSteps.push({
-                                  text: 'Set up quality review processes that leverage your high Quality focus',
-                                  trait: 'Quality',
-                                  score: valuesScores.quality
-                                });
-                              }
-                              
-                              if (oceanScores.openness >= 70 && oceanScores.conscientiousness >= 60) {
-                                thisMonthSteps.push({
-                                  text: 'Create innovation time within structured processes to balance creativity with delivery',
-                                  trait: 'Openness + Conscientiousness',
-                                  score: Math.round((oceanScores.openness + oceanScores.conscientiousness) / 2)
-                                });
-                              }
-                              
-                              if (cultureScores.individualism >= 60 && oceanScores.agreeableness >= 60) {
-                                thisMonthSteps.push({
-                                  text: 'Establish regular team reflection sessions to leverage your team dynamics',
-                                  trait: 'Individualism + Agreeableness',
-                                  score: Math.round((cultureScores.individualism + oceanScores.agreeableness) / 2)
-                                });
-                              }
-                              
-                              // Default steps if none specific
-                              if (thisMonthSteps.length === 0) {
-                                thisMonthSteps.push(
-                                  { text: 'Implement team retrospectives to identify improvement opportunities', trait: 'Team', score: 0 },
-                                  { text: 'Create cross-training opportunities to build team versatility', trait: 'Team', score: 0 },
-                                  { text: 'Establish team goals that align with individual strengths', trait: 'Team', score: 0 }
-                                );
-                              }
-                              
-                              return thisMonthSteps.slice(0, 3).map((step, index) => (
-                                <li key={index} className="flex items-start gap-3">
-                                  <div className="w-1.5 h-1.5 bg-purple-500 rounded-full mt-2 flex-shrink-0"></div>
-                      <div>
-                                    <span className="text-sm text-gray-700">{step.text}</span>
-                                    {step.score > 0 && (
-                                      <div className="mt-1">
-                                        <span className="text-xs text-gray-500">Because:</span>
-                                        <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200 ml-1">
-                                          {step.trait} ({step.score})
-                                        </Badge>
-                      </div>
-                    )}
-                  </div>
-                                </li>
-                              ));
-                            })()}
-                          </ul>
                     </div>
-                    </div>
-                  </div>
                   </div>
               </CardContent>
             </Card>
