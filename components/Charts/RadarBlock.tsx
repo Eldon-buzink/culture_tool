@@ -1,8 +1,6 @@
 "use client";
 
-import dynamic from "next/dynamic";
-
-const RadarInner = dynamic(() => import("./RadarInner"), { ssr: false });
+import RadarInner from "@/components/Charts/RadarInner";
 
 interface RadarBlockProps {
   data: Record<string, number>;

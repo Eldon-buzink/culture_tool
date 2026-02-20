@@ -175,7 +175,11 @@ export default function DemoIndividualResultsHybridPage() {
   };
 
   const getTermTooltip = (term: string): string => {
+    // Capitalize first letter to match tooltip keys
+    const capitalizedTerm = term.charAt(0).toUpperCase() + term.slice(1);
+    
     const tooltips: Record<string, string> = {
+      // OCEAN Personality Traits (both cases)
       Openness:
         "Openness to Experience reflects your curiosity, creativity, and willingness to try new things. High scorers are imaginative, curious, and open to new ideas. Low scorers prefer routine, practical approaches, and familiar experiences.",
       Conscientiousness:
@@ -186,8 +190,44 @@ export default function DemoIndividualResultsHybridPage() {
         "Agreeableness reflects your concern for others and cooperation. High scorers are trusting, helpful, and value harmony. Low scorers are more competitive, skeptical, and direct in their communication.",
       Neuroticism:
         "Neuroticism measures emotional stability and stress response. High scorers experience more negative emotions and stress. Low scorers are calm, emotionally stable, and resilient under pressure.",
+      openness:
+        "Openness to Experience reflects your curiosity, creativity, and willingness to try new things. High scorers are imaginative, curious, and open to new ideas. Low scorers prefer routine, practical approaches, and familiar experiences.",
+      conscientiousness:
+        "Conscientiousness measures your self-discipline, organization, and goal-directed behavior. High scorers are organized, reliable, and detail-oriented. Low scorers are more flexible, spontaneous, and adaptable.",
+      extraversion:
+        "Extraversion indicates your energy source and social preferences. High scorers are outgoing, energetic, and gain energy from social interaction. Low scorers are more reserved, quiet, and prefer smaller groups or solitude.",
+      agreeableness:
+        "Agreeableness reflects your concern for others and cooperation. High scorers are trusting, helpful, and value harmony. Low scorers are more competitive, skeptical, and direct in their communication.",
+      neuroticism:
+        "Neuroticism measures emotional stability and stress response. High scorers experience more negative emotions and stress. Low scorers are calm, emotionally stable, and resilient under pressure.",
+      
+      // Cultural Dimensions
+      powerDistance:
+        "Power Distance reflects your comfort with hierarchical structures and authority. High scorers accept and expect clear hierarchies and formal authority. Low scorers prefer flat structures, equal participation, and informal communication.",
+      individualism:
+        "Individualism measures your preference for personal achievement versus group harmony. High scorers value independence, personal recognition, and individual goals. Low scorers prioritize group cohesion, collective goals, and team success.",
+      masculinity:
+        "Masculinity reflects your preference for competitive versus cooperative environments. High scorers value achievement, competition, and assertiveness. Low scorers prioritize cooperation, quality of life, and nurturing relationships.",
+      uncertaintyAvoidance:
+        "Uncertainty Avoidance measures your comfort with ambiguity and change. High scorers prefer structure, rules, and predictability. Low scorers are comfortable with ambiguity, flexibility, and adapting to change.",
+      longTermOrientation:
+        "Long-term Orientation reflects your focus on future planning versus immediate results. High scorers value persistence, thrift, and long-term goals. Low scorers prioritize immediate results, tradition, and short-term gains.",
+      indulgence:
+        "Indulgence measures your preference for enjoying life versus restraint. High scorers value leisure, fun, and personal gratification. Low scorers prioritize restraint, discipline, and delayed gratification.",
+      
+      // Work Values
+      innovation:
+        "Innovation reflects how much you value creativity, experimentation, and new approaches. High scorers thrive in environments that encourage experimentation and creative problem-solving. Low scorers prefer proven methods and established processes.",
+      collaboration:
+        "Collaboration measures how important teamwork and cooperative work are to you. High scorers value working closely with others, sharing ideas, and team success. Low scorers prefer more independent work and individual contributions.",
+      autonomy:
+        "Autonomy reflects your need for independence and self-direction in your work. High scorers value freedom to make decisions and work independently. Low scorers prefer more guidance, structure, and collaborative decision-making.",
+      quality:
+        "Quality measures how much you prioritize excellence, precision, and attention to detail. High scorers value thoroughness, accuracy, and high standards. Low scorers may prioritize speed, efficiency, or flexibility over perfection.",
+      customerFocus:
+        "Customer Focus reflects how important understanding and serving customers is to you. High scorers prioritize customer needs, satisfaction, and user experience. Low scorers may focus more on internal processes or technical excellence.",
     };
-    return tooltips[term] || "";
+    return tooltips[term] || tooltips[capitalizedTerm] || "";
   };
 
   const toggleRecommendation = (section: string, index: number) => {

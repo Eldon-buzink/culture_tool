@@ -39,6 +39,15 @@ export default function Home() {
               AI Insights
             </Badge>
           </div>
+          <div className="mb-8">
+            <Link href="/discover">
+              <Button size="lg" variant="outline" className="bg-white/80 hover:bg-white border-2 border-indigo-300 hover:border-indigo-400">
+                <Sparkles className="h-4 w-4 mr-2" />
+                Explore Personal Discovery
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {/* Main Actions */}

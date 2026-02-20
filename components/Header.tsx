@@ -34,6 +34,7 @@ export default function Header({ showCTA = true, ctaText = "Start Assessment", c
 
   const navigation = [
     { name: 'Home', href: '/' },
+    { name: 'Discover', href: '/discover' },
     { name: 'Individual Assessment', href: '/assessment/start-assessment' },
     { name: 'Team Assessment', href: '/team/create' },
     { name: 'About', href: '/about' },

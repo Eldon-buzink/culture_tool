@@ -5,10 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import dynamic from "next/dynamic";
-const RadarChart = dynamic(() => import("@/components/RadarChart"), {
-  ssr: false,
-});
+import RadarChart from "@/components/RadarChart";
 import ContextBanner from "@/components/ContextBanner";
 import { RecList } from "@/components/RecList";
 import { scoreToBand, traitMeta, Trait } from "@/lib/interpretation";
